@@ -8,6 +8,7 @@ from typing import Iterable, Mapping, Sequence
 from .layouts import CanonicalLayout, Layout, column_major_layout, row_major_layout
 from .model import EventSequence, MatrixSpec, MemoryEvent, exact_log2, is_power_of_two
 from .objectives import ObjectiveComponent, ObjectiveSpec, build_objectives
+from .scoring import weighted_component_region_count
 from .search import LayoutSeed, ScorePolicy, SearchStats, search_canonical, search_linear_inner
 
 
@@ -177,19 +178,6 @@ def _outer_orders(matrix: MatrixSpec, config: SolverConfig) -> tuple[tuple[int, 
     return tuple(result)
 
 
-def _direct_component_score(
-    matrix: MatrixSpec,
-    layout: Layout,
-    component: ObjectiveComponent,
-) -> float:
-    capacity = component.capacity_elements(matrix)
-    total = 0.0
-    for edge in component.edges_by_array.get(matrix.name, ()):
-        regions = {layout.offset(matrix, point) // capacity for point in edge.points}
-        total += edge.weight * len(regions)
-    return total
-
-
 def _lane_metrics(matrix: MatrixSpec, layout: Layout, events: Sequence[MemoryEvent]) -> dict[str, float]:
     gap = 0.0
     breaks = 0.0
@@ -243,7 +231,9 @@ def _candidate_from_seed(
 ) -> Candidate:
     _validate_layout(matrix, seed.layout, config.exhaustive_inner_validation_bits)
     direct = {
-        component.name: _direct_component_score(matrix, seed.layout, component)
+        component.name: weighted_component_region_count(
+            matrix, seed.layout, component
+        )
         for component in components
         if component.edges_by_array.get(matrix.name)
     }
@@ -415,8 +405,12 @@ def solve(problem: RelayProblem) -> RelayResult:
         context_layouts[matrix.name] = layout
         for component in components:
             if component.edges_by_array.get(matrix.name):
-                context_scores[component.name] = context_scores.get(component.name, 0.0) + _direct_component_score(
-                    matrix, layout, component
+                context_scores[component.name] = context_scores.get(
+                    component.name, 0.0
+                ) + weighted_component_region_count(
+                    matrix,
+                    layout,
+                    component,
                 )
         context_scores = _sum_score_maps(context_scores, _lane_metrics(matrix, layout, problem.events))
         context_scores["runs"] = context_scores.get("runs", 0.0) + layout.runs

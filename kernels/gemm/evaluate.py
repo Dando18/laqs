@@ -294,11 +294,11 @@ int main() {
 
   std::puts("\nResults (kernel time only; packing and validation are excluded):");
   std::puts("median_ms  mean_ms  min_ms  sd_ms  GFLOP/s");
-  std::printf("%9.4f  %7.4f  %6.4f  %5.4f  %8.2f\n",
+  std::printf("%9.6f  %9.6f  %9.6f  %9.6f  %8.2f\n",
               median_ms, mean_ms, min_ms, std::sqrt(variance),
               flops / (median_ms * 1.0e6));
   std::printf("Samples (ms):");
-  for (double time : times_ms) std::printf(" %.4f", time);
+  for (double time : times_ms) std::printf(" %.6f", time);
   std::putchar('\n');
 
   HIP_CHECK(hipEventDestroy(start));

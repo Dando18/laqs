@@ -245,6 +245,67 @@ class LinearInnerLayout:
         return (self.grammar, self.tile_exponents, self.a_rows, self.outer_order)
 
 
+def canonical_layout_from_word(
+    matrix: MatrixSpec,
+    word: str,
+    *,
+    name: str | None = None,
+    outer_order: Sequence[int] | None = None,
+) -> CanonicalLayout:
+    """Build a canonical layout from low-to-high physical-bit mode names.
+
+    Each character selects the next unused low bit of the matching logical
+    mode.  The number of occurrences of each mode therefore defines the inner
+    tile shape.  Logical bits not named by ``word`` select outer tiles.
+    """
+
+    if not word:
+        raise ValueError("canonical layout word cannot be empty")
+
+    mode_indices: dict[str, int] = {}
+    for index, mode_name in enumerate(matrix.mode_names):
+        if len(mode_name) != 1:
+            raise ValueError(
+                f"{matrix.name}: canonical layout words require single-character "
+                f"mode names; got {mode_name!r}"
+            )
+        mode_indices[mode_name] = index
+
+    parsed_word: list[int] = []
+    counts = [0] * matrix.rank
+    for symbol in word:
+        if symbol not in mode_indices:
+            expected = ", ".join(repr(mode) for mode in matrix.mode_names)
+            raise ValueError(
+                f"{matrix.name}: unknown mode {symbol!r} in canonical layout word; "
+                f"expected one of {expected}"
+            )
+        mode = mode_indices[symbol]
+        counts[mode] += 1
+        if counts[mode] > matrix.mode_bits[mode]:
+            raise ValueError(
+                f"{matrix.name}: canonical layout word uses mode {symbol!r} "
+                f"{counts[mode]} times, but the extent provides only "
+                f"{matrix.mode_bits[mode]} bits"
+            )
+        parsed_word.append(mode)
+
+    resolved_outer_order = (
+        tuple(reversed(range(matrix.rank)))
+        if outer_order is None
+        else tuple(outer_order)
+    )
+    layout = CanonicalLayout(
+        name or f"canonical_{word}",
+        matrix.name,
+        tuple(counts),
+        tuple(parsed_word),
+        resolved_outer_order,
+    )
+    layout.validate(matrix)
+    return layout
+
+
 def row_major_layout(matrix: MatrixSpec, name: str = "row_major") -> CanonicalLayout:
     exponents = matrix.mode_bits
     word: list[int] = []

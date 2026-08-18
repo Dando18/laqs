@@ -1,5 +1,11 @@
 from .dsl import lane_accesses, lane_event, sequence
-from .layouts import CanonicalLayout, LinearInnerLayout, column_major_layout, row_major_layout
+from .layouts import (
+    CanonicalLayout,
+    LinearInnerLayout,
+    canonical_layout_from_word,
+    column_major_layout,
+    row_major_layout,
+)
 from .model import Access, EventFilter, EventSequence, MatrixSpec, MemoryEvent
 from .objectives import (
     ExplicitRegions,
@@ -12,6 +18,19 @@ from .objectives import (
     TemporalWindowRegions,
 )
 from .report import dump_json, print_layout, print_report, result_to_dict
+from .scoring import (
+    SCORE_MODES,
+    ArrayComponentScore,
+    ComponentScore,
+    LayoutScore,
+    ScoreMode,
+    normalized_excess,
+    quotient_region_count,
+    score_layouts,
+    score_problem,
+    score_to_dict,
+    weighted_component_region_count,
+)
 from .search import ScorePolicy
 from .solver import (
     ArrayResult,
@@ -26,9 +45,12 @@ from .simple_solver import simple_solve, SimpleRelayProblem
 
 __all__ = [
     "Access",
+    "ArrayComponentScore",
     "ArrayResult",
     "Candidate",
     "CanonicalLayout",
+    "ComponentScore",
+    "canonical_layout_from_word",
     "EventFilter",
     "EventSequence",
     "ExplicitRegions",
@@ -38,6 +60,7 @@ __all__ = [
     "lane_accesses",
     "lane_event",
     "LanePrefixRegions",
+    "LayoutScore",
     "LinearInnerLayout",
     "MatrixSpec",
     "MemoryEvent",
@@ -45,6 +68,8 @@ __all__ = [
     "PerLaneTemporalRegions",
     "RelayProblem",
     "RelayResult",
+    "SCORE_MODES",
+    "ScoreMode",
     "ScorePolicy",
     "SimultaneousRegions",
     "SolverConfig",
@@ -53,10 +78,16 @@ __all__ = [
     "dump_json",
     "print_layout",
     "print_report",
+    "normalized_excess",
+    "quotient_region_count",
     "result_to_dict",
     "row_major_layout",
+    "score_layouts",
+    "score_problem",
+    "score_to_dict",
     "sequence",
     "solve",
+    "weighted_component_region_count",
     "simple_solve",
     "SimpleRelayProblem",
 ]

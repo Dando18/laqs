@@ -1,28 +1,10 @@
-""" Construct memory events for a simple GeMM problem.
+"""Construct memory events and objectives for a simple square GEMM.
 
-    Currently only parameterized by the problem size N.
-    Assume the kernel is launched on a single GPU with a 
-
-
-        __global__ void gemm(Real_ptr C, Real_ptr A, Real_ptr B,
-                                Real_type alpha, Real_type beta,
-                                Index_type ni, Index_type nj, Index_type nk)
-        {
-            Index_type i = blockIdx.y * blockDim.y + threadIdx.y;
-            Index_type j = blockIdx.x * blockDim.x + threadIdx.x;
-
-            if ( i < ni && j < nj ) {
-                Real_type dot = 0.0;
-                C[j + i*nj] *= beta;
-                for (Index_type k = 0; k < nk; ++k ) {
-                    dot += alpha * A[k + i*nk] * B[j + k*nj];
-                }
-                C[j + i*nj] = dot;
-            }
-        }
-
-    Run on (blk_sz_j, blk_sz_i) sized blocks and a grid of (ceil(nj/blk_sz_j), ceil(ni/blk_sz_i)) blocks.  
-    Each thread computes one element of C.
+Each thread computes one output ``C[i, j]``.  A wave first reads C, then loads
+``A[i, k]`` and ``B[k, j]`` for every inner-loop step, and finally writes C.
+The trace models one representative workgroup, with x / matrix-j threads
+varying fastest.  ``Config`` controls the square problem size and workgroup
+shape; ``HardwareConfig`` currently fixes a 64-lane wavefront.
 """
 
 
@@ -32,21 +14,13 @@ from relay import (
     Access,
     EventFilter,
     EventSequence,
-    GroupedRegions,
     LanePrefixRegions,
     MatrixSpec,
     MemoryEvent,
     PerLaneTemporalRegions,
-    RelayProblem,
-    ScorePolicy,
     SimultaneousRegions,
-    SolverConfig,
-    TemporalWindowRegions,
-    ObjectiveComponent,
-    dump_json,
-    print_report,
-    solve,
 )
+from relay.objectives import ObjectiveSpec
 
 
 @dataclass(frozen=True)
@@ -64,6 +38,7 @@ class HardwareConfig:
 
 def build_config(**kwargs) -> Config:
     return Config(**kwargs)
+
 
 def get_matrices(config: Config) -> tuple[MatrixSpec, ...]:
     N = config.problem_size
@@ -187,8 +162,11 @@ def get_events_and_sequences(
 
     return tuple(events), tuple(sequences)
 
-def get_objectives(config: Config) -> tuple[ObjectiveComponent, ...]:
-    
+
+def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
+    """Describe the GEMM access scopes and aligned byte granularities."""
+
+    del config
     matrix_reads = EventFilter.make(arrays=("A", "B", "C"), kinds=("read",))
     A_reads = EventFilter.make(arrays=("A",), kinds=("read",))
     B_reads = EventFilter.make(arrays=("B",), kinds=("read",))
@@ -227,16 +205,14 @@ def get_objectives(config: Config) -> tuple[ObjectiveComponent, ...]:
         ),
         LanePrefixRegions(
             "B.lane",
-            levels=((8,64), (16,128), (32,256), (64,256)),
+            levels=((8, 64), (16, 128), (32, 256), (64, 256)),
             event_filter=B_reads,
             provenance="grounded",
-            #description="per-lane prefix reuse of B",
         ),
         LanePrefixRegions(
             "C.lane",
-            levels=((8,64), (16,128), (32,256), (64,512)),
+            levels=((8, 64), (16, 128), (32, 256), (64, 512)),
             event_filter=C_writes,
             provenance="grounded",
-            #description="per-lane prefix reuse of C",
         ),
     )

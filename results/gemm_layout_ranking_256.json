@@ -1,0 +1,2455 @@
+{
+  "benchmark_run_order": [
+    "tile16_row_major",
+    "column_major",
+    "tile16_column_major",
+    "tile8_row_major",
+    "row_major",
+    "tile8_column_major",
+    "tile32_column_major",
+    "tile32_row_major"
+  ],
+  "component_weights": {},
+  "configuration": {
+    "arch": "gfx942",
+    "block": [
+      32,
+      32,
+      1
+    ],
+    "compiler": "/opt/rocm-7.0.2/bin/hipcc",
+    "device": 0,
+    "iterations": 5,
+    "n": 256,
+    "samples": 10,
+    "score_only": false,
+    "seed": 0,
+    "warmup": 3
+  },
+  "experiment": "gemm-traditional-layout-ranking",
+  "results": [
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "jjjjjjjjiiiiiiii",
+        "jjjjjjjjiiiiiiii",
+        "jjjjjjjjiiiiiiii",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-igsixz9n/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-igsixz9n/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-igsixz9n/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-igsixz9n/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=jjjjjjjjiiiiiiii B=jjjjjjjjiiiiiiii C=jjjjjjjjiiiiiiii (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.065476   0.065473   0.065384   0.000046    512.47\nSamples (ms): 0.065384 0.065424 0.065440 0.065504 0.065488 0.065520 0.065472 0.065480 0.065552 0.065464\n",
+      "layouts": {
+        "A": "jjjjjjjjiiiiiiii",
+        "B": "jjjjjjjjiiiiiiii",
+        "C": "jjjjjjjjiiiiiiii"
+      },
+      "name": "row_major",
+      "rank_delta": 0.0,
+      "runtime_rank": 2.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 15.0,
+          "weighted_normalized_excess": 17.13236772248138,
+          "weighted_region_count": 4512256.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 8192.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 0.19875776397515527,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 24704.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.19875776397515527,
+            "weighted_region_count": 24704.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 0.9336099585062241,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 477184.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 0.9336099585062241,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 477184.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.9336099585062241,
+            "weighted_region_count": 477184.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 3948544.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 3948544.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 3948544.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 32768.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 32768.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 16384.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 16384.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 8192.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 8192.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 4096.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 64.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 64.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 64.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 32.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 32.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 32.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 32.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 1.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 32.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.0,
+            "weighted_region_count": 32.0
+          }
+        ]
+      },
+      "score_rank": 2.0,
+      "selected_score": 17.13236772248138,
+      "aggregate_scores": {
+        "peak-normalized-excess": 15.0,
+        "weighted-normalized-excess": 17.13236772248138,
+        "weighted-region-count": 4512256.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 512.47,
+        "mean_ms": 0.065473,
+        "median_ms": 0.065476,
+        "min_ms": 0.065384,
+        "samples_ms": [
+          0.065384,
+          0.065424,
+          0.06544,
+          0.065504,
+          0.065488,
+          0.06552,
+          0.065472,
+          0.06548,
+          0.065552,
+          0.065464
+        ],
+        "sd_ms": 4.6e-05
+      },
+      "word": "jjjjjjjjiiiiiiii"
+    },
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "iiiiiiiijjjjjjjj",
+        "iiiiiiiijjjjjjjj",
+        "iiiiiiiijjjjjjjj",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-n4hzaji2/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-n4hzaji2/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-n4hzaji2/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-n4hzaji2/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=iiiiiiiijjjjjjjj B=iiiiiiiijjjjjjjj C=iiiiiiiijjjjjjjj (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.169048   0.169048   0.168912   0.000102    198.49\nSamples (ms): 0.169304 0.169056 0.169072 0.169008 0.168920 0.168912 0.169024 0.169064 0.169072 0.169040\n",
+      "layouts": {
+        "A": "iiiiiiiijjjjjjjj",
+        "B": "iiiiiiiijjjjjjjj",
+        "C": "iiiiiiiijjjjjjjj"
+      },
+      "name": "column_major",
+      "rank_delta": 0.0,
+      "runtime_rank": 8.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 31.0,
+          "weighted_normalized_excess": 192.51746089018323,
+          "weighted_region_count": 5483008.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 5.583850931677019,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 135680.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 5.583850931677019,
+            "weighted_region_count": 135680.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 512.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 512.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 3948544.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 3948544.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 3948544.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.9336099585062241,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 477184.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 0.9336099585062241,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 477184.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.9336099585062241,
+            "weighted_region_count": 477184.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 31.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 131072.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 31.0,
+            "weighted_region_count": 131072.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 31.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 512.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 512.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 31.0,
+            "weighted_region_count": 512.0
+          }
+        ]
+      },
+      "score_rank": 8.0,
+      "selected_score": 192.51746089018323,
+      "aggregate_scores": {
+        "peak-normalized-excess": 31.0,
+        "weighted-normalized-excess": 192.51746089018323,
+        "weighted-region-count": 5483008.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 198.49,
+        "mean_ms": 0.169048,
+        "median_ms": 0.169048,
+        "min_ms": 0.168912,
+        "samples_ms": [
+          0.169304,
+          0.169056,
+          0.169072,
+          0.169008,
+          0.16892,
+          0.168912,
+          0.169024,
+          0.169064,
+          0.169072,
+          0.16904
+        ],
+        "sd_ms": 0.000102
+      },
+      "word": "iiiiiiiijjjjjjjj"
+    },
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "jjjiii",
+        "jjjiii",
+        "jjjiii",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-28zl623t/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-28zl623t/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-28zl623t/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-28zl623t/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=jjjiii B=jjjiii C=jjjiii (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.065492   0.065507   0.065432   0.000060    512.34\nSamples (ms): 0.065456 0.065432 0.065608 0.065552 0.065544 0.065504 0.065464 0.065440 0.065480 0.065592\n",
+      "layouts": {
+        "A": "jjjiii",
+        "B": "jjjiii",
+        "C": "jjjiii"
+      },
+      "name": "tile8_row_major",
+      "rank_delta": 1.0,
+      "runtime_rank": 3.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 7.4979253112033195,
+          "weighted_normalized_excess": 23.568052369784283,
+          "weighted_region_count": 2945728.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 8192.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 0.19875776397515527,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 24704.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.19875776397515527,
+            "weighted_region_count": 24704.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 1.8713692946058091,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 708608.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 1.8713692946058091,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 708608.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.8713692946058091,
+            "weighted_region_count": 708608.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.4979253112033195,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 2097152.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 7.4979253112033195,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 2097152.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.4979253112033195,
+            "weighted_region_count": 2097152.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 32768.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 32768.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 1.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 32768.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.0,
+            "weighted_region_count": 32768.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 32768.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 32768.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 16384.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 16384.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 1.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 64.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 64.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 64.0
+          }
+        ]
+      },
+      "score_rank": 4.0,
+      "selected_score": 23.568052369784283,
+      "aggregate_scores": {
+        "peak-normalized-excess": 7.4979253112033195,
+        "weighted-normalized-excess": 23.568052369784283,
+        "weighted-region-count": 2945728.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 512.34,
+        "mean_ms": 0.065507,
+        "median_ms": 0.065492,
+        "min_ms": 0.065432,
+        "samples_ms": [
+          0.065456,
+          0.065432,
+          0.065608,
+          0.065552,
+          0.065544,
+          0.065504,
+          0.065464,
+          0.06544,
+          0.06548,
+          0.065592
+        ],
+        "sd_ms": 6e-05
+      },
+      "word": "jjjiii"
+    },
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "iiijjj",
+        "iiijjj",
+        "iiijjj",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-kokcw163/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-kokcw163/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-kokcw163/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-kokcw163/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=iiijjj B=iiijjj C=iiijjj (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.096680   0.096684   0.096640   0.000034    347.07\nSamples (ms): 0.096688 0.096648 0.096720 0.096640 0.096672 0.096640 0.096728 0.096736 0.096696 0.096672\n",
+      "layouts": {
+        "A": "iiijjj",
+        "B": "iiijjj",
+        "C": "iiijjj"
+      },
+      "name": "tile8_column_major",
+      "rank_delta": 0.0,
+      "runtime_rank": 5.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 7.4979253112033195,
+          "weighted_normalized_excess": 69.95314553748615,
+          "weighted_region_count": 3435328.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 5.583850931677019,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 135680.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 5.583850931677019,
+            "weighted_region_count": 135680.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 512.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 512.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 7.4979253112033195,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 2097152.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 7.4979253112033195,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 2097152.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.4979253112033195,
+            "weighted_region_count": 2097152.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 1.8713692946058091,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 708608.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 1.8713692946058091,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 708608.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.8713692946058091,
+            "weighted_region_count": 708608.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 131072.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 131072.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 65536.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 65536.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 65536.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 32768.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 32768.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 512.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 512.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 512.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 256.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 256.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 256.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 64.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 64.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 64.0
+          }
+        ]
+      },
+      "score_rank": 5.0,
+      "selected_score": 69.95314553748615,
+      "aggregate_scores": {
+        "peak-normalized-excess": 7.4979253112033195,
+        "weighted-normalized-excess": 69.95314553748615,
+        "weighted-region-count": 3435328.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 347.07,
+        "mean_ms": 0.096684,
+        "median_ms": 0.09668,
+        "min_ms": 0.09664,
+        "samples_ms": [
+          0.096688,
+          0.096648,
+          0.09672,
+          0.09664,
+          0.096672,
+          0.09664,
+          0.096728,
+          0.096736,
+          0.096696,
+          0.096672
+        ],
+        "sd_ms": 3.4e-05
+      },
+      "word": "iiijjj"
+    },
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "jjjjiiii",
+        "jjjjiiii",
+        "jjjjiiii",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-7chaz7jx/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-7chaz7jx/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-7chaz7jx/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-7chaz7jx/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=jjjjiiii B=jjjjiiii C=jjjjiiii (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.065568   0.065588   0.065488   0.000084    511.75\nSamples (ms): 0.065720 0.065488 0.065632 0.065488 0.065576 0.065560 0.065744 0.065520 0.065600 0.065552\n",
+      "layouts": {
+        "A": "jjjjiiii",
+        "B": "jjjjiiii",
+        "C": "jjjjiiii"
+      },
+      "name": "tile16_row_major",
+      "rank_delta": -1.0,
+      "runtime_rank": 4.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 15.0,
+          "weighted_normalized_excess": 20.13236772248138,
+          "weighted_region_count": 4524576.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 8192.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 0.19875776397515527,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 24704.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.19875776397515527,
+            "weighted_region_count": 24704.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 0.9336099585062241,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 477184.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 0.9336099585062241,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 477184.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.9336099585062241,
+            "weighted_region_count": 477184.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 3948544.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 3948544.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 3948544.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 32768.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 32768.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 16384.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 16384.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 1.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 16384.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.0,
+            "weighted_region_count": 16384.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 1.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 8192.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.0,
+            "weighted_region_count": 8192.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 64.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 64.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 64.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 64.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 1.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 64.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.0,
+            "weighted_region_count": 64.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 32.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 1.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 32.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 1.0,
+            "weighted_region_count": 32.0
+          }
+        ]
+      },
+      "score_rank": 3.0,
+      "selected_score": 20.13236772248138,
+      "aggregate_scores": {
+        "peak-normalized-excess": 15.0,
+        "weighted-normalized-excess": 20.13236772248138,
+        "weighted-region-count": 4524576.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 511.75,
+        "mean_ms": 0.065588,
+        "median_ms": 0.065568,
+        "min_ms": 0.065488,
+        "samples_ms": [
+          0.06572,
+          0.065488,
+          0.065632,
+          0.065488,
+          0.065576,
+          0.06556,
+          0.065744,
+          0.06552,
+          0.0656,
+          0.065552
+        ],
+        "sd_ms": 8.4e-05
+      },
+      "word": "jjjjiiii"
+    },
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "iiiijjjj",
+        "iiiijjjj",
+        "iiiijjjj",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-n4hyswve/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-n4hyswve/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-n4hyswve/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-n4hyswve/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=iiiijjjj B=iiiijjjj C=iiiijjjj (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.159392   0.159376   0.159248   0.000065    210.52\nSamples (ms): 0.159392 0.159432 0.159456 0.159328 0.159448 0.159408 0.159392 0.159288 0.159368 0.159248\n",
+      "layouts": {
+        "A": "iiiijjjj",
+        "B": "iiiijjjj",
+        "C": "iiiijjjj"
+      },
+      "name": "tile16_column_major",
+      "rank_delta": 0.0,
+      "runtime_rank": 6.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 15.0,
+          "weighted_normalized_excess": 120.51746089018324,
+          "weighted_region_count": 5285504.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 5.583850931677019,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 135680.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 5.583850931677019,
+            "weighted_region_count": 135680.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 512.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 512.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 3948544.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 3948544.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 3948544.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.9336099585062241,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 477184.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 0.9336099585062241,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 477184.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.9336099585062241,
+            "weighted_region_count": 477184.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 131072.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 131072.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 65536.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 65536.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 65536.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 512.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 512.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 512.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 128.0
+          }
+        ]
+      },
+      "score_rank": 6.0,
+      "selected_score": 120.51746089018324,
+      "aggregate_scores": {
+        "peak-normalized-excess": 15.0,
+        "weighted-normalized-excess": 120.51746089018324,
+        "weighted-region-count": 5285504.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 210.52,
+        "mean_ms": 0.159376,
+        "median_ms": 0.159392,
+        "min_ms": 0.159248,
+        "samples_ms": [
+          0.159392,
+          0.159432,
+          0.159456,
+          0.159328,
+          0.159448,
+          0.159408,
+          0.159392,
+          0.159288,
+          0.159368,
+          0.159248
+        ],
+        "sd_ms": 6.5e-05
+      },
+      "word": "iiiijjjj"
+    },
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "jjjjjiiiii",
+        "jjjjjiiiii",
+        "jjjjjiiiii",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-2g4l4cdf/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-2g4l4cdf/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-2g4l4cdf/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-2g4l4cdf/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=jjjjjiiiii B=jjjjjiiiii C=jjjjjiiiii (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.065364   0.065388   0.065344   0.000041    513.35\nSamples (ms): 0.065400 0.065352 0.065360 0.065464 0.065360 0.065368 0.065432 0.065344 0.065360 0.065440\n",
+      "layouts": {
+        "A": "jjjjjiiiii",
+        "B": "jjjjjiiiii",
+        "C": "jjjjjiiiii"
+      },
+      "name": "tile32_row_major",
+      "rank_delta": 0.0,
+      "runtime_rank": 1.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 15.0,
+          "weighted_normalized_excess": 16.13236772248138,
+          "weighted_region_count": 4512240.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 1.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 8192.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 0.19875776397515527,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 24704.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.19875776397515527,
+            "weighted_region_count": 24704.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 0.9336099585062241,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 477184.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 0.9336099585062241,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 477184.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.9336099585062241,
+            "weighted_region_count": 477184.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 3948544.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 3948544.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 3948544.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 32768.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 32768.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 16384.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 16384.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 8192.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 8192.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 4096.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 128.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 128.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 128.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 64.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 64.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 64.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 32.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 32.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 32.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 16.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 16.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 16.0
+          }
+        ]
+      },
+      "score_rank": 1.0,
+      "selected_score": 16.13236772248138,
+      "aggregate_scores": {
+        "peak-normalized-excess": 15.0,
+        "weighted-normalized-excess": 16.13236772248138,
+        "weighted-region-count": 4512240.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 513.35,
+        "mean_ms": 0.065388,
+        "median_ms": 0.065364,
+        "min_ms": 0.065344,
+        "samples_ms": [
+          0.0654,
+          0.065352,
+          0.06536,
+          0.065464,
+          0.06536,
+          0.065368,
+          0.065432,
+          0.065344,
+          0.06536,
+          0.06544
+        ],
+        "sd_ms": 4.1e-05
+      },
+      "word": "jjjjjiiiii"
+    },
+    {
+      "benchmark_command": [
+        "/g/g16/dnicho/record-replay/relay/.venv/bin/python",
+        "/g/g16/dnicho/record-replay/relay/kernels/gemm/evaluate.py",
+        "iiiiijjjjj",
+        "iiiiijjjjj",
+        "iiiiijjjjj",
+        "--n",
+        "256",
+        "--samples",
+        "10",
+        "--iterations",
+        "5",
+        "--warmup",
+        "3",
+        "--device",
+        "0",
+        "--block-x",
+        "32",
+        "--block-y",
+        "32",
+        "--compiler",
+        "/opt/rocm-7.0.2/bin/hipcc",
+        "--arch",
+        "gfx942"
+      ],
+      "benchmark_stderr": "",
+      "benchmark_stdout": "Generated /var/tmp/dnicho/relay-gemm-mz6qy97s/generated_gemm.cu\nCompiling: /opt/rocm-7.0.2/bin/hipcc -O3 -std=c++17 --offload-arch=gfx942 /var/tmp/dnicho/relay-gemm-mz6qy97s/generated_gemm.cu -o /var/tmp/dnicho/relay-gemm-mz6qy97s/generated_gemm\nRunning /var/tmp/dnicho/relay-gemm-mz6qy97s/generated_gemm\nDevice: AMD Radeon Graphics\nGEMM FP64: N=256, block=32x32, samples=10, iterations=5, warmup=3\nLayouts: A=iiiiijjjjj B=iiiiijjjjj C=iiiiijjjjj (words are low -> high bits)\nCorrectness: PASS (5 points, max abs 0.000e+00, max rel 0.000e+00)\n\nResults (kernel time only; packing and validation are excluded):\nmedian_ms  mean_ms  min_ms  sd_ms  GFLOP/s\n 0.159548   0.159543   0.159408   0.000054    210.31\nSamples (ms): 0.159568 0.159584 0.159608 0.159528 0.159552 0.159592 0.159528 0.159544 0.159408 0.159512\n",
+      "layouts": {
+        "A": "iiiiijjjjj",
+        "B": "iiiiijjjjj",
+        "C": "iiiiijjjjj"
+      },
+      "name": "tile32_column_major",
+      "rank_delta": 0.0,
+      "runtime_rank": 7.0,
+      "score": {
+        "aggregates": {
+          "peak_normalized_excess": 31.0,
+          "weighted_normalized_excess": 176.51746089018323,
+          "weighted_region_count": 5482752.0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              },
+              {
+                "name": "A",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              },
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "fine64",
+            "normalized_excess": 5.583850931677019,
+            "packing_lower_bound": 20608.0,
+            "raw_region_count": 135680.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 5.583850931677019,
+            "weighted_region_count": 135680.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 3.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 512.0
+              }
+            ],
+            "name": "C.store64",
+            "normalized_excess": 3.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 512.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 3.0,
+            "weighted_region_count": 512.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "A",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 3948544.0
+              }
+            ],
+            "name": "A.lane_temporal128.window16",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 3948544.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 3948544.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 0.9336099585062241,
+                "packing_lower_bound": 246784.0,
+                "raw_region_count": 477184.0
+              }
+            ],
+            "name": "B.lane_temporal128.window16",
+            "normalized_excess": 0.9336099585062241,
+            "packing_lower_bound": 246784.0,
+            "raw_region_count": 477184.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 0.9336099585062241,
+            "weighted_region_count": 477184.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane16.128B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "name": "B.lane.lane32.256B",
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 31.0,
+            "weighted_region_count": 262144.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "B",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 131072.0
+              }
+            ],
+            "name": "B.lane.lane64.256B",
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 4096.0,
+            "raw_region_count": 131072.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 31.0,
+            "weighted_region_count": 131072.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 128.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane8.64B",
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 128.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 64,
+            "weight": 1.0,
+            "weighted_normalized_excess": 7.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 64.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane16.128B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 64.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 128,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 32.0,
+                "raw_region_count": 1024.0
+              }
+            ],
+            "name": "C.lane.lane32.256B",
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 32.0,
+            "raw_region_count": 1024.0,
+            "region_bytes": 256,
+            "weight": 1.0,
+            "weighted_normalized_excess": 31.0,
+            "weighted_region_count": 1024.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "C",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16.0,
+                "raw_region_count": 256.0
+              }
+            ],
+            "name": "C.lane.lane64.512B",
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16.0,
+            "raw_region_count": 256.0,
+            "region_bytes": 512,
+            "weight": 1.0,
+            "weighted_normalized_excess": 15.0,
+            "weighted_region_count": 256.0
+          }
+        ]
+      },
+      "score_rank": 7.0,
+      "selected_score": 176.51746089018323,
+      "aggregate_scores": {
+        "peak-normalized-excess": 31.0,
+        "weighted-normalized-excess": 176.51746089018323,
+        "weighted-region-count": 5482752.0
+      },
+      "timing": {
+        "device": "AMD Radeon Graphics",
+        "gflops": 210.31,
+        "mean_ms": 0.159543,
+        "median_ms": 0.159548,
+        "min_ms": 0.159408,
+        "samples_ms": [
+          0.159568,
+          0.159584,
+          0.159608,
+          0.159528,
+          0.159552,
+          0.159592,
+          0.159528,
+          0.159544,
+          0.159408,
+          0.159512
+        ],
+        "sd_ms": 5.4e-05
+      },
+      "word": "iiiiijjjjj"
+    }
+  ],
+  "score_mode": "weighted-normalized-excess",
+  "score_mode_spearman_correlations": {
+    "peak-normalized-excess": 0.5400617248673216,
+    "weighted-normalized-excess": 0.9761904761904762,
+    "weighted-region-count": 0.7380952380952381
+  },
+  "spearman_correlation": 0.9761904761904762
+}
