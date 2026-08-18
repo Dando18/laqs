@@ -3,9 +3,10 @@
 
 A problem module must provide ``build_config(**options)``,
 ``get_matrices(config)``, ``get_events_and_sequences(config)``, and
-``get_objectives(config)``.  Layouts are supplied as ``ARRAY=SPEC``.  A spec
-is ``row-major``, ``column-major``, or a canonical word whose symbols list
-physical element-address bits from least significant to most significant.
+``get_objectives(config)``, and ``get_component_weights(config)``.  Layouts
+are supplied as ``ARRAY=SPEC``.  A spec is ``row-major``, ``column-major``, or
+a canonical word whose symbols list physical element-address bits from least
+significant to most significant.
 
 Examples:
 
@@ -57,7 +58,9 @@ def _load_module(path: Path) -> ModuleType:
     return module
 
 
-def load_problem(path: Path, options: Mapping[str, object]) -> RelayProblem:
+def load_problem(
+    path: Path, options: Mapping[str, object]
+) -> tuple[RelayProblem, dict[str, float]]:
     """Load the small Python problem protocol used by ``kernels/gemm``."""
 
     module = _load_module(path)
@@ -65,12 +68,19 @@ def load_problem(path: Path, options: Mapping[str, object]) -> RelayProblem:
     matrices = tuple(module.get_matrices(config))
     events, sequences = module.get_events_and_sequences(config)
     objectives = tuple(module.get_objectives(config))
-    return RelayProblem(
-        matrices=matrices,
-        events=tuple(events),
-        sequences=tuple(sequences),
-        objectives=objectives,
-        name=path.stem,
+    weights = {
+        str(name): float(weight)
+        for name, weight in module.get_component_weights(config).items()
+    }
+    return (
+        RelayProblem(
+            matrices=matrices,
+            events=tuple(events),
+            sequences=tuple(sequences),
+            objectives=objectives,
+            name=path.stem,
+        ),
+        weights,
     )
 
 
@@ -128,6 +138,8 @@ def parse_layouts(problem: RelayProblem, values: list[str]) -> dict[str, Layout]
         layout_spec = assignments.get(name, default)
         if layout_spec is not None:
             layouts[name] = _layout_from_spec(matrix, layout_spec)
+        elif not matrix.target:
+            layouts[name] = row_major_layout(matrix)
     return layouts
 
 
@@ -196,8 +208,8 @@ def parse_arguments(
         default=[],
         metavar="OBJECTIVE=WEIGHT",
         help=(
-            "set tau for one objective; unspecified objectives use 1 and zero "
-            "excludes an objective from aggregates"
+            "override the problem-provided tau for one objective; zero excludes "
+            "it from aggregates"
         ),
     )
     parser.add_argument(
@@ -219,8 +231,11 @@ def run(argv: list[str] | None = None) -> int:
     parser, args = parse_arguments(argv)
     try:
         options = _parse_problem_options(args.problem_option)
-        weights = _parse_weights(args.component_weight)
-        problem = load_problem(args.problem_file.resolve(), options)
+        weight_overrides = _parse_weights(args.component_weight)
+        problem, default_weights = load_problem(
+            args.problem_file.resolve(), options
+        )
+        weights = {**default_weights, **weight_overrides}
         layouts = parse_layouts(problem, args.layout)
         score = score_problem(problem, layouts, component_weights=weights)
     except (AttributeError, ImportError, OSError, TypeError, ValueError) as error:
@@ -235,12 +250,21 @@ def run(argv: list[str] | None = None) -> int:
                 "layouts": {
                     name: _layout_description(
                         layout,
-                        next(matrix for matrix in problem.matrices if matrix.name == name),
+                        next(
+                            matrix
+                            for matrix in problem.matrices
+                            if matrix.name == name
+                        ),
                     )
                     for name, layout in layouts.items()
                 },
                 "selected_score_mode": mode,
                 "selected_score": score.value(mode),
+                "component_weights": {
+                    component.name: component.weight
+                    for component in score.components
+                },
+                "component_weight_overrides": weight_overrides,
             }
         )
         print(json.dumps(data, indent=2, sort_keys=True))

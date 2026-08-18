@@ -64,25 +64,30 @@ For example, score a globally row-major layout for every GEMM operand:
   --score-mode weighted-normalized-excess
 ```
 
-Use `--json` for a machine-readable report, `--component-weight NAME=VALUE`
-to set an objective's weight, and `--problem-option problem_size=512` to pass a
-JSON-valued option into the problem's `build_config` routine. See
+Each kernel problem supplies explicit default component weights (the notes'
+`tau` values). Use `--json` for a machine-readable report,
+`--component-weight NAME=VALUE` to override one default, and
+`--problem-option problem_size=512` to pass a JSON-valued option into the
+problem's `build_config` routine. See
 [Scoring realized layouts](docs/scoring.md) for the formulas, API, complete
 layout-word convention, CLI contract, and JSON fields.
 
-## Compare GEMM score and runtime ranks
+## Compare score and runtime ranks
 
-The GEMM experiment scores eight conventional global and tiled layouts, runs
-the existing HIP benchmark for each one, and compares ascending score rank to
-ascending median-runtime rank. It reports per-layout rank deltas and Spearman's
-rank correlation, with complete score and timing detail available as JSON.
+The combined experiment scores eight conventional global and tiled layouts for
+both GEMM and GESUMMV at several matrix sizes. It runs the matching HIP
+benchmark for each case and compares ascending score rank to ascending
+median-runtime rank. Exact raw numbers and ranks are written to JSON and
+Markdown. Variation-aware metrics use observed timing sample ranges without
+changing those raw ranks.
 
 Validate scoring without a GPU:
 
 ```bash
-.venv/bin/python experiments/gemm_layout_ranking.py \
-  --n 256 --score-only \
-  --output results/gemm-layout-ranking-score-only.json
+.venv/bin/python experiments/layout_ranking.py \
+  --kernel gemm --kernel gesummv \
+  --size 256 --size 512 --score-only \
+  --output results/layout-ranking-score-only.json
 ```
 
 Run timings from an MI300A allocation:
@@ -90,19 +95,77 @@ Run timings from an MI300A allocation:
 ```bash
 module load rocm/7.0.2
 flux run -n1 -g1 -t 5m -q pdebug \
-  .venv/bin/python experiments/gemm_layout_ranking.py \
-  --n 1024 --arch gfx942 \
-  --output results/gemm-layout-ranking-1024.json
+  .venv/bin/python experiments/layout_ranking.py \
+  --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942 \
+  --output results/layout-ranking.json
 ```
 
-See [GEMM layout score/runtime experiment](docs/gemm-layout-experiment.md) for
-the exact layout set, ranking rules, timing boundary, options, output fields,
-and interpretation limits.
+The default size set is 256, 512, and 1024. See
+[Multi-kernel layout score/runtime experiment](docs/layout-experiment.md) for
+the exact layout set, variation-aware rank formula, timing boundary, options,
+checkpoint/resume workflow, output fields, and interpretation limits.
 
-A checked-in `N=256` MI300A run is available at
+The kernel problem files distinguish traced, `grounded` wave scopes from
+`hypothesis` reuse and cache-neighborhood scopes. The latter are modeling
+assumptions, not claims about a particular cache implementation. Reports list
+the provenance, region size, meaning, and applied `tau` for every objective.
+The current combined MI300A tables are in
+[`results/layout_ranking.md`](results/layout_ranking.md), with complete
+component and timing data in the adjacent JSON file.
+
+A historical GEMM-only `N=256` MI300A run is available at
 [`results/gemm_layout_ranking_256.json`](results/gemm_layout_ranking_256.json).
-For this sample, six of eight positions matched exactly; the 8x8 and 16x16
-row-inner layouts exchanged ranks, giving Spearman `rho = 0.976190`.
+For this sample, the 8x8 and 16x16 row-inner layouts exchanged adjacent raw
+ranks while their observed timing ranges overlapped—the situation the new
+variation-aware metric is designed to represent.
+
+## Model and evaluate GESUMMV
+
+`kernels/gesummv/problem.py` describes the FP64 kernel
+
+```text
+y[i] = alpha * sum_j A[i,j] * x[j] + beta * sum_j B[i,j] * x[j]
+```
+
+as one complete representative workgroup trace. A and B are independently
+scored layout targets; x and y are fixed contiguous context vectors. The
+grounded objectives score traced wave loads and the output store. Explicitly
+hypothetical objectives encode 16-access per-lane reuse, nested lane groups,
+the two-wave panel reused at each inner-loop step, and broader wave/cache
+neighborhoods.
+
+For example, score column-major A and row-major B on a small problem:
+
+```bash
+.venv/bin/python bin/score_layout.py kernels/gesummv/problem.py \
+  --problem-option problem_size=256 \
+  --layout all=row-major --layout A=column-major
+```
+
+`kernels/gesummv/evaluate.py` generates a standalone HIP driver, checks the
+two generated address mappings and five output values, then reports kernel-only
+timings. Its two positional words select A and B. Words list physical address
+bits from low to high; omitted coordinate bits address a row-major outer tile
+grid. Thus `jjjjiiiiii` means a row-major 64x16 inner tile.
+
+Generate source without a GPU:
+
+```bash
+.venv/bin/python kernels/gesummv/evaluate.py \
+  jjjjiiiiii jjjjiiiiiii --n 256 --emit-only
+```
+
+Compile and time it on an MI300A allocation:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  .venv/bin/python kernels/gesummv/evaluate.py \
+  jjjjiiiiii jjjjiiiiiii --n 256 --arch gfx942
+```
+
+Use `--help` for the sample, iteration, warmup, workgroup, compiler, device,
+and retained-build-directory controls. Matrix dimensions must be divisible by
+the inner tile dimensions selected by each word.
 
 ## Minimal DSL example
 

@@ -63,14 +63,16 @@ class ScoreLayoutCliTests(unittest.TestCase):
         )
 
         self.assertEqual(report["selected_score_mode"], "weighted-region-count")
-        self.assertEqual(report["selected_score"], 1.0)
+        self.assertEqual(report["selected_score"], 0.5)
         self.assertEqual(report["layouts"], {"A": "iijj"})
+        self.assertEqual(report["component_weights"], {"column-wave-16B": 0.5})
+        self.assertEqual(report["component_weight_overrides"], {})
 
     def test_row_column_and_word_layout_specs(self) -> None:
         cases = (
-            ("row-major", "jjii", 4.0),
-            ("column-major", "iijj", 1.0),
-            ("word:jiji", "jiji", 2.0),
+            ("row-major", "jjii", 2.0),
+            ("column-major", "iijj", 0.5),
+            ("word:jiji", "jiji", 1.0),
         )
         for specification, expected_word, expected_score in cases:
             with self.subTest(specification=specification):
@@ -96,7 +98,24 @@ class ScoreLayoutCliTests(unittest.TestCase):
         # Three bits per mode are only valid if problem_size=8 reached the
         # fixture's build_config function; its default problem size is four.
         self.assertEqual(report["layouts"], {"A": "jjjiii"})
-        self.assertEqual(report["selected_score"], 8.0)
+        self.assertEqual(report["selected_score"], 4.0)
+
+    def test_command_line_weight_overrides_problem_default(self) -> None:
+        report = self.run_json(
+            "--layout",
+            "A=column-major",
+            "--score-mode",
+            "weighted-region-count",
+            "--component-weight",
+            "column-wave-16B=2",
+        )
+
+        self.assertEqual(report["selected_score"], 2.0)
+        self.assertEqual(report["component_weights"], {"column-wave-16B": 2.0})
+        self.assertEqual(
+            report["component_weight_overrides"],
+            {"column-wave-16B": 2.0},
+        )
 
     def test_missing_layout_is_an_argparse_error_without_stdout(self) -> None:
         output = StringIO()

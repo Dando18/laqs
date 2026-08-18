@@ -37,3 +37,8 @@ def get_objectives(
 ) -> tuple[SimultaneousRegions, ...]:
     del config
     return (SimultaneousRegions("column-wave-16B", 16),)
+
+
+def get_component_weights(config: dict[str, int]) -> dict[str, float]:
+    del config
+    return {"column-wave-16B": 0.5}

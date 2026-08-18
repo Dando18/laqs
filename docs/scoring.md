@@ -129,6 +129,7 @@ build_config(**options)
 get_matrices(config)
 get_events_and_sequences(config)
 get_objectives(config)
+get_component_weights(config)
 ```
 
 Score global row-major GEMM layouts:
@@ -146,14 +147,21 @@ Score one common 8x8 tiled layout and emit JSON:
 .venv/bin/python bin/score_layout.py kernels/gemm/problem.py \
   --layout all=jjjiii \
   --score-mode peak-normalized-excess \
-  --component-weight fine64=2 \
+  --component-weight wave_load.64B=2 \
   --problem-option problem_size=256 \
   --json
 ```
 
+`get_component_weights(config)` returns the problem's complete mapping from
+objective-component name to the notes' `tau` weight. The CLI applies those
+defaults; repeated `--component-weight NAME=VALUE` options override individual
+entries. A zero override keeps the component detail but excludes it from all
+aggregates.
+
 `--layout all=...` supplies a default; an array-specific assignment overrides
-it.  Layout specs are `row-major`, `column-major`, a canonical word, or the
-explicit spelling `word:jjjiii`.  `--problem-option NAME=JSON_VALUE` passes
+it. Non-target context arrays default to row-major when they have no explicit
+assignment. Layout specs are `row-major`, `column-major`, a canonical word, or
+the explicit spelling `word:jjjiii`. `--problem-option NAME=JSON_VALUE` passes
 configuration into `build_config`; numbers, strings, booleans, and lists must
 therefore use JSON syntax.
 
