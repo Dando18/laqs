@@ -20,31 +20,89 @@ It returns:
 - bounded joint configurations across target arrays; and
 - terminal and JSON reports explaining the search.
 
-The current implementation assumes power-of-two array extents and scalar accesses. It deliberately leaves compilation, HIP code generation, replay timing, non-power-of-two fringes, and cache/channel response modeling outside the package.
+The current implementation assumes power-of-two array extents and scalar accesses. The `relay` package deliberately leaves compilation and hardware measurement to companion scripts under `kernels/` and `experiments/`; non-power-of-two fringes and cache/channel response modeling remain out of scope.
 
 ## Install and run
 
 The package has no third-party dependencies.
 
 ```bash
-cd relay_solver_v1
-python -m pip install -e .
-python examples/row_column_conflict.py
-python examples/gesummv_multi.py --json gesummv.json
-python examples/jacobi_multi.py --json jacobi.json
+.venv/bin/python -m pip install -e .
+.venv/bin/python examples/row_column_conflict.py
+.venv/bin/python examples/gesummv_multi.py --json gesummv.json
+.venv/bin/python examples/jacobi_multi.py --json jacobi.json
 ```
 
 Without installing, run with:
 
 ```bash
-PYTHONPATH=. python examples/jacobi_multi.py
+PYTHONPATH=. .venv/bin/python examples/jacobi_multi.py
 ```
 
 Run tests:
 
 ```bash
-python -m unittest discover -s tests -v
+.venv/bin/python -m unittest discover -s tests -v
 ```
+
+## Score an existing layout
+
+The public scorer evaluates concrete layouts without running layout search. It
+reports each objective's weighted aligned-region count, its capacity-only
+packing lower bound, and its normalized excess over that bound. It also
+supports three explicitly named scalar costs:
+
+- `weighted-region-count`;
+- `peak-normalized-excess`; and
+- `weighted-normalized-excess`.
+
+For example, score a globally row-major layout for every GEMM operand:
+
+```bash
+.venv/bin/python bin/score_layout.py kernels/gemm/problem.py \
+  --layout all=row-major \
+  --score-mode weighted-normalized-excess
+```
+
+Use `--json` for a machine-readable report, `--component-weight NAME=VALUE`
+to set an objective's weight, and `--problem-option problem_size=512` to pass a
+JSON-valued option into the problem's `build_config` routine. See
+[Scoring realized layouts](docs/scoring.md) for the formulas, API, complete
+layout-word convention, CLI contract, and JSON fields.
+
+## Compare GEMM score and runtime ranks
+
+The GEMM experiment scores eight conventional global and tiled layouts, runs
+the existing HIP benchmark for each one, and compares ascending score rank to
+ascending median-runtime rank. It reports per-layout rank deltas and Spearman's
+rank correlation, with complete score and timing detail available as JSON.
+
+Validate scoring without a GPU:
+
+```bash
+.venv/bin/python experiments/gemm_layout_ranking.py \
+  --n 256 --score-only \
+  --output results/gemm-layout-ranking-score-only.json
+```
+
+Run timings from an MI300A allocation:
+
+```bash
+module load rocm/7.0.2
+flux run -n1 -g1 -t 5m -q pdebug \
+  .venv/bin/python experiments/gemm_layout_ranking.py \
+  --n 1024 --arch gfx942 \
+  --output results/gemm-layout-ranking-1024.json
+```
+
+See [GEMM layout score/runtime experiment](docs/gemm-layout-experiment.md) for
+the exact layout set, ranking rules, timing boundary, options, output fields,
+and interpretation limits.
+
+A checked-in `N=256` MI300A run is available at
+[`results/gemm_layout_ranking_256.json`](results/gemm_layout_ranking_256.json).
+For this sample, six of eight positions matched exactly; the 8x8 and 16x16
+row-inner layouts exchanged ranks, giving Spearman `rho = 0.976190`.
 
 ## Minimal DSL example
 
