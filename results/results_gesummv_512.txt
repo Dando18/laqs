@@ -1,0 +1,42 @@
+Device: AMD Radeon Graphics
+GESUMMV FP64: N=512, block=128, samples=12, iterations=20, warmup=5
+Packing and checking configurations:
+  row_major            A=row_major                       B=row_major                       PASS (max abs 8.882e-16)
+  column_major         A=column_major                    B=column_major                    PASS (max abs 8.882e-16)
+  tile16_row           A=tile16_row                      B=tile16_row                      PASS (max abs 8.882e-16)
+  tile16_column        A=tile16_column                   B=tile16_column                   PASS (max abs 8.882e-16)
+  c128x4/c128x4        A=c128x4_iiiiiiijj_outerji        B=c128x4_iiiiiiijj_outerji        PASS (max abs 8.882e-16)
+  c128x4/c64x1         A=c128x4_iiiiiiijj_outerji        B=c64x1_iiiiii_outerji            PASS (max abs 8.882e-16)
+  c64x1/c128x4         A=c64x1_iiiiii_outerji            B=c128x4_iiiiiiijj_outerji        PASS (max abs 8.882e-16)
+  c64x1/c64x1          A=c64x1_iiiiii_outerji            B=c64x1_iiiiii_outerji            PASS (max abs 8.882e-16)
+  c64x16/c64x16        A=c64x16_jjjjiiiiii_outerji       B=c64x16_jjjjiiiiii_outerji       PASS (max abs 8.882e-16)
+  c64x16/c128x16       A=c64x16_jjjjiiiiii_outerji       B=c128x16_jjjjiiiiiii_outerji     PASS (max abs 8.882e-16)
+  c128x16/c64x16       A=c128x16_jjjjiiiiiii_outerji     B=c64x16_jjjjiiiiii_outerji       PASS (max abs 8.882e-16)
+  c128x16/c128x16      A=c128x16_jjjjiiiiiii_outerji     B=c128x16_jjjjiiiiiii_outerji     PASS (max abs 8.882e-16)
+  c64x16/lin16x4       A=c64x16_jjjjiiiiii_outerji       B=lin16x4_flag0_outerji           PASS (max abs 8.882e-16)
+  c128x16/lin16x4      A=c128x16_jjjjiiiiiii_outerji     B=lin16x4_flag0_outerji           PASS (max abs 8.882e-16)
+  lin16x4/c64x16       A=lin16x4_flag0_outerji           B=c64x16_jjjjiiiiii_outerji       PASS (max abs 8.882e-16)
+  lin16x4/c128x16      A=lin16x4_flag0_outerji           B=c128x16_jjjjiiiiiii_outerji     PASS (max abs 8.882e-16)
+  lin16x4/lin16x4      A=lin16x4_flag0_outerji           B=lin16x4_flag0_outerji           PASS (max abs 8.882e-16)
+
+Results (ranked by median kernel time; packing is excluded):
+rank  configuration          median_us  mean_us  min_us  sd_us  GFLOP/s  vs_row
+   1  c64x1/c64x1              73.507   73.238  69.985  0.983    14.29   1.640x
+   2  c64x16/c64x16            75.954   75.955  75.899  0.034    13.83   1.587x
+   3  c128x16/c128x16          76.017   76.007  75.873  0.057    13.81   1.586x
+   4  tile16_row               78.239   78.258  78.195  0.052    13.42   1.541x
+   5  column_major             80.210   80.243  80.079  0.148    13.09   1.503x
+   6  c128x4/c128x4            81.775   82.004  78.111  2.075    12.84   1.474x
+   7  c128x16/c64x16           82.831   82.895  82.713  0.263    12.68   1.456x
+   8  c64x16/c128x16           82.832   82.835  82.787  0.034    12.68   1.455x
+   9  tile16_column            83.066   83.071  82.915  0.095    12.64   1.451x
+  10  c64x1/c128x4             84.014   84.036  83.889  0.139    12.50   1.435x
+  11  c128x4/c64x1             84.279   84.111  81.121  0.935    12.46   1.431x
+  12  lin16x4/lin16x4          85.412   85.430  85.363  0.046    12.29   1.412x
+  13  c64x16/lin16x4           88.102   88.108  87.913  0.087    11.92   1.368x
+  14  c128x16/lin16x4          88.159   88.162  88.093  0.043    11.91   1.368x
+  15  lin16x4/c128x16          90.143   90.156  90.085  0.053    11.65   1.337x
+  16  lin16x4/c64x16           90.154   90.112  89.377  0.230    11.65   1.337x
+  17  row_major               120.561  120.627 119.741  0.461     8.71   1.000x
+
+Best: c64x1/c64x1 (A=c64x1_iiiiii_outerji, B=c64x1_iiiiii_outerji), 73.507 us, 1.640x versus row-major.
