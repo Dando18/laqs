@@ -79,7 +79,9 @@ both GEMM and GESUMMV at several matrix sizes. It runs the matching HIP
 benchmark for each case and compares ascending score rank to ascending
 median-runtime rank. Exact raw numbers and ranks are written to JSON and
 Markdown. Variation-aware metrics use observed timing sample ranges without
-changing those raw ranks.
+changing those raw ranks. Each kernel/size report also includes the exact
+non-dominated score frontier over `(Q_fine, J_peak, J_area)`; runtime is not a
+Pareto objective.
 
 Validate scoring without a GPU:
 

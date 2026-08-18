@@ -71,6 +71,18 @@ views of the same accesses from dominating `J_area`. The reports repeat every
 component's exact name, provenance, region size, description, and applied
 weight so these hypotheses remain auditable.
 
+For every kernel and size, the experiment also reports the exact score Pareto
+frontier over the vector from the notes:
+
+```text
+(Q for wave_load.64B, J_peak, J_area)
+```
+
+All three entries are minimized. A layout is included when no other measured
+layout case is no greater in all three and strictly smaller in at least one.
+Exact score ties are retained. This is a frontier of modeled scores only;
+runtime and timing variation are not Pareto objectives.
+
 ## Score-only check
 
 Scoring needs no GPU. This example builds four kernel/size groups and writes
@@ -211,6 +223,8 @@ The JSON report contains:
   command-line weight overrides, and timing configuration;
 - the global randomized benchmark order;
 - one run record for every kernel and size;
+- each run's Pareto objective definitions, members, objective values, and a
+  per-layout membership flag;
 - per-layout canonical words, component scores, aggregate scores, exact ranks,
   timing statistics, and raw samples;
 - observed timing intervals and plausible runtime-rank ranges;
@@ -218,8 +232,8 @@ The JSON report contains:
 - evaluator commands with complete stdout and stderr.
 
 The Markdown report contains a cross-kernel/size summary followed by an
-objective/provenance table, one raw score/runtime table, and one
-variation-aware metric table for every run.
+objective/provenance table, the score Pareto frontier, one raw score/runtime
+table, and one variation-aware metric table for every run.
 
 ## Interpretation limits
 

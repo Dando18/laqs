@@ -3,8 +3,11 @@ from __future__ import annotations
 import unittest
 
 from relay import (
+    SCORE_MODES,
     Access,
+    ComponentScore,
     Hyperedge,
+    LayoutScore,
     MatrixSpec,
     MemoryEvent,
     ObjectiveComponent,
@@ -12,6 +15,7 @@ from relay import (
     SimultaneousRegions,
     column_major_layout,
     normalized_excess,
+    pareto_frontier,
     quotient_region_count,
     row_major_layout,
     score_layouts,
@@ -211,6 +215,78 @@ class ProblemScoringTests(unittest.TestCase):
         self.assertEqual(score.weighted_region_count, 2.0)
         self.assertEqual(score.peak_normalized_excess, 3.0)
         self.assertEqual(score.weighted_normalized_excess, 0.75)
+
+
+class ParetoFrontierTests(unittest.TestCase):
+    @staticmethod
+    def score(fine_q: float, peak: float, area: float) -> LayoutScore:
+        fine = ComponentScore(
+            name="fine",
+            region_bytes=64,
+            weight=1.0,
+            raw_region_count=fine_q,
+            packing_lower_bound=1.0,
+            normalized_excess=max(fine_q - 1.0, 0.0),
+            arrays=(),
+        )
+        return LayoutScore(
+            components=(fine,),
+            weighted_region_count=fine_q,
+            peak_normalized_excess=peak,
+            weighted_normalized_excess=area,
+        )
+
+    def test_custom_objectives_return_exact_non_dominated_points(self) -> None:
+        scores = {
+            "fine": self.score(1.0, 4.0, 4.0),
+            "balanced": self.score(2.0, 3.0, 2.0),
+            "balanced_tie": self.score(2.0, 3.0, 2.0),
+            "area": self.score(3.0, 2.0, 1.0),
+            "dominated": self.score(2.0, 4.0, 3.0),
+        }
+        frontier = pareto_frontier(
+            scores,
+            objectives={
+                "fine.raw-region-count": (
+                    lambda score: score.component("fine").raw_region_count
+                ),
+                "peak-normalized-excess": (
+                    lambda score: score.peak_normalized_excess
+                ),
+                "weighted-normalized-excess": (
+                    lambda score: score.weighted_normalized_excess
+                ),
+            },
+        )
+
+        self.assertEqual(
+            frontier.objectives,
+            (
+                "fine.raw-region-count",
+                "peak-normalized-excess",
+                "weighted-normalized-excess",
+            ),
+        )
+        self.assertEqual(
+            frontier.names,
+            ("fine", "balanced", "balanced_tie", "area"),
+        )
+        self.assertEqual(frontier.points[1].values, (2.0, 3.0, 2.0))
+
+    def test_default_objectives_use_all_public_aggregate_modes(self) -> None:
+        frontier = pareto_frontier(
+            {
+                "best": self.score(1.0, 1.0, 1.0),
+                "worse": self.score(2.0, 2.0, 2.0),
+            }
+        )
+
+        self.assertEqual(frontier.objectives, tuple(SCORE_MODES))
+        self.assertEqual(frontier.names, ("best",))
+
+    def test_frontier_requires_an_objective(self) -> None:
+        with self.assertRaisesRegex(ValueError, "at least one objective"):
+            pareto_frontier({"only": self.score(1.0, 1.0, 1.0)}, objectives={})
 
 
 if __name__ == "__main__":

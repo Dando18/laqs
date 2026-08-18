@@ -11,7 +11,7 @@ All scores in this module are costs: lower values are better.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, Mapping, Sequence
+from typing import TYPE_CHECKING, Callable, Literal, Mapping, Sequence
 
 from .layouts import Layout
 from .model import Coord, MatrixSpec
@@ -106,6 +106,94 @@ class LayoutScore:
             if component.name == name:
                 return component
         raise KeyError(name)
+
+
+@dataclass(frozen=True)
+class ParetoPoint:
+    """One non-dominated named score and its ordered objective values."""
+
+    name: str
+    values: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class ParetoFrontier:
+    """A deterministic set of points that are not strictly dominated."""
+
+    objectives: tuple[str, ...]
+    points: tuple[ParetoPoint, ...]
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        """Return frontier member names in objective-value order."""
+
+        return tuple(point.name for point in self.points)
+
+
+ScoreExtractor = Callable[[LayoutScore], float]
+
+
+def pareto_frontier(
+    scores: Mapping[str, LayoutScore],
+    *,
+    objectives: Mapping[str, ScoreExtractor] | None = None,
+) -> ParetoFrontier:
+    """Return the exact Pareto frontier for named layout scores.
+
+    Every objective is minimized. A score is dominated when another score is
+    no greater in every objective and strictly smaller in at least one.
+    Objective order follows the supplied mapping; when omitted, all public
+    aggregate score modes are used in :data:`SCORE_MODES` order. Exact ties
+    remain as distinct frontier members.
+    """
+
+    if objectives is None:
+        objective_items: tuple[tuple[str, ScoreExtractor], ...] = tuple(
+            (
+                mode,
+                lambda score, selected_mode=mode: score.value(selected_mode),
+            )
+            for mode in SCORE_MODES
+        )
+    else:
+        objective_items = tuple(objectives.items())
+    if not objective_items:
+        raise ValueError("a Pareto frontier requires at least one objective")
+
+    candidates = tuple(
+        ParetoPoint(
+            name,
+            tuple(float(extractor(score)) for _, extractor in objective_items),
+        )
+        for name, score in scores.items()
+    )
+
+    def dominates(left: ParetoPoint, right: ParetoPoint) -> bool:
+        return all(
+            left_value <= right_value
+            for left_value, right_value in zip(left.values, right.values)
+        ) and any(
+            left_value < right_value
+            for left_value, right_value in zip(left.values, right.values)
+        )
+
+    points = tuple(
+        sorted(
+            (
+                candidate
+                for candidate in candidates
+                if not any(
+                    other is not candidate and dominates(other, candidate)
+                    for other in candidates
+                )
+            ),
+            key=lambda point: (point.values, point.name),
+        )
+    )
+    return ParetoFrontier(
+        tuple(name for name, _ in objective_items),
+        points,
+    )
 
 
 def quotient_region_count(

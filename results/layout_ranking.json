@@ -382,6 +382,33 @@
           "weight": 0.25
         }
       ],
+      "pareto_frontier": {
+        "dominance": "all objectives are minimized; a member has no competitor that is no greater in every objective and smaller in at least one",
+        "members": [
+          {
+            "name": "tile8_row_major",
+            "values": {
+              "peak-normalized-excess": 5.0,
+              "wave_load.64B.raw-region-count": 24704.0,
+              "weighted-normalized-excess": 14.211697722567287
+            }
+          }
+        ],
+        "objectives": [
+          {
+            "definition": "Q for the grounded wave_load.64B objective component",
+            "name": "wave_load.64B.raw-region-count"
+          },
+          {
+            "definition": "J_peak over active objective components",
+            "name": "peak-normalized-excess"
+          },
+          {
+            "definition": "J_area = sum(tau * normalized excess)",
+            "name": "weighted-normalized-excess"
+          }
+        ]
+      },
       "results": [
         {
           "aggregate_scores": {
@@ -422,6 +449,7 @@
             "C": "jjjjjjjjiiiiiiii"
           },
           "name": "row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 3.0,
           "runtime_rank": 1.0,
           "runtime_rank_variation_range": [
@@ -747,6 +775,7 @@
             "C": "iiiiiiiijjjjjjjj"
           },
           "name": "column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 8.0,
           "runtime_rank_variation_range": [
@@ -1072,6 +1101,7 @@
             "C": "jjjiii"
           },
           "name": "tile8_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": -1.0,
           "runtime_rank": 2.0,
           "runtime_rank_variation_range": [
@@ -1397,6 +1427,7 @@
             "C": "iiijjj"
           },
           "name": "tile8_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 5.0,
           "runtime_rank_variation_range": [
@@ -1722,6 +1753,7 @@
             "C": "jjjjiiii"
           },
           "name": "tile16_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": -1.0,
           "runtime_rank": 3.0,
           "runtime_rank_variation_range": [
@@ -2047,6 +2079,7 @@
             "C": "iiiijjjj"
           },
           "name": "tile16_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 6.0,
           "runtime_rank_variation_range": [
@@ -2372,6 +2405,7 @@
             "C": "jjjjjiiiii"
           },
           "name": "tile32_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": -1.0,
           "runtime_rank": 4.0,
           "runtime_rank_variation_range": [
@@ -2697,6 +2731,7 @@
             "C": "iiiiijjjjj"
           },
           "name": "tile32_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 7.0,
           "runtime_rank_variation_range": [
@@ -3124,6 +3159,41 @@
           "weight": 0.25
         }
       ],
+      "pareto_frontier": {
+        "dominance": "all objectives are minimized; a member has no competitor that is no greater in every objective and smaller in at least one",
+        "members": [
+          {
+            "name": "tile16_row_major",
+            "values": {
+              "peak-normalized-excess": 8.0,
+              "wave_load.64B.raw-region-count": 49280.0,
+              "weighted-normalized-excess": 21.622507788161993
+            }
+          },
+          {
+            "name": "tile8_row_major",
+            "values": {
+              "peak-normalized-excess": 12.0,
+              "wave_load.64B.raw-region-count": 49280.0,
+              "weighted-normalized-excess": 16.047507788161994
+            }
+          }
+        ],
+        "objectives": [
+          {
+            "definition": "Q for the grounded wave_load.64B objective component",
+            "name": "wave_load.64B.raw-region-count"
+          },
+          {
+            "definition": "J_peak over active objective components",
+            "name": "peak-normalized-excess"
+          },
+          {
+            "definition": "J_area = sum(tau * normalized excess)",
+            "name": "weighted-normalized-excess"
+          }
+        ]
+      },
       "results": [
         {
           "aggregate_scores": {
@@ -3164,6 +3234,7 @@
             "C": "jjjjjjjjjiiiiiiiii"
           },
           "name": "row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 3.0,
           "runtime_rank_variation_range": [
@@ -3489,6 +3560,7 @@
             "C": "iiiiiiiiijjjjjjjjj"
           },
           "name": "column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 8.0,
           "runtime_rank_variation_range": [
@@ -3814,6 +3886,7 @@
             "C": "jjjiii"
           },
           "name": "tile8_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 1.0,
           "runtime_rank_variation_range": [
@@ -4139,6 +4212,7 @@
             "C": "iiijjj"
           },
           "name": "tile8_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 5.0,
           "runtime_rank_variation_range": [
@@ -4464,6 +4538,7 @@
             "C": "jjjjiiii"
           },
           "name": "tile16_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 2.0,
           "runtime_rank_variation_range": [
@@ -4789,6 +4864,7 @@
             "C": "iiiijjjj"
           },
           "name": "tile16_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": -1.0,
           "runtime_rank": 7.0,
           "runtime_rank_variation_range": [
@@ -5114,6 +5190,7 @@
             "C": "jjjjjiiiii"
           },
           "name": "tile32_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": -1.0,
           "runtime_rank": 4.0,
           "runtime_rank_variation_range": [
@@ -5439,6 +5516,7 @@
             "C": "iiiiijjjjj"
           },
           "name": "tile32_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 6.0,
           "runtime_rank_variation_range": [
@@ -5866,6 +5944,41 @@
           "weight": 0.25
         }
       ],
+      "pareto_frontier": {
+        "dominance": "all objectives are minimized; a member has no competitor that is no greater in every objective and smaller in at least one",
+        "members": [
+          {
+            "name": "tile16_row_major",
+            "values": {
+              "peak-normalized-excess": 8.0,
+              "wave_load.64B.raw-region-count": 98432.0,
+              "weighted-normalized-excess": 21.812640838966892
+            }
+          },
+          {
+            "name": "tile8_row_major",
+            "values": {
+              "peak-normalized-excess": 13.444444444444445,
+              "wave_load.64B.raw-region-count": 98432.0,
+              "weighted-normalized-excess": 16.409863061189114
+            }
+          }
+        ],
+        "objectives": [
+          {
+            "definition": "Q for the grounded wave_load.64B objective component",
+            "name": "wave_load.64B.raw-region-count"
+          },
+          {
+            "definition": "J_peak over active objective components",
+            "name": "peak-normalized-excess"
+          },
+          {
+            "definition": "J_area = sum(tau * normalized excess)",
+            "name": "weighted-normalized-excess"
+          }
+        ]
+      },
       "results": [
         {
           "aggregate_scores": {
@@ -5906,6 +6019,7 @@
             "C": "jjjjjjjjjjiiiiiiiiii"
           },
           "name": "row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 4.0,
           "runtime_rank_variation_range": [
@@ -6231,6 +6345,7 @@
             "C": "iiiiiiiiiijjjjjjjjjj"
           },
           "name": "column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 8.0,
           "runtime_rank_variation_range": [
@@ -6556,6 +6671,7 @@
             "C": "jjjiii"
           },
           "name": "tile8_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 1.0,
           "runtime_rank_variation_range": [
@@ -6881,6 +6997,7 @@
             "C": "iiijjj"
           },
           "name": "tile8_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 5.0,
           "runtime_rank_variation_range": [
@@ -7206,6 +7323,7 @@
             "C": "jjjjiiii"
           },
           "name": "tile16_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 2.0,
           "runtime_rank_variation_range": [
@@ -7531,6 +7649,7 @@
             "C": "iiiijjjj"
           },
           "name": "tile16_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 6.0,
           "runtime_rank_variation_range": [
@@ -7856,6 +7975,7 @@
             "C": "jjjjjiiiii"
           },
           "name": "tile32_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 3.0,
           "runtime_rank_variation_range": [
@@ -8181,6 +8301,7 @@
             "C": "iiiiijjjjj"
           },
           "name": "tile32_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 7.0,
           "runtime_rank_variation_range": [
@@ -8596,6 +8717,41 @@
           "weight": 0.5
         }
       ],
+      "pareto_frontier": {
+        "dominance": "all objectives are minimized; a member has no competitor that is no greater in every objective and smaller in at least one",
+        "members": [
+          {
+            "name": "tile8_column_major",
+            "values": {
+              "peak-normalized-excess": 15.0,
+              "wave_load.64B.raw-region-count": 8192.0,
+              "weighted-normalized-excess": 24.625
+            }
+          },
+          {
+            "name": "tile8_row_major",
+            "values": {
+              "peak-normalized-excess": 15.0,
+              "wave_load.64B.raw-region-count": 65536.0,
+              "weighted-normalized-excess": 21.75
+            }
+          }
+        ],
+        "objectives": [
+          {
+            "definition": "Q for the grounded wave_load.64B objective component",
+            "name": "wave_load.64B.raw-region-count"
+          },
+          {
+            "definition": "J_peak over active objective components",
+            "name": "peak-normalized-excess"
+          },
+          {
+            "definition": "J_area = sum(tau * normalized excess)",
+            "name": "weighted-normalized-excess"
+          }
+        ]
+      },
       "results": [
         {
           "aggregate_scores": {
@@ -8634,6 +8790,7 @@
             "y": "iiiiiiii"
           },
           "name": "row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 8.0,
           "runtime_rank_variation_range": [
@@ -8951,6 +9108,7 @@
             "y": "iiiiiiii"
           },
           "name": "column_major",
+          "pareto_frontier_member": false,
           "rank_delta": -2.0,
           "runtime_rank": 6.0,
           "runtime_rank_variation_range": [
@@ -9268,6 +9426,7 @@
             "y": "iiiiiiii"
           },
           "name": "tile8_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 1.0,
           "runtime_rank_variation_range": [
@@ -9585,6 +9744,7 @@
             "y": "iiiiiiii"
           },
           "name": "tile8_column_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 2.0,
           "runtime_rank_variation_range": [
@@ -9902,6 +10062,7 @@
             "y": "iiiiiiii"
           },
           "name": "tile16_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 3.0,
           "runtime_rank_variation_range": [
@@ -10219,6 +10380,7 @@
             "y": "iiiiiiii"
           },
           "name": "tile16_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 5.0,
           "runtime_rank_variation_range": [
@@ -10536,6 +10698,7 @@
             "y": "iiiiiiii"
           },
           "name": "tile32_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 7.0,
           "runtime_rank_variation_range": [
@@ -10853,6 +11016,7 @@
             "y": "iiiiiiii"
           },
           "name": "tile32_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 4.0,
           "runtime_rank_variation_range": [
@@ -11262,6 +11426,41 @@
           "weight": 0.5
         }
       ],
+      "pareto_frontier": {
+        "dominance": "all objectives are minimized; a member has no competitor that is no greater in every objective and smaller in at least one",
+        "members": [
+          {
+            "name": "tile8_column_major",
+            "values": {
+              "peak-normalized-excess": 15.0,
+              "wave_load.64B.raw-region-count": 16384.0,
+              "weighted-normalized-excess": 24.625
+            }
+          },
+          {
+            "name": "tile8_row_major",
+            "values": {
+              "peak-normalized-excess": 15.0,
+              "wave_load.64B.raw-region-count": 131072.0,
+              "weighted-normalized-excess": 21.75
+            }
+          }
+        ],
+        "objectives": [
+          {
+            "definition": "Q for the grounded wave_load.64B objective component",
+            "name": "wave_load.64B.raw-region-count"
+          },
+          {
+            "definition": "J_peak over active objective components",
+            "name": "peak-normalized-excess"
+          },
+          {
+            "definition": "J_area = sum(tau * normalized excess)",
+            "name": "weighted-normalized-excess"
+          }
+        ]
+      },
       "results": [
         {
           "aggregate_scores": {
@@ -11300,6 +11499,7 @@
             "y": "iiiiiiiii"
           },
           "name": "row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 8.0,
           "runtime_rank_variation_range": [
@@ -11617,6 +11817,7 @@
             "y": "iiiiiiiii"
           },
           "name": "column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 4.0,
           "runtime_rank_variation_range": [
@@ -11934,6 +12135,7 @@
             "y": "iiiiiiiii"
           },
           "name": "tile8_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 1.0,
           "runtime_rank_variation_range": [
@@ -12251,6 +12453,7 @@
             "y": "iiiiiiiii"
           },
           "name": "tile8_column_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 2.0,
           "runtime_rank_variation_range": [
@@ -12568,6 +12771,7 @@
             "y": "iiiiiiiii"
           },
           "name": "tile16_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 3.0,
           "runtime_rank_variation_range": [
@@ -12885,6 +13089,7 @@
             "y": "iiiiiiiii"
           },
           "name": "tile16_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 5.0,
           "runtime_rank_variation_range": [
@@ -13202,6 +13407,7 @@
             "y": "iiiiiiiii"
           },
           "name": "tile32_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 7.0,
           "runtime_rank_variation_range": [
@@ -13519,6 +13725,7 @@
             "y": "iiiiiiiii"
           },
           "name": "tile32_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": -2.0,
           "runtime_rank": 6.0,
           "runtime_rank_variation_range": [
@@ -13928,6 +14135,41 @@
           "weight": 0.5
         }
       ],
+      "pareto_frontier": {
+        "dominance": "all objectives are minimized; a member has no competitor that is no greater in every objective and smaller in at least one",
+        "members": [
+          {
+            "name": "tile8_column_major",
+            "values": {
+              "peak-normalized-excess": 15.0,
+              "wave_load.64B.raw-region-count": 32768.0,
+              "weighted-normalized-excess": 24.625
+            }
+          },
+          {
+            "name": "tile8_row_major",
+            "values": {
+              "peak-normalized-excess": 15.0,
+              "wave_load.64B.raw-region-count": 262144.0,
+              "weighted-normalized-excess": 21.75
+            }
+          }
+        ],
+        "objectives": [
+          {
+            "definition": "Q for the grounded wave_load.64B objective component",
+            "name": "wave_load.64B.raw-region-count"
+          },
+          {
+            "definition": "J_peak over active objective components",
+            "name": "peak-normalized-excess"
+          },
+          {
+            "definition": "J_area = sum(tau * normalized excess)",
+            "name": "weighted-normalized-excess"
+          }
+        ]
+      },
       "results": [
         {
           "aggregate_scores": {
@@ -13966,6 +14208,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 7.0,
           "runtime_rank_variation_range": [
@@ -14283,6 +14526,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "column_major",
+          "pareto_frontier_member": false,
           "rank_delta": -3.0,
           "runtime_rank": 8.0,
           "runtime_rank_variation_range": [
@@ -14600,6 +14844,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "tile8_row_major",
+          "pareto_frontier_member": true,
           "rank_delta": 0.0,
           "runtime_rank": 1.0,
           "runtime_rank_variation_range": [
@@ -14917,6 +15162,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "tile8_column_major",
+          "pareto_frontier_member": true,
           "rank_delta": -1.0,
           "runtime_rank": 3.0,
           "runtime_rank_variation_range": [
@@ -15234,6 +15480,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "tile16_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 2.0,
           "runtime_rank_variation_range": [
@@ -15551,6 +15798,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "tile16_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 5.0,
           "runtime_rank_variation_range": [
@@ -15868,6 +16116,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "tile32_row_major",
+          "pareto_frontier_member": false,
           "rank_delta": 1.0,
           "runtime_rank": 6.0,
           "runtime_rank_variation_range": [
@@ -16185,6 +16434,7 @@
             "y": "iiiiiiiiii"
           },
           "name": "tile32_column_major",
+          "pareto_frontier_member": false,
           "rank_delta": 0.0,
           "runtime_rank": 4.0,
           "runtime_rank_variation_range": [

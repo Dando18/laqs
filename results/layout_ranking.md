@@ -8,14 +8,14 @@ The variation-aware rank metric uses each layout's observed minimum-to-maximum s
 
 ## Summary
 
-| Kernel | N | Layouts | Variation-aware rank accuracy | Mean rank error |
-| --- | --- | --- | --- | --- |
-| GEMM | 256 | 8 | 0.750 | 0.500 |
-| GEMM | 512 | 8 | 0.500 | 0.500 |
-| GEMM | 1024 | 8 | 1.000 | 0.000 |
-| GESUMMV | 256 | 8 | 0.750 | 0.375 |
-| GESUMMV | 512 | 8 | 0.750 | 0.250 |
-| GESUMMV | 1024 | 8 | 0.500 | 0.750 |
+| Kernel | N | Layouts | Pareto layouts | Variation-aware rank accuracy | Mean rank error |
+| --- | --- | --- | --- | --- | --- |
+| GEMM | 256 | 8 | 1 | 0.750 | 0.500 |
+| GEMM | 512 | 8 | 2 | 0.500 | 0.500 |
+| GEMM | 1024 | 8 | 2 | 1.000 | 0.000 |
+| GESUMMV | 256 | 8 | 2 | 0.750 | 0.375 |
+| GESUMMV | 512 | 8 | 2 | 0.750 | 0.250 |
+| GESUMMV | 1024 | 8 | 2 | 0.500 | 0.750 |
 
 ## GEMM — N=256
 
@@ -38,6 +38,14 @@ Workgroup: `[32, 32, 1]`.
 | `workgroup_k_panel.256B` | hypothesis | 256 | 0.5 | unique A or B values reused across a workgroup at one k step |
 | `wave_k_window.4096B` | hypothesis | 4096 | 1 | sixteen consecutive A/B load pairs in a cache-scale region |
 | `wave_inner_phase.32768B` | hypothesis | 32768 | 0.25 | one wave's complete k-loop working set in a broad cache-scale region |
+
+### Score Pareto frontier
+
+This is the exact non-dominated set over the notes-aligned `(Q_fine, J_peak, J_area)` score vector. Runtime is not a Pareto objective.
+
+| Layout | Q fine | J peak | J area |
+| --- | --- | --- | --- |
+| `tile8_row_major` | 24704 | 5 | 14.2117 |
 
 ### Layout ranks
 
@@ -82,6 +90,15 @@ Workgroup: `[32, 32, 1]`.
 | `wave_k_window.4096B` | hypothesis | 4096 | 1 | sixteen consecutive A/B load pairs in a cache-scale region |
 | `wave_inner_phase.32768B` | hypothesis | 32768 | 0.25 | one wave's complete k-loop working set in a broad cache-scale region |
 
+### Score Pareto frontier
+
+This is the exact non-dominated set over the notes-aligned `(Q_fine, J_peak, J_area)` score vector. Runtime is not a Pareto objective.
+
+| Layout | Q fine | J peak | J area |
+| --- | --- | --- | --- |
+| `tile16_row_major` | 49280 | 8 | 21.6225 |
+| `tile8_row_major` | 49280 | 12 | 16.0475 |
+
 ### Layout ranks
 
 | Score rank | Runtime rank | Layout | Word (low→high) | Score | Median ms | Mean ms | SD ms | Observed range ms | GFLOP/s | Rank delta |
@@ -125,6 +142,15 @@ Workgroup: `[32, 32, 1]`.
 | `wave_k_window.4096B` | hypothesis | 4096 | 1 | sixteen consecutive A/B load pairs in a cache-scale region |
 | `wave_inner_phase.32768B` | hypothesis | 32768 | 0.25 | one wave's complete k-loop working set in a broad cache-scale region |
 
+### Score Pareto frontier
+
+This is the exact non-dominated set over the notes-aligned `(Q_fine, J_peak, J_area)` score vector. Runtime is not a Pareto objective.
+
+| Layout | Q fine | J peak | J area |
+| --- | --- | --- | --- |
+| `tile16_row_major` | 98432 | 8 | 21.8126 |
+| `tile8_row_major` | 98432 | 13.4444 | 16.4099 |
+
 ### Layout ranks
 
 | Score rank | Runtime rank | Layout | Word (low→high) | Score | Median ms | Mean ms | SD ms | Observed range ms | GFLOP/s | Rank delta |
@@ -166,6 +192,15 @@ Workgroup: `128`.
 | `wave_neighborhood.512B` | hypothesis | 512 | 0.25 | one wave's 64 FP64 matrix values in a broader locality region |
 | `workgroup_step_panel.1024B` | hypothesis | 1024 | 0.5 | the 128-row A or B panel used by both waves at one loop step |
 | `wave_phase.4096B` | hypothesis | 4096 | 0.5 | one wave's complete matrix-read phase in a cache-scale region |
+
+### Score Pareto frontier
+
+This is the exact non-dominated set over the notes-aligned `(Q_fine, J_peak, J_area)` score vector. Runtime is not a Pareto objective.
+
+| Layout | Q fine | J peak | J area |
+| --- | --- | --- | --- |
+| `tile8_column_major` | 8192 | 15 | 24.625 |
+| `tile8_row_major` | 65536 | 15 | 21.75 |
 
 ### Layout ranks
 
@@ -209,6 +244,15 @@ Workgroup: `128`.
 | `workgroup_step_panel.1024B` | hypothesis | 1024 | 0.5 | the 128-row A or B panel used by both waves at one loop step |
 | `wave_phase.4096B` | hypothesis | 4096 | 0.5 | one wave's complete matrix-read phase in a cache-scale region |
 
+### Score Pareto frontier
+
+This is the exact non-dominated set over the notes-aligned `(Q_fine, J_peak, J_area)` score vector. Runtime is not a Pareto objective.
+
+| Layout | Q fine | J peak | J area |
+| --- | --- | --- | --- |
+| `tile8_column_major` | 16384 | 15 | 24.625 |
+| `tile8_row_major` | 131072 | 15 | 21.75 |
+
 ### Layout ranks
 
 | Score rank | Runtime rank | Layout | Word (low→high) | Score | Median ms | Mean ms | SD ms | Observed range ms | GFLOP/s | Rank delta |
@@ -250,6 +294,15 @@ Workgroup: `128`.
 | `wave_neighborhood.512B` | hypothesis | 512 | 0.25 | one wave's 64 FP64 matrix values in a broader locality region |
 | `workgroup_step_panel.1024B` | hypothesis | 1024 | 0.5 | the 128-row A or B panel used by both waves at one loop step |
 | `wave_phase.4096B` | hypothesis | 4096 | 0.5 | one wave's complete matrix-read phase in a cache-scale region |
+
+### Score Pareto frontier
+
+This is the exact non-dominated set over the notes-aligned `(Q_fine, J_peak, J_area)` score vector. Runtime is not a Pareto objective.
+
+| Layout | Q fine | J peak | J area |
+| --- | --- | --- | --- |
+| `tile8_column_major` | 32768 | 15 | 24.625 |
+| `tile8_row_major` | 262144 | 15 | 21.75 |
 
 ### Layout ranks
 

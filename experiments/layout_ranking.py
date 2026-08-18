@@ -42,9 +42,11 @@ from kernels.gesummv import problem as gesummv_problem
 from relay import (
     SCORE_MODES,
     CanonicalLayout,
+    LayoutScore,
     MatrixSpec,
     ScoreMode,
     canonical_layout_from_word,
+    pareto_frontier,
     row_major_layout,
     score_layouts,
     score_to_dict,
@@ -55,6 +57,12 @@ from relay.objectives import build_objectives
 
 DEFAULT_SIZES = (256, 512, 1024)
 VARIATION_METHOD = "observed-sample-range-rank-bounds"
+PARETO_FINE_COMPONENT = "wave_load.64B"
+PARETO_OBJECTIVES = (
+    "wave_load.64B.raw-region-count",
+    "peak-normalized-excess",
+    "weighted-normalized-excess",
+)
 
 
 @dataclass(frozen=True)
@@ -308,6 +316,58 @@ def layouts_for_case(
         else:
             layouts[name] = row_major_layout(matrix)
     return layouts
+
+
+def notes_pareto_frontier(
+    scores: Mapping[str, LayoutScore],
+) -> dict[str, object]:
+    """Build the notes-aligned ``(Q_fine, J_peak, J_area)`` frontier."""
+
+    frontier = pareto_frontier(
+        scores,
+        objectives={
+            PARETO_OBJECTIVES[0]: (
+                lambda score: score.component(
+                    PARETO_FINE_COMPONENT
+                ).raw_region_count
+            ),
+            PARETO_OBJECTIVES[1]: (
+                lambda score: score.peak_normalized_excess
+            ),
+            PARETO_OBJECTIVES[2]: (
+                lambda score: score.weighted_normalized_excess
+            ),
+        },
+    )
+    return {
+        "dominance": (
+            "all objectives are minimized; a member has no competitor that "
+            "is no greater in every objective and smaller in at least one"
+        ),
+        "objectives": [
+            {
+                "name": PARETO_OBJECTIVES[0],
+                "definition": (
+                    "Q for the grounded wave_load.64B objective component"
+                ),
+            },
+            {
+                "name": PARETO_OBJECTIVES[1],
+                "definition": "J_peak over active objective components",
+            },
+            {
+                "name": PARETO_OBJECTIVES[2],
+                "definition": "J_area = sum(tau * normalized excess)",
+            },
+        ],
+        "members": [
+            {
+                "name": point.name,
+                "values": dict(zip(frontier.objectives, point.values)),
+            }
+            for point in frontier.points
+        ],
+    }
 
 
 def _problem_config(
@@ -591,6 +651,7 @@ def score_group(
 
     mode: ScoreMode = args.score_mode
     records: list[dict[str, object]] = []
+    scores_by_name: dict[str, LayoutScore] = {}
     print(f"Scoring {len(cases)} traditional layouts...", flush=True)
     for case in cases:
         layouts = layouts_for_case(case, matrices)
@@ -600,6 +661,7 @@ def score_group(
             layouts,
             component_weights=applied_weights,
         )
+        scores_by_name[case.name] = score
         records.append(
             {
                 "name": case.name,
@@ -612,6 +674,7 @@ def score_group(
                 },
                 "score": score_to_dict(score),
                 "score_rank": None,
+                "pareto_frontier_member": None,
                 "runtime_rank": None,
                 "rank_delta": None,
                 "timing": None,
@@ -631,6 +694,14 @@ def score_group(
     for record, rank in zip(records, score_ranks):
         record["score_rank"] = rank
 
+    frontier = notes_pareto_frontier(scores_by_name)
+    frontier_members = {
+        str(member["name"])
+        for member in frontier["members"]
+    }
+    for record in records:
+        record["pareto_frontier_member"] = record["name"] in frontier_members
+
     group: dict[str, object] = {
         "kernel": spec.name,
         "display_name": spec.display_name,
@@ -649,6 +720,7 @@ def score_group(
             }
             for component in components
         ],
+        "pareto_frontier": frontier,
         "benchmark_run_order": [],
         "variation_aware_rank_metrics": {
             aggregate_mode: None for aggregate_mode in SCORE_MODES
@@ -792,6 +864,7 @@ def markdown_report(report: Mapping[str, object]) -> str:
                 str(group["display_name"]),
                 str(group["matrix_size"]),
                 str(len(records)),
+                str(len(group["pareto_frontier"]["members"])),
                 accuracy,
                 mean_error,
             ]
@@ -803,6 +876,7 @@ def markdown_report(report: Mapping[str, object]) -> str:
                     "Kernel",
                     "N",
                     "Layouts",
+                    "Pareto layouts",
                     "Variation-aware rank accuracy",
                     "Mean rank error",
                 ),
@@ -847,6 +921,34 @@ def markdown_report(report: Mapping[str, object]) -> str:
                 _markdown_table(
                     ("Objective", "Provenance", "Region B", "Tau", "Meaning"),
                     objective_rows,
+                ),
+                "",
+                "### Score Pareto frontier",
+                "",
+            )
+        )
+        frontier = group["pareto_frontier"]
+        assert isinstance(frontier, dict)
+        frontier_members = frontier["members"]
+        assert isinstance(frontier_members, list)
+        frontier_rows = [
+            [
+                f"`{member['name']}`",
+                f"{float(member['values'][PARETO_OBJECTIVES[0]]):.6g}",
+                f"{float(member['values'][PARETO_OBJECTIVES[1]]):.6g}",
+                f"{float(member['values'][PARETO_OBJECTIVES[2]]):.6g}",
+            ]
+            for member in frontier_members
+        ]
+        lines.extend(
+            (
+                "This is the exact non-dominated set over the notes-aligned "
+                "`(Q_fine, J_peak, J_area)` score vector. Runtime is not a "
+                "Pareto objective.",
+                "",
+                _markdown_table(
+                    ("Layout", "Q fine", "J peak", "J area"),
+                    frontier_rows,
                 ),
                 "",
                 "### Layout ranks",

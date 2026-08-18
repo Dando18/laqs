@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from experiments.layout_ranking import (
     KERNEL_SPECS,
+    PARETO_OBJECTIVES,
     TimingResult,
     average_tie_ranks,
     evaluator_command,
@@ -165,6 +166,24 @@ class CombinedExperimentTests(unittest.TestCase):
                     for objective in group["objectives"]
                 )
             )
+            for group in report["runs"]:
+                frontier = group["pareto_frontier"]
+                self.assertEqual(
+                    [objective["name"] for objective in frontier["objectives"]],
+                    list(PARETO_OBJECTIVES),
+                )
+                member_names = {
+                    member["name"] for member in frontier["members"]
+                }
+                self.assertTrue(member_names)
+                self.assertEqual(
+                    member_names,
+                    {
+                        result["name"]
+                        for result in group["results"]
+                        if result["pareto_frontier_member"]
+                    },
+                )
             markdown = markdown_path.read_text()
             self.assertIn("## GEMM — N=8", markdown)
             self.assertIn("## GEMM — N=16", markdown)
@@ -175,6 +194,8 @@ class CombinedExperimentTests(unittest.TestCase):
                 "| Objective | Provenance | Region B | Tau | Meaning |",
                 markdown,
             )
+            self.assertIn("### Score Pareto frontier", markdown)
+            self.assertIn("| Layout | Q fine | J peak | J area |", markdown)
             self.assertIn("| Score rank | Layout |", markdown)
 
     def test_runtime_report_keeps_raw_ranks_and_uses_variation_for_metrics(self) -> None:

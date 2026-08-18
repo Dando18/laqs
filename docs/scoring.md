@@ -9,8 +9,8 @@ Every score is a cost. **Lower is better.**
 ## Component score
 
 An objective component represents one access scope at one aligned byte scale.
-For example, `fine64` may contain one hyperedge per wave-wide load and use
-64-byte regions.  For hyperedge `E`, realized layout `L`, and a region that
+For example, `wave_load.64B` may contain one hyperedge per wave-wide load and
+use 64-byte regions. For hyperedge `E`, realized layout `L`, and a region that
 holds `c` elements, RELAY computes
 
 ```text
@@ -63,6 +63,49 @@ only chooses the scalar printed as `Selected score` and stored as
 `selected_score` in JSON.  This keeps the underlying multi-objective vector
 visible rather than hiding it behind one unexplained label.
 
+## Pareto frontiers
+
+`pareto_frontier` compares several named `LayoutScore` objects over any ordered
+set of numeric score extractors. Every objective is minimized. Point `a`
+dominates point `b` exactly when `a` is no greater in every objective and is
+strictly smaller in at least one. Exact objective ties are retained as distinct
+frontier members.
+
+With no explicit extractors, the function compares all three public aggregate
+score modes. A caller can instead construct the multi-objective vector from the
+notes, including a particular fine-scale component:
+
+```python
+from relay import pareto_frontier
+
+frontier = pareto_frontier(
+    {
+        "row_major": row_score,
+        "tile8_row_major": tile8_score,
+        "column_major": column_score,
+    },
+    objectives={
+        "wave_load.64B.raw-region-count": (
+            lambda score: score.component("wave_load.64B").raw_region_count
+        ),
+        "peak-normalized-excess": (
+            lambda score: score.peak_normalized_excess
+        ),
+        "weighted-normalized-excess": (
+            lambda score: score.weighted_normalized_excess
+        ),
+    },
+)
+
+print(frontier.objectives)
+for point in frontier.points:
+    print(point.name, point.values)
+```
+
+The result is deterministic: frontier points are ordered by their objective
+tuple and then by name. The routine returns the exact non-dominated set; it
+does not apply epsilon tolerances or select one preferred member.
+
 ## Library API
 
 ```python
@@ -84,10 +127,10 @@ score = score_layouts(
     matrices,
     components,
     layouts,
-    component_weights={"fine64": 2.0},
+    component_weights={"wave_load.64B": 2.0},
 )
 
-print(score.component("fine64").normalized_excess)
+print(score.component("wave_load.64B").normalized_excess)
 print(score.value("weighted-normalized-excess"))
 ```
 
@@ -99,7 +142,9 @@ The main public routines are:
 - `score_layouts`: scores materialized objective components without rebuilding
   them, which is best when comparing many layouts;
 - `score_problem`: convenience wrapper that builds a `RelayProblem`'s
-  components and scores once; and
+  components and scores once;
+- `pareto_frontier`: returns exact non-dominated named scores for default or
+  caller-defined objective extractors; and
 - `score_to_dict`: stable JSON-compatible detail for experiments and tools.
 
 ## Canonical layout words
