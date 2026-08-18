@@ -1,0 +1,556 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=0.85in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+\newcommand{\Cand}{\mathcal{C}}
+\newcommand{\Valid}{\mathcal{V}}
+\newcommand{\Observed}{\mathcal{O}}
+\newcommand{\positive}[1]{\left[#1\right]_{+}}
+\newtheorem{prop}{Proposition}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\newtcolorbox{highlight}{colback=blue!5!white,colframe=blue!75!black,title=Highlight}
+\newtcolorbox{motivation}{colback=green!5!white,colframe=green!75!black,title=Motivation}
+
+\title{Low-Address Quotient Subspaces for Optimal Matrix Layouts}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-1.5em}
+
+\section{Problem Formulation}
+
+\subsection{Finding Layouts}
+Consider we have a GPU kernel that operates on $L$ matrices $M_i$ to compute $M_L = f(M_1, M_2, \ldots M_{L-1})$. 
+Every matrix $A$ has elements $A[i,j]$ where the indices are 
+%
+\[
+\mathcal{I}_{A} = \{(i,j) : 0 \le i < N_i, 0  \le j < N_j\}
+\]
+%
+and, thus, a matrix layout $\phi_L$ is defined by
+\[
+\phi_L : \mathcal{I}_A \rightarrow \{0, \ldots, P_A(L)-1\}
+\]
+where $P_A$ is the number of logical elements is the allocated capacity of the layout (e.g. to allow for padding). If each element is $e$ bytes and the starting address offset of the matrix is $B_A$, then the address for a given element is $B_A + e\cdot\phi_L(i,j)$. In this setup row major layouts may be expressed as $\phi(i,j)=i\cdot N_j + j$. Our main goal is to find an $L$ and $\phi_L$ that yields ideal GPU kernel runtime.
+
+\subsection{Layout Surface}
+
+It's not really feasible to search over matrix layouts as $\phi_L$; it's not really tractible to search over all mappings.
+We can limit to a set of mappings. Conventionally this might be row major, column major, block, etc.
+Recent work by Zhou et. al. on LinearLayouts uses binary matrices in $\mathbb{F}_2$ to model layouts.
+That is, we can take an input vector of logical indices $x=[i_1,i_2,\ldots,i_N,j_1,j_2,\dots,j_M]$ for an $N\times M$ matrix and map to physical addresses $y$ via $y=Ax$.
+Zhou et. al. showed this covers all layouts.
+
+For example,
+
+\[
+A_{\text{col}} = 
+\begin{bmatrix}
+1&0&0&0\\
+0&1&0&0\\
+0&0&1&0\\
+0&0&0&1
+\end{bmatrix}
+=I.
+\]
+
+\[
+A_{\text{row}} =
+\begin{bmatrix}
+0&0&1&0\\
+0&0&0&1\\
+1&0&0&0\\
+0&1&0&0
+\end{bmatrix}.
+\]
+
+\[
+A_{\text{block}} =
+\begin{bmatrix}
+0&0&1&0\\
+1&0&0&0\\
+0&0&0&1\\
+0&1&0&0
+\end{bmatrix}.
+\]
+
+\[
+A_{\text{block}}' =
+\left[
+\begin{array}{cc|cc}
+0&1&0&0\\
+1&0&0&0\\ \hline
+0&0&0&1\\
+0&0&1&0
+\end{array}
+\right].
+\]
+
+
+\[
+A_{\text{block}}' = 
+\begin{bmatrix}
+A_{\text{inner}}&0\\
+0&A_{\text{outer}}
+\end{bmatrix}.
+\]
+
+
+\[
+A_{\text{global}} =
+\begin{bmatrix}
+A_{\text{inner}}&C\\
+0&A_{\text{outer}}
+\end{bmatrix}.
+\]
+
+So, for example,
+
+\[
+A_{\text{inner}} =
+\begin{bmatrix}
+1&1\\
+0&1
+\end{bmatrix}
+\]
+
+would give
+
+\[
+y_0=i_i\oplus j_i,\qquad
+y_1=j_i,
+\]
+
+while leaving the $(2\times2)$ outer tile structure intact.
+
+
+Thus, their are several granularities of layout we can search over. We can stick to the canonical row, col, tiled layouts while still using this $A$ representation. We can have canonical outer block layouts while an arbitrary, general $A$ inner tile layout. Or, finally, we could do an entirely general layout matrix $A\in GL(M+N,2)$.
+
+We primarily target (1) canonical layouts and (2) canonical outer layouts with arbitrary inner layouts $A_{\text{inner}}$. The latter canonical outer + arbitrary inner is given by:
+
+\[
+A_{\text{global}} =
+\begin{bmatrix}
+A_{\text{inner}}&C\\
+0&A_{\text{outer}}
+\end{bmatrix}.
+\]
+
+
+For the former, strict canonical layouts we can define a {\it word grammar}, that is use words to define the layout. Let a {\it word} be something as $iijij$ where the $n$-th $i$ denotes $i_n$ and likewise for $j$. Then $iijij$ is $i_1, i_2, j_1, i_3, j_2$. This corresponds to a canonical layout as it corresponds to a permutation matrix $A$.
+
+Consider an $8\times 4$ matrix with logical addresses $x=[i_1, i_2, i_3, j_1, j_2]$. Then the permutation matrix for $iijij$ is
+%
+\[
+A_{iijij} = \begin{bmatrix}
+    1 & 0 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 1 & 0 \\
+    0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 1
+\end{bmatrix}
+\]
+
+It's clear to see here that $iiijj$ is column major and $jjiii$ is row major.
+The word $iijij$ would yield a blocked layout with a $4\times 2$ block, both outer blocks and the blocks themselves in column major.
+
+\input{figures/nested-words}
+
+
+\paragraph{Final Layout Grammars.} We therefore consider three final layout grammars $\mathcal{G}_{S}$, $\mathcal{G}_{C}$ and $\mathcal{G}_{OC}$ for standard, canonical, and outer-canonical, respectively. In general $\mathcal{G}_S \subset \mathcal{G}_C \subset \mathcal{G}_{OC}$. For a $2^N \times 2^M$ matrix $\mathcal{G}_{C}$ is defined by the set of words $\{i,j\}^{N+M}$ that define canonical permutation matrices $A_C \in \mathcal{G}_C$. The standard grammar more closely aligns with traditional tiled layouts. Define a {\it cut point} $a=(a_i, a_j)$ s.t. $0
+\le a_i \le N$ and $0 \le a_j \le M$. Then $\mathcal{G}_S$ is a canonical word split by that cut point. Then a word in $\mathcal{G}_S$ is given by $\omega_S$ as show below.
+%
+\[
+    \omega^{ijij}_S = \underbrace{i^{a_i} j^{a_j}}_{\text{inner tile}} \, \underbrace{i^{N-a_i} j^{M-a_j}}_{\text{outer layout}}
+\]
+%
+Here $\omega_S$ is shown for the pattern $ijij$, but we also define it for $ijji$, $jiij$, and $jiji$.
+This has the nice property that there is one cut between inner and outer bits, the outer layout is contiguous, and the inner layout is contiguous.
+%
+We define $\mathcal{G}_{OC}$ as the set of matrices
+in the form 
+%
+\[
+A_{\text{global}} =
+\begin{bmatrix}
+A_{\text{inner}}&C\\
+0&A_{\text{outer}}
+\end{bmatrix}.
+\]
+%
+where $A_{\text{outer}}\in \mathcal{G}_C$ and $A_{\text{inner}}\in GL(p,2)$. Thus, we restrict $\mathcal{G}_S$ and $\mathcal{G}_C$ to a subset of forms that are easier to (1) search and (2) codegen. $\mathcal{G}_{OC}$ is more expressive and contains both $\mathcal{G}_S$ and $\mathcal{G}_C$ and is still easy to codegen, but is hard to search. We do not consider the case of arbitrary $A\in GL(p,2)$ as it poses serious difficulty in both search and codegen. It is possible that {\it sparse} $A\in GL(p,2)$ yield promising results and are easy to codegen, however, we leave that for future work.
+
+\paragraph{Sparse $A$ (Potential Future Path).} If we can factorize $A$ as $A=T_K T_{K-1}\cdots T_1 P$, where $P$ is a coordinate-bit permutation and each $T_K$ is some XOR shift like $y_r \leftarrow y_r \oplus y_s$, then the codegen cost is the permutation $P$ (which we already know is easy) plus the $K$ XOR transforms. Thus, sparse $A$ that can be factorized are a good candidate.
+
+\subsection{Memory Access Hypergraph}
+
+For simplicity's sake, consider we have a set of all {\it ``memory events''} in a kernel.
+Here take memory events to be sequences of accesses that should all be close together in memory, e.g. simultaneous wave/warp access, quick temporal accesses, etc.
+I'm leaving this intentionally vague for now, but we can define it more specifically later.
+Assume we know what logical matrix indices these memory events touch.
+Then we can construct a hypergraph
+\[
+\mathcal{E} = \{E : E \subseteq \mathcal{I}_A\}
+\]
+where each hyperedge is a memory event and the vertices are logical indices.
+Given that a memory event may occur multiple times we can instead store a weighted multiset
+\(
+\mathcal{E}=\{(E,w_E) : E \subseteq \mathcal{I}_A\}
+\)
+where $w_E$ is some normalized weight for the memory event $E$.
+
+This lends itself to a really nice problem formulation: when searching for layouts $L$ we want to choose $L$ such that each hyperedge is split across minimal memory regions. That is, when projecting the vertices from logical indices to memory addresses, we want the edges to span as few memory regions as possible, or ``adjacent'' memory addresses.
+
+It's possible we want to define hyperedges at different scales. That is, a memory event may want to be near each other at the 4 MB scale and up, but not necessarily lower. While another might want to be adjacent in 4 KB regions. Thus, we can parameterized as $\mathcal{E}_h$ where $h$ is a region size, e.g. 4 KB, and defines a separate component of the hypergraph.
+
+
+\subsection{Minimizing Cross-Region Hyperedges}
+
+Consider the inner tiles of the matrix have their layout defined by the mapping $y=Ax$ where $A$ is an invertible bitwise transformation matrix $A\in GL(p,2)$, $x$ is the logical coordinate bits, and $y$ are the actual address bits, such that $x,y \in \mathbb{F}_2^p$.
+That is, $A$ maps logical coordinate bits into physical address coordinate bits.
+This gives us a layout for our inner-tiles.
+It's nice because each address computation will still be affine.
+We want to find an ideal $A$.
+
+Now consider the subspace
+%
+\[
+U_d = \mathrm{span}\{e_0,\ldots,e_{d-1}\} \subseteq \mathbb{F}_2^p.
+\]
+%
+This is the space of {\bf address differences where the addresses differ by only the lowest $d$ bytes}.
+In other words, take any two physical memory addresses $z, z' \in \mathbb{F}_2^p$.
+If they only differ in their $d$ lowest bits, then their difference $z \oplus z' \in U_d$.
+(Reminder that the field $\mathbb{F}_2$ defines differences as the XOR).
+This means $z$ and $z'$ are within the same $2^d$ address region.
+
+Now consider two \emph{logical positions} $x,x' \in \mathbb{F}_2^p$. 
+
+\begin{prop}[Logical address locality]
+The logical addresses $x,x' \in \mathbb{F}_2^p$ are within the same $2^d$ physical address region under layout $A$ if and only if $x \oplus x' \in A^{-1} U_d$.
+\end{prop}
+
+To show this let the logical address difference be
+\[
+\delta = x \oplus x'.
+\]
+Given that $A$ maps logical coordinates to physical addresses we can denote the physical address of $\delta$ as
+\[
+A\delta = A(x \oplus x').
+\]
+Thus, for $A\delta$ to be within the same $2^d$ element region we must have
+%
+\begin{align*}
+    & A\delta \in U_d \\    
+    \implies & A(x \oplus x') \in U_d \\
+    \implies & (x \oplus x') \in A^{-1} U_d.
+\end{align*}
+%
+We'll define this subspace as
+%
+\[
+V_d = A^{-1} U_d
+\]
+%
+Thus, {\bf $V_d$ is the set of all logical coordinate differences that lie within $2^d$ element regions}.
+That is, $x \oplus x' \in V_d$ implies that the physical addresses that $A$ maps $x$ and $x'$ to are within $2^d$ of each other.
+
+It should be clear why $V_d$ is very useful to have.
+
+Another nice property of $V_d$ is how it nests. It is clear that
+\[
+\forall d_i < d_j,\quad U_{d_i} \subset U_{d_j}.
+\]
+Thus, if we fix $A$ we have
+%
+\begin{align*}
+    \forall d_i < d_j, \quad & V_{d_i} = A^{-1} U_{d_i} \subset A^{-1} U_{d_j} = V_{d_j} \\
+    \implies & V_{d_i} \subset V_{d_j}
+\end{align*}
+%
+and, thus,
+\[
+V_{d_1} \subset V_{d_2} \subset \cdots \subset V_{d_m}, \,\, \textrm{when } d_1 < d_2 < \cdots < d_m.
+\]
+%
+This is important because it makes search over many hierarchies feasible. We naturally have many memory granularities we want to optimize due to the GPU hardware design.
+But this is further important because it means a single $A$ layout can be used to satisfy many levels of $d$.
+
+Now, to actually apply $V_d$ we can consider the \emph{coset} of $V_d$.
+Let $[x]_{V_d} = x\oplus V_d$ denote the coset of $V_d$. That is, for the fixed bit vector $x$, $[x]_{V_d}$ is the set of all elements reachable by XOR-ing a vector in $V_d$, or $\{x\oplus v : v \in V_d\}$. Now if we have another vector space $Y$ s.t. $V_d$ is a subspace of $Y$ we can define $Y/V_d = \{[y]_{V_d} : y \in Y\}$ as the set of all distinct cosets of $V_d$. This is called the quotient space.
+
+\begin{highlight}
+    For a space of logical indices $I$ (s.t. $V_d \le I$) and bit-linear layout $A$ the quotient space $I/V_d$ is the number of distinct, aligned $2^d$ regions that the physical addresses of $I$ lie within.
+\end{highlight}
+
+Consider, our hyperedges $E$ that define a set of logical addresses in a memory event. The cardinality of the quotient space $E/V_d$ yields the number of distinct, aligned $2^d$ memory regions it touches. Thus, \textbf{we want to minimize $\lvert E/V_d \rvert$ across the hyperedges}.
+
+\begin{motivation}
+    A quotient space $X/Y$ can be understood as a coarser view of $X$ in which differences lying in $Y$ are ignored. Two points $x,x'\in X$ become the same point in $X/Y$ whenever $x-x'\in Y$; each coset $x+Y$ is represented by a single point.
+    
+    The subspace $V_d$ contains the logical-index differences that affect only the lowest $d$ physical address bits. Quotienting by $V_d$ therefore ignores the position within an aligned $2^d$-element region while retaining the region identity. Thus, each coset $x+V_d$ corresponds to one physical region, and $\{x+V_d : x\in I\}$ is precisely the set of region IDs touched by $I$.
+\end{motivation}
+
+We could then frame this as the below minimization problem for finding $A$:
+%
+\[
+A^* = {\arg\,\min}_{A\in GL(p,2)} \sum_E w_E \lvert \{[x]_{A^{-1}U_d} : x \in E \} \rvert
+\]
+%
+but many different $A$ might yield this. Since $A$ is only needed in the $A^{-1} U_d$ expression, we can simply find:
+%
+\[
+V_{d}^* = {\arg\,\min}_{V\subseteq \mathbb{F}_2^p, \\ \dim V = d}
+    \sum_E w_E \lvert \{ [x]_V : x \in E \} \rvert
+\]
+
+Thus, we just need to find a set of $d$-dimensional logical differences to map into the lowest $d$ physical bits. From this, we can reconstruct a compatible $A$ matrix.
+
+From this, we can define a {\it scoring function} for the inner tiles:
+%
+\[
+q_h^{\textrm{inner}} (E; V_{d_h}) = \lvert \{ [x]_{V_{d_h}} : x \in E \} \rvert. 
+\]
+%
+For aligned tiles, with power-of-two sizes, and equal width elements this yields exactly the number of $2^{d_h}$-element regions touched by $E$.
+Thus, for all region sizes $h$ and $\mathcal{V}=(V_{d_1}, \ldots, V_{d_m})$ we can define our objective as:
+%
+\[
+J(\mathcal{V}) = \sum_{h=1}^H \lambda_h \sum_{(E,w_E)\in\mathcal{E}_h} w_E q_h (E; V_{d_h})
+\]
+%
+where $\lambda_h$ are hyperparameters for weighting different levels $h$.
+
+
+\paragraph{Why do we care about $V_{d_1} \subset V_{d_2} \subset \cdots \subset V_{d_m}$?} Well, for any given $V_d$ we can always construct a matrix $A$ that is bit-linear and invertible. Simply take $V_d = \text{span}\{b_1, b_2, \ldots, b_d\}$ and construct the matrix $B$ from the basis $(b_1, b_2, \ldots, b_d)$. Then $A=B^{-1}$ is a valid $A$ that is in $V_d$. We could optimize $V_d$ for each $d$ and not as a nested subset flag. However, this is not necessarily realizable as a single $A$ (it's probably usually not). We could just optimize one $V_d$ value and then form a flag from it, but then the flag is not necessarily optimal at all levels. If we care about multiple scales, then we should optimize a whole flag at once: all levels will be joint-optimized and it will be realizable into a single $A$.
+
+\subsection{Active-Span Reduction}
+
+There's a nice optimization based on the fact that not all elements of the subspace $V_d$ participate for any given edge. $V_d$ is the space of all logical bit differences that are within $2^d$ of each other in physical address space. For any given edge $E\in\mathcal{E}$ only a subset $S\subset V_d$ actually matters.
+We will define this set $S$ as the span of all logical differences in an edge.
+%
+\[
+S = \mathrm{span}\{x\oplus x' : x,x'\in E \text{ for some } E \}
+\]
+%
+If computing this, we may not want to enumerate all pairs $x,x'$, so let us choose an anchor $a_E\in E$ and define $S$ as 
+%
+\[
+S = \mathrm{span}\{x \oplus a_E : E \in \mathcal{E}, x \in E\}.
+\]
+%
+This computes the same $S$ without loss of generality. Let $r = \dim S$.
+
+\begin{lemma}{(Only $V\cap S$ affects an edge).}\label{lem:v_cap_s}
+Consider any subspace $V$ and a scoring coset function $q(E; V) = \left| \{x+V : x\in E\} \right|$. The dimensions of $V$ outside $S$ do not contribute to the quotient objective. That is,
+%
+\[
+q(E;V) = q(E; V \cap S).
+\]
+\end{lemma}
+
+\begin{proof}
+    Take $x,x' \in E$. Then we know
+    %
+    \[
+    x+V = x'+V \iff x\oplus x' \in V.
+    \]
+    But since $x\oplus x' \in S$ we have
+    %
+    \[
+    x \oplus x' \in V \iff x \oplus x' \in V \cap S.
+    \]
+    Thus $V$ and $V\cap S$ induce the same equivalence relation on $E$.
+\end{proof}
+
+\begin{lemma}{(Active Span Lemma)}
+    As a consequence of \Cref{lem:v_cap_s} we can say that there exists an optimal complete flag in which $V_d \subseteq S\,\, \text{for } d\le \dim S$ and $S\subseteq V_d \,\, \text{for } d \ge r$.
+\end{lemma}
+
+\begin{proof}
+    The argument here is straightforward. If we already have a nested flag $V_{d_1}\subset V_{d_2}\subset \ldots \subset V_{d_p}$, then we can take the intersections $(V_{d_1}\cap S) \subset (V_{d_2} \cap S) \subset \ldots \subset (V_{d_p} \cap S)$ s.t. $\dim V_d\cap S \le d$. Take the basis of $V_d \cap S = \text{span}\{u_1, \ldots, u_m\}$ with $m=\dim V_d\cap S \le d$. This is guaranteed to exist due to the nesting. We can extend this to a basis up to $r$ as $u_1,\ldots,u_r$ trivially. When $d\le r$ let
+    %
+    \[
+    W_d = \text{span}\{u_1,\ldots,u_d\}.
+    \]
+    %
+    Since $m<d$, we have $V_d\cap S\subseteq W_d$. As the subspaces get larger, they merge cosets, not split them. Thus
+    %
+    \[
+    q(E; W_d) \le q(E; V_d \cap S) = q(E; V_d)\quad \text{for } d\le r.
+    \]
+    %
+    At $r$ we trivially have $W_r=S$ by its construction. Since $S$ is constructed as the pairwise differences for the edge $E$ it only creates one coset $S$. Thus, $q(E; W_r) = 1$.
+    When $d>r$ we have $q(E; W_d) = 1$ as well.
+\end{proof}
+
+All this means is that for every complete flag, there is an active-first flag that is no worse for every edge at every rank.
+This means that, even if we have logical bitvectors in $\mathbb{F}_2^P$ for large $P$, we don't necessarily need to search for all $P$. We can compute the rank of the problem $r$ and solve up to $r$. Finding an ideal flag in $\mathbb{F}_2^r$ can be cheaply extended to $\mathbb{F}_2^P$ with the same optimality.
+
+
+\section{Scoring Functions}
+
+The coset objective is our primary target. For an edge $E$ we want to minimize the size of the quotient subspace with $V_d$, that is minimize $|E/V_d|$. However, there is a lot of ways to formulate this: we have many such $d$ we can select, how $E$ is constructed, whether we want to minimize a single $d$ or minimize the max over many $d$, etc.
+To start let's define the core scoring function
+%
+\[
+q(E; V_d) = \left| \left\{ x \oplus V_d : x \in E \right\} \right|.
+\]
+%
+From $q(E; V_d$ we can define a weighted average over all edges for a particular access scope $s$ as
+%
+\[
+Q_s(V_d) = \sum_{(E,w_E)\in \mathcal{E}_s} w_E\cdot q(E; V_d).
+\]
+%
+We use an access scope loosely here. But it could refer to a wave event, i.e. wave 0 loads 64 matrix elements. Notably, we cannot fit more than $2^d$ logical addresses into a $2^d$ region, so we can define a lower bound trivially as
+%
+\[
+LB_{s,d} = \sum_{E} w_E \left\lceil \frac{|E|}{2^d} \right\rceil.
+\]
+%
+This lets us define a normalized excess term
+%
+\[
+e_s (V_d) = \frac{Q_s(V_d) - LB_{s,d}}{\max\{LB_{s,d}, 1\}}.
+\]
+%
+Normalized excess is an easier metric to optimize over. It simply denotes the ratio over the ideal lower bound that $V_d$ induces.
+
+\subsection{Component Weighting}
+
+Our objective is essentially aggregating coset scores over three axes: all hyperedges, all access scopes, and all dimensions $d$. Not all edge, scope, and $d$ values matter that much. For example, we may only care about the smaller $d$ for wave accesses. Thus, we construct the matrix $\tau$ such that $\tau_{s,d}$ is the {\it weight} for scope $s$ and scale $d$. It is likely that $\tau$ is sparse more most use cases.
+
+\subsection{Min-max Objective $J_{\text{peak}}$}
+
+One helpful objective is minimizing the maximum cost. In this sense, we refer to the min-max over the access scopes and values of $d$. This can simply be defined as
+%
+\[
+J_{\text{peak}} = \max_{\substack{s,d\\ \tau_{s,d} > 0}} e_{s}(V_d).
+\]
+
+\subsection{Weighted Average Objective $J_{\text{area}}$}
+
+We can also weight each access scope $s$ with $\lambda_s$ and each size $d$ with $\mu_d$ and define
+%
+\[
+J_{\text{area}} = \sum_{s,d} \tau_{s,d} e_{s}(V_d).
+\]
+%
+
+\subsection{Multi-Objective and Pareto Frontier}
+
+We can also take multiple objectives, e.g. $(Q_{\text{fine}}, J_{\text{peak}}, J_{\text{area}})$. Here $Q_\text{fine}$ is the score $Q$ for only the finest level access scope like warp accesses.
+This could be other granularities as well, e.g. $(Q_\text{warp}, Q_\text{L1}, Q_\text{L2}, J_\text{peak}, J_\text{area})$.
+
+In practice, what I have found to work best is finding a frontier $Q_\text{fine} \le (1+\epsilon)Q^*_\text{fine}$ for some small $\epsilon>0$. Then taking all $V_d$ in this frontier and minimizing $(J_\text{peak}, J_\text{area})$.
+
+\section{Minimizing the Score to Maximize Locality}
+
+\subsection{Simple Exhaustive Search for Standard Grammar $\mathcal{G}_S$}
+
+For layouts in $\mathcal{G}_S$ we can trivially conduct an exhaustive search. For a matrix sized $2^N\times 2^M$ there will be $(N+1)(M+1)$ total layouts. Considering $M$ and $N$ will generally always be between 4 and 16 for realistic use cases this leaves us with roughly 1000 cases as an upper-bound. This can be searched trivially.
+We need to simply enumerate layouts, score them, and select one of the best scoring layouts.
+
+\subsection{Exact Solutions for $\mathcal{G}_C$ with Dynamic Programming}
+
+Finding out ideal solution is simply the following recursion 
+
+\[
+D(\bm a) = c(\bm a) + \min_{k} D(\bm a-e_k)
+\]
+where $c$ is the objective cost for two modes of a canonical layout.
+That is, for two layout modes
+
+\[
+D(a_i, a_j) = c(a_i, a_j) + \min \left\{ D(a_i -1, a_j), D(a_i, a_j-1) \right\}
+\]
+
+There's essentially a grid of layout possibilities and we can do DP to solve for the ideal. This helps us minimize the cost over all canonical word layouts.
+
+\paragraph{Codegen Cost.} A nice property of the $\mathcal{G}_C$ grammar is that the number of mode switches is a good proxy for codegen cost. The indexing expression complexity is roughly correlated with the number of mode switches, e.g. the word $iiijjij$ has three mode switches: $i\rightarrow j$, $j\rightarrow i$, and $i\rightarrow j$. This corresponds to the number of direction switches in the DP problem. So we could rephrase the problem as 
+%
+\[
+D(a_j, a_i) = \min\left\{ D_H(a_j, a_i), D_V(a_j, a_i) \right\}
+\]
+%
+where
+%
+\[
+\begin{aligned}
+D_H(a_j, a_i) &= c(a_j, a_i) + \min \begin{cases}
+    D_V(a_j-1,a_i) + \lambda, \quad \text{penalty } \lambda \text{ for switching directions} \\
+    D_H(a_j-1, a_i)
+\end{cases} \\
+D_V(a_j, a_i) &= c(a_j, a_i) + \min \begin{cases}
+    D_V(a_j, a_i-1) \\
+    D_H(a_j, a_i-1) + \lambda, \quad \text{penalty } \lambda \text{ for switching directions} 
+\end{cases}
+\end{aligned}
+\]
+
+\paragraph{Pareto Frontier.} I've found in practice it's actually much better to maintain a frontier of results and to select from them.
+That is, if $Q_{V_d}$ is a score for a particular layout and $Q_{V_d}^*$ is the optimal score, then have the algorithm yield all layouts $V_d$ s.t.
+%
+\[
+    Q_{V_d} \le (1 + \epsilon) Q_{V_d}^*
+\]
+%
+for a small $\epsilon>0$. This solves many issues with {\it hyperparameters} and {\it tuning}. If it's not clear how to solve the multi-objective $A_1$ and $A_2$ as two layouts for two input matrices into a kernel, then we can solve them individually and resolve their frontiers. That is, take the top-scorer from intersection of the frontiers or make observations about duplicate codegen costs.
+
+\input{figures/dp-vis-2}
+
+
+\subsection{Solving Arbitrary $A_{\text{inner}}$ with Exact Cover for $\mathcal{G}_{OC}$}
+
+
+
+\appendix
+
+\section{Fast Quotient Scoring}
+We can implement a fast scoring algorithm as follows. For $E\subseteq \mathbb{F}_2^r$ let
+%
+\[
+E+V = \{ x\oplus v : x \in E, v \in V \}.
+\]
+%
+This is the union of all $V$-cosets touched by $E$. Every coset contains $2^{\dim V}$ elements, thus
+%
+\[
+q(E; V) = \frac{|E+V|}{2^{\dim V}}.
+\]
+%
+If we know that $b_1,\ldots,b_k$ is the basis of $V$, that is $V=\text{span}\{b_1,\ldots,b_k\}$, then we can compute
+%
+\[
+\begin{aligned}
+    S_0 &= \text{bits}(E), \\
+    S_{t+1} &= S_t \cup \left( S_t \oplus_{\text{index}} b_{t+1} \right),
+\end{aligned}
+\]
+%
+where $\oplus_\text{index}b$ permutes bit positions $x\mapsto x \oplus b$. Then
+%
+\[
+    q(E; V) = \text{popcount}(S_k) / 2^k.
+\]
+%
+For $r\le 9$ this can be done in 512-bits, i.e. up to eight 64-bit words. Thus, this can be done nicely with SIMD or on a GPU.
+
+\end{document}
