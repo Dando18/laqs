@@ -10,6 +10,9 @@ vector operands retain their fixed contiguous layouts.
 Runtime ranks use exact sample medians.  Variation-aware metrics do not change
 those ranks: they only check whether a score rank lies within the plausible
 runtime-rank interval implied by each layout's observed sample range.
+Completed reports also evaluate the score Pareto frontier through oracle
+regret, epsilon-optimal coverage, retained fraction, purity, enrichment, and a
+size-matched random baseline, plus top-k regret for the selected scalar score.
 
 Scoring runs without a GPU.  Runtime measurement must run in a GPU allocation::
 
@@ -25,6 +28,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass
 import json
+import os
 from pathlib import Path
 import random
 import statistics
@@ -43,6 +47,11 @@ from kernels.gemm import problem as gemm_problem
 from kernels.gesummv import problem as gesummv_problem
 from kernels.mvt import problem as mvt_problem
 from kernels.syrk import problem as syrk_problem
+from experiments.frontier_analysis import (
+    analyze_frontier_group,
+    analyze_frontier_report,
+    render_frontier_plots,
+)
 from relay import (
     SCORE_MODES,
     CanonicalLayout,
@@ -721,6 +730,16 @@ def parse_arguments(
         help="Markdown report path (default: JSON path with .md suffix)",
     )
     parser.add_argument(
+        "--plots-dir",
+        type=Path,
+        default=None,
+        metavar="DIRECTORY",
+        help=(
+            "frontier-analysis plot directory (default: "
+            "<output stem>_plots beside the JSON report)"
+        ),
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=0,
@@ -856,6 +875,7 @@ def score_group(
         "variation_aware_rank_metrics": {
             aggregate_mode: None for aggregate_mode in SCORE_MODES
         },
+        "frontier_runtime_analysis": None,
         "results": records,
     }
     return group, cases, component_names
@@ -920,6 +940,7 @@ def finalize_runtime_group(group: dict[str, object]) -> None:
             score_values, timings
         )
     group["variation_aware_rank_metrics"] = metrics
+    group["frontier_runtime_analysis"] = analyze_frontier_group(group)
 
 
 def _format_rank(value: object) -> str:
@@ -942,6 +963,241 @@ def _markdown_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> st
     ]
     lines.extend("| " + " | ".join(row) + " |" for row in rows)
     return "\n".join(lines)
+
+
+def _frontier_scorecard_markdown(
+    analysis: Mapping[str, object],
+) -> list[str]:
+    """Render aggregate frontier regret and candidate-generation metrics."""
+
+    regrets = analysis["oracle_regret"]
+    retained = analysis["retained_fraction"]
+    frontier_sizes = analysis["frontier_size"]
+    exact = analysis["exact_winner_coverage"]
+    random_baseline = analysis["random_exact_winner_baseline"]
+    assert isinstance(regrets, dict)
+    assert isinstance(retained, dict)
+    assert isinstance(frontier_sizes, dict)
+    assert isinstance(exact, dict)
+    assert isinstance(random_baseline, dict)
+
+    lines = [
+        "## Frontier candidate-generation scorecard",
+        "",
+        "The frontier is evaluated as a retained candidate set. Oracle regret "
+        "is the best frontier median runtime divided by the best evaluated "
+        "median runtime in the layout family, minus one. Runtime is "
+        "not used to construct the "
+        "frontier.",
+        "",
+        _markdown_table(
+            ("Metric", "Mean", "Median", "Minimum", "Maximum"),
+            (
+                (
+                    "Oracle regret",
+                    f"{100.0 * float(regrets['mean']):.6f}%",
+                    f"{100.0 * float(regrets['median']):.6f}%",
+                    f"{100.0 * float(regrets['minimum']):.6f}%",
+                    f"{100.0 * float(regrets['maximum']):.6f}%",
+                ),
+                (
+                    "Retained fraction",
+                    f"{100.0 * float(retained['mean']):.3f}%",
+                    f"{100.0 * float(retained['median']):.3f}%",
+                    f"{100.0 * float(retained['minimum']):.3f}%",
+                    f"{100.0 * float(retained['maximum']):.3f}%",
+                ),
+                (
+                    "Frontier size",
+                    f"{float(frontier_sizes['mean']):.3f}",
+                    f"{float(frontier_sizes['median']):.3f}",
+                    f"{float(frontier_sizes['minimum']):.0f}",
+                    f"{float(frontier_sizes['maximum']):.0f}",
+                ),
+            ),
+        ),
+        "",
+        f"Exact-winner coverage is {exact['covered_instances']}/"
+        f"{analysis['instance_count']} "
+        f"({100.0 * float(exact['coverage']):.3f}%). A uniformly random subset "
+        "with each frontier's size would cover "
+        f"{float(random_baseline['expected_covered_instances']):.3f} instances "
+        "in expectation; its Poisson-binomial probability of at least the "
+        "observed number of exact hits is "
+        f"{float(random_baseline['probability_at_least_observed_hits']):.6g}.",
+        "",
+        "### Retained fraction versus oracle regret",
+        "",
+    ]
+
+    instances = analysis["instances"]
+    assert isinstance(instances, list)
+    instance_rows = []
+    for instance in instances:
+        assert isinstance(instance, dict)
+        optimal_names = ", ".join(
+            f"`{name}`" for name in instance["optimal_layouts"]
+        )
+        frontier_names = ", ".join(
+            f"`{name}`" for name in instance["best_frontier_layouts"]
+        )
+        instance_rows.append(
+            (
+                str(instance["display_name"]),
+                str(instance["matrix_size"]),
+                f"{instance['frontier_size']}/{instance['layout_count']}",
+                f"{100.0 * float(instance['retained_fraction']):.3f}%",
+                optimal_names,
+                f"{float(instance['optimal_runtime_ms']):.6f}",
+                frontier_names,
+                f"{float(instance['best_frontier_runtime_ms']):.6f}",
+                f"{100.0 * float(instance['oracle_regret']):.6f}%",
+            )
+        )
+    lines.extend(
+        (
+            _markdown_table(
+                (
+                    "Kernel",
+                    "N",
+                    "K/L",
+                    "Retained",
+                    "Measured optimum",
+                    "Optimum ms",
+                    "Best frontier",
+                    "Frontier ms",
+                    "Regret",
+                ),
+                instance_rows,
+            ),
+            "",
+        )
+    )
+
+    plots = analysis.get("plots")
+    if isinstance(plots, dict):
+        retained_plot = plots.get("retained_fraction_vs_regret")
+        if isinstance(retained_plot, dict):
+            lines.extend(
+                (
+                    "![Retained fraction versus frontier regret]"
+                    f"({retained_plot['markdown_path']})",
+                    "",
+                )
+            )
+
+    lines.extend(
+        (
+            "### Epsilon-optimal coverage, purity, and enrichment",
+            "",
+            "An epsilon-optimal layout has median runtime no greater than "
+            "`(1 + epsilon)` times the measured optimum. Purity is the "
+            "epsilon-optimal fraction of the frontier; enrichment divides "
+            "that purity by the epsilon-optimal fraction of the full layout "
+            "set.",
+            "",
+        )
+    )
+    epsilon_metrics = analysis["epsilon_optimal"]
+    assert isinstance(epsilon_metrics, list)
+    epsilon_rows = []
+    for metric in epsilon_metrics:
+        assert isinstance(metric, dict)
+        purity = metric["purity"]
+        enrichment = metric["enrichment"]
+        assert isinstance(purity, dict)
+        assert isinstance(enrichment, dict)
+        epsilon_rows.append(
+            (
+                f"{float(metric['epsilon_percent']):.2f}%",
+                f"{metric['covered_instances']}/{analysis['instance_count']}",
+                f"{100.0 * float(metric['coverage']):.3f}%",
+                f"{100.0 * float(metric['random_expected_coverage']):.3f}%",
+                f"{100.0 * float(purity['mean']):.3f}%",
+                f"{100.0 * float(purity['median']):.3f}%",
+                f"{float(enrichment['mean']):.3f}x",
+                f"{float(enrichment['median']):.3f}x",
+            )
+        )
+    lines.extend(
+        (
+            _markdown_table(
+                (
+                    "Epsilon",
+                    "Covered",
+                    "Coverage",
+                    "Random coverage",
+                    "Mean purity",
+                    "Median purity",
+                    "Mean enrichment",
+                    "Median enrichment",
+                ),
+                epsilon_rows,
+            ),
+            "",
+        )
+    )
+    if isinstance(plots, dict):
+        for name, alt_text in (
+            ("epsilon_optimal_coverage", "Epsilon-optimal frontier coverage"),
+            ("purity_and_enrichment", "Frontier purity and enrichment"),
+        ):
+            plot = plots.get(name)
+            if isinstance(plot, dict):
+                lines.extend(
+                    (f"![{alt_text}]({plot['markdown_path']})", "")
+                )
+
+    lines.extend(
+        (
+            "### Top-k scalar-score regret",
+            "",
+            "For an exact candidate budget `k`, layouts are ordered by the "
+            "selected scalar score and then by layout name to break exact "
+            "ties deterministically. The reported regret uses the fastest "
+            "measured layout among those `k` candidates.",
+            "",
+        )
+    )
+    top_k = analysis["top_k"]
+    assert isinstance(top_k, list)
+    maximum_k = int(top_k[-1]["k"])
+    checkpoints = sorted({1, 2, 4, 8, 16, maximum_k})
+    top_k_rows = []
+    for k in checkpoints:
+        if k > maximum_k:
+            continue
+        metric = top_k[k - 1]
+        regret = metric["regret"]
+        assert isinstance(regret, dict)
+        top_k_rows.append(
+            (
+                str(k),
+                f"{100.0 * float(regret['median']):.6f}%",
+                f"{100.0 * float(regret['mean']):.6f}%",
+                f"{100.0 * float(regret['maximum']):.6f}%",
+            )
+        )
+    lines.extend(
+        (
+            _markdown_table(
+                ("k", "Median regret", "Mean regret", "Maximum regret"),
+                top_k_rows,
+            ),
+            "",
+        )
+    )
+    if isinstance(plots, dict):
+        top_k_plot = plots.get("top_k_regret")
+        if isinstance(top_k_plot, dict):
+            lines.extend(
+                (
+                    f"![Top-k scalar-score regret]"
+                    f"({top_k_plot['markdown_path']})",
+                    "",
+                )
+            )
+    return lines
 
 
 def markdown_report(report: Mapping[str, object]) -> str:
@@ -1030,6 +1286,10 @@ def markdown_report(report: Mapping[str, object]) -> str:
             "",
         )
     )
+
+    frontier_analysis = report.get("frontier_analysis")
+    if isinstance(frontier_analysis, dict):
+        lines.extend(_frontier_scorecard_markdown(frontier_analysis))
 
     for group in groups:
         assert isinstance(group, dict)
@@ -1283,6 +1543,22 @@ def print_summary(report: Mapping[str, object]) -> None:
             f"{metric['accurate_layouts']}/{metric['total_layouts']} "
             f"({_format_metric(metric['rank_accuracy'])})"
         )
+    frontier_analysis = report.get("frontier_analysis")
+    if isinstance(frontier_analysis, dict):
+        regret = frontier_analysis["oracle_regret"]
+        exact = frontier_analysis["exact_winner_coverage"]
+        assert isinstance(regret, dict)
+        assert isinstance(exact, dict)
+        print(
+            "  frontier oracle regret: "
+            f"median={100.0 * float(regret['median']):.6f}%, "
+            f"mean={100.0 * float(regret['mean']):.6f}%, "
+            f"max={100.0 * float(regret['maximum']):.6f}%"
+        )
+        print(
+            "  frontier exact-winner coverage: "
+            f"{exact['covered_instances']}/{frontier_analysis['instance_count']}"
+        )
 
 
 def _configuration(
@@ -1321,13 +1597,57 @@ def _write_text_atomic(path: Path, content: str) -> None:
     temporary.replace(path)
 
 
+def update_frontier_analysis(report: dict[str, object]) -> None:
+    """Refresh per-run and aggregate frontier metrics from stored timings."""
+
+    groups = report.get("runs")
+    if not isinstance(groups, list):
+        raise ValueError("experiment report has no run list")
+    all_complete = bool(groups)
+    for group in groups:
+        if not isinstance(group, dict):
+            raise ValueError("experiment report contains an invalid run")
+        records = group.get("results")
+        if not isinstance(records, list):
+            raise ValueError("experiment run has no result list")
+        complete = bool(records) and all(
+            isinstance(record, dict) and record.get("timing") is not None
+            for record in records
+        )
+        if complete:
+            group["frontier_runtime_analysis"] = analyze_frontier_group(group)
+        else:
+            group["frontier_runtime_analysis"] = None
+            all_complete = False
+
+    report["frontier_analysis"] = (
+        analyze_frontier_report(groups) if all_complete else None
+    )
+
+
 def write_reports(
-    report: Mapping[str, object], output_path: Path, markdown_path: Path
+    report: dict[str, object],
+    output_path: Path,
+    markdown_path: Path,
+    plots_directory: Path,
 ) -> None:
-    """Atomically write a JSON checkpoint and its Markdown rendering."""
+    """Write a checkpoint, Markdown scorecard, and completed-run plots."""
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    update_frontier_analysis(report)
+    analysis = report["frontier_analysis"]
+    if isinstance(analysis, dict) and report.get("complete") is True:
+        paths = render_frontier_plots(analysis, plots_directory)
+        analysis["plots"] = {
+            name: {
+                "path": str(path.resolve()),
+                "markdown_path": Path(
+                    os.path.relpath(path, markdown_path.parent)
+                ).as_posix(),
+            }
+            for name, path in paths.items()
+        }
     _write_text_atomic(
         output_path, json.dumps(report, indent=2, sort_keys=True) + "\n"
     )
@@ -1549,6 +1869,11 @@ def run(argv: list[str] | None = None) -> int:
         if args.markdown is not None
         else output_path.with_suffix(".md")
     )
+    plots_directory = (
+        args.plots_dir.expanduser().resolve()
+        if args.plots_dir is not None
+        else output_path.with_name(output_path.stem + "_plots")
+    )
     expected_configuration = _configuration(args, kernel_names, sizes)
 
     if args.resume:
@@ -1613,6 +1938,7 @@ def run(argv: list[str] | None = None) -> int:
             },
             "benchmark_run_order": [],
             "complete": bool(args.score_only),
+            "frontier_analysis": None,
             "runs": [group for _, _, group, _ in prepared],
         }
         if args.reuse_timings is not None:
@@ -1625,7 +1951,7 @@ def run(argv: list[str] | None = None) -> int:
             except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
                 parser.error(str(error))
             report["timing_sources"] = [str(path) for path in timing_paths]
-        write_reports(report, output_path, markdown_path)
+        write_reports(report, output_path, markdown_path, plots_directory)
 
     if (
         not args.score_only
@@ -1683,7 +2009,12 @@ def run(argv: list[str] | None = None) -> int:
                 assert isinstance(records, list)
                 if all(item["timing"] is not None for item in records):
                     finalize_runtime_group(group)
-                write_reports(report, output_path, markdown_path)
+                write_reports(
+                    report,
+                    output_path,
+                    markdown_path,
+                    plots_directory,
+                )
         except RuntimeError as error:
             print(f"error: {error}", file=sys.stderr)
             return 1
@@ -1694,11 +2025,13 @@ def run(argv: list[str] | None = None) -> int:
             for record in group["results"]
         )
         report["complete"] = all_complete
-        write_reports(report, output_path, markdown_path)
+        write_reports(report, output_path, markdown_path, plots_directory)
 
     print_summary(report)
     print(f"\nWrote {output_path}")
     print(f"Wrote {markdown_path}")
+    if isinstance(report.get("frontier_analysis"), dict):
+        print(f"Wrote plots under {plots_directory}")
     return 0
 
 

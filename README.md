@@ -83,7 +83,10 @@ ranks are written to JSON and Markdown. Variation-aware metrics use observed
 timing sample ranges without changing those raw ranks. Each kernel/size report
 also includes the exact non-dominated cost frontier over
 `(Q_fine, J_peak, J_area, codegen runs, codegen XORs)`; runtime is not a Pareto
-objective.
+objective. Completed reports evaluate that frontier as a candidate generator
+using best-in-frontier regret, epsilon-optimal coverage, retained fraction,
+purity, enrichment, a size-matched random baseline, and top-k scalar-score
+regret. Four PNG plots are written beside the JSON report.
 
 Validate scoring without a GPU:
 
@@ -103,6 +106,12 @@ flux run -n1 -g1 -t 5m -q pdebug \
   --size 256 --samples 5 --iterations 3 --warmup 2 \
   --max-benchmarks 40 \
   --output results/layout-ranking.json
+```
+
+Plot generation uses the optional experiment dependencies:
+
+```bash
+.venv/bin/python -m pip install -e '.[experiments]'
 ```
 
 Repeat the same command with `--resume` to finish a checkpointed hardware run.

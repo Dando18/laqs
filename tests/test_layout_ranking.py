@@ -196,6 +196,10 @@ class CombinedExperimentTests(unittest.TestCase):
                 )
             )
             self.assertEqual(report["component_weight_overrides"], {})
+            self.assertIsNone(report["frontier_analysis"])
+            self.assertFalse(
+                json_path.with_name(json_path.stem + "_plots").exists()
+            )
             self.assertTrue(
                 all(group["component_weights"] for group in report["runs"])
             )
@@ -322,10 +326,37 @@ class CombinedExperimentTests(unittest.TestCase):
                     variation_aware_rank_metrics(scores, timings),
                 )
 
+            frontier_analysis = report["frontier_analysis"]
+            self.assertEqual(frontier_analysis["instance_count"], 1)
+            self.assertIn("oracle_regret", frontier_analysis)
+            self.assertIn("epsilon_optimal", frontier_analysis)
+            self.assertIn("top_k", frontier_analysis)
+            self.assertIn("frontier_runtime_analysis", group)
+            self.assertEqual(
+                set(frontier_analysis["plots"]),
+                {
+                    "epsilon_optimal_coverage",
+                    "retained_fraction_vs_regret",
+                    "purity_and_enrichment",
+                    "top_k_regret",
+                },
+            )
+            self.assertTrue(
+                all(
+                    Path(plot["path"]).stat().st_size > 0
+                    for plot in frontier_analysis["plots"].values()
+                )
+            )
+
             markdown = json_path.with_suffix(".md").read_text()
             self.assertIn("| Score rank | Runtime rank |", markdown)
             self.assertIn("### Variation-aware metrics", markdown)
             self.assertIn("Observed range ms", markdown)
+            self.assertIn("## Frontier candidate-generation scorecard", markdown)
+            self.assertIn("### Retained fraction versus oracle regret", markdown)
+            self.assertIn("### Epsilon-optimal coverage", markdown)
+            self.assertIn("### Top-k scalar-score regret", markdown)
+            self.assertIn("![Top-k scalar-score regret]", markdown)
 
     def test_benchmark_checkpoint_resumes_without_rescoring(self) -> None:
         def benchmark(spec, n, case, args):

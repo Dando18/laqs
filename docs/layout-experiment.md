@@ -156,6 +156,59 @@ layout case is no greater in every entry and strictly smaller in at least one.
 Exact cost ties are retained. This is a frontier of modeled costs only; runtime
 and timing variation are not Pareto objectives.
 
+## Frontier candidate-generation scorecard
+
+A completed timing report treats the Pareto frontier as a retained candidate
+set rather than as a total runtime ordering. For benchmark instance `e`, the
+reported oracle regret is
+
+```text
+R_e(F_e) = min runtime in F_e / min runtime in L_e - 1.
+```
+
+Here `L_e` is the layout family actually enumerated by this experiment, not
+the unbounded space of every representable address mapping.
+
+The report aggregates its mean, median, and maximum across instances. It also
+records the frontier size and retained fraction `|F_e| / |L_e|` for every
+kernel/size pair and renders a retained-fraction-versus-regret scatter plot.
+
+For epsilon values 0%, 0.25%, 0.5%, 1%, 2%, and 5%, an epsilon-optimal layout
+has median runtime at most `(1 + epsilon)` times the measured optimum. The
+scorecard reports and plots:
+
+- instance coverage: the fraction of frontiers retaining at least one such
+  layout;
+- purity: the epsilon-optimal fraction of the frontier;
+- enrichment: purity divided by epsilon-optimal prevalence in the full tested
+  layout set; and
+- the exact expected coverage of a uniformly random subset with the same size
+  as each frontier.
+
+For exact-winner coverage, the report also gives expected random hits and the
+Poisson-binomial probability that independent size-matched random subsets
+would obtain at least the observed hit count.
+
+The top-k diagnostic orders layouts by the selected scalar score. Layout name
+is used only as a deterministic tie-breaker so each budget contains exactly
+`k` candidates. For every `k`, the JSON records best-runtime regret and
+epsilon coverage; the plot shows median, mean, and maximum regret. This tests
+the scalar ordering, whereas frontier regret tests analytical candidate
+generation.
+
+The four plots are written to `<output stem>_plots/` by default:
+
+- `epsilon_optimal_coverage.png`;
+- `retained_fraction_vs_regret.png`;
+- `purity_and_enrichment.png`; and
+- `top_k_regret.png`.
+
+Use `--plots-dir DIRECTORY` to select another location. Plotting requires the
+`experiments` optional dependencies from `pyproject.toml`. Score-only and
+incomplete checkpoints contain no aggregate runtime scorecard because the
+required medians are not yet available; completed kernel/size groups still
+receive their per-group JSON analysis as checkpoints progress.
+
 ## Score-only check
 
 Scoring needs no GPU. This example builds ten kernel/size groups—all five
@@ -384,6 +437,15 @@ particularly for ATAX and MVT at N=1024 and SYRK at N=512. Those validation
 results have not been used for a second round of fitting. Measurements on
 other devices and repeated randomized sweeps remain necessary before treating
 any weight table as portable.
+
+The candidate-generation scorecard is considerably stronger than the complete
+rank diagnostic. The frontier retains 21.818% of layouts on average, contains
+the exact measured winner in 14/15 instances, and reaches 15/15 coverage by
+epsilon=0.5%. Oracle regret has median 0%, mean 0.021642%, and maximum
+0.324626%. A size-matched random subset would produce only 3.273 exact hits in
+expectation; the Poisson-binomial probability of at least 14 is approximately
+`4.77e-9`. Exact-optimum frontier purity averages 20.190%, corresponding to
+4.442x mean enrichment over the tested layout set.
 
 ## Raw ranks and variation-aware metrics
 

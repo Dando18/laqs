@@ -30,6 +30,72 @@ Runtime samples were reused from `/g/g16/dnicho/record-replay/relay/results/layo
 | SYRK | 512 | 22 | 4 | 0.227 | 1.091 |
 | SYRK | 1024 | 22 | 4 | 0.864 | 0.136 |
 
+## Frontier candidate-generation scorecard
+
+The frontier is evaluated as a retained candidate set. Oracle regret is the best frontier median runtime divided by the best evaluated median runtime in the layout family, minus one. Runtime is not used to construct the frontier.
+
+| Metric | Mean | Median | Minimum | Maximum |
+| --- | --- | --- | --- | --- |
+| Oracle regret | 0.021642% | 0.000000% | 0.000000% | 0.324626% |
+| Retained fraction | 21.818% | 18.182% | 18.182% | 31.818% |
+| Frontier size | 4.800 | 4.000 | 4 | 7 |
+
+Exact-winner coverage is 14/15 (93.333%). A uniformly random subset with each frontier's size would cover 3.273 instances in expectation; its Poisson-binomial probability of at least the observed number of exact hits is 4.77302e-09.
+
+### Retained fraction versus oracle regret
+
+| Kernel | N | K/L | Retained | Measured optimum | Optimum ms | Best frontier | Frontier ms | Regret |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ATAX | 256 | 4/22 | 18.182% | `tile8_column_major` | 0.060094 | `tile8_column_major` | 0.060094 | 0.000000% |
+| ATAX | 512 | 4/22 | 18.182% | `tile8_column_major` | 0.119854 | `tile8_column_major` | 0.119854 | 0.000000% |
+| ATAX | 1024 | 4/22 | 18.182% | `tile8_column_major` | 0.242176 | `tile8_column_major` | 0.242176 | 0.000000% |
+| GEMM | 256 | 4/22 | 18.182% | `tile32_row_major` | 0.065614 | `tile32x8_row_major` | 0.065827 | 0.324626% |
+| GEMM | 512 | 4/22 | 18.182% | `tile16x8_row_major` | 0.258575 | `tile16x8_row_major` | 0.258575 | 0.000000% |
+| GEMM | 1024 | 4/22 | 18.182% | `tile8_row_major` | 1.470879 | `tile8_row_major` | 1.470879 | 0.000000% |
+| GESUMMV | 256 | 7/22 | 31.818% | `tile32x8_row_major` | 0.032560 | `tile32x8_row_major` | 0.032560 | 0.000000% |
+| GESUMMV | 512 | 7/22 | 31.818% | `tile32x8_row_major` | 0.063427 | `tile32x8_row_major` | 0.063427 | 0.000000% |
+| GESUMMV | 1024 | 7/22 | 31.818% | `tile16x8_row_major` | 0.129881 | `tile16x8_row_major` | 0.129881 | 0.000000% |
+| MVT | 256 | 5/22 | 22.727% | `tile8_row_major` | 0.039894 | `tile8_row_major` | 0.039894 | 0.000000% |
+| MVT | 512 | 5/22 | 22.727% | `tile8x32_column_major` | 0.077707 | `tile8x32_column_major` | 0.077707 | 0.000000% |
+| MVT | 1024 | 5/22 | 22.727% | `tile8_column_major` | 0.155308 | `tile8_column_major` | 0.155308 | 0.000000% |
+| SYRK | 256 | 4/22 | 18.182% | `tile8x32_column_major` | 0.065840 | `tile8x32_column_major` | 0.065840 | 0.000000% |
+| SYRK | 512 | 4/22 | 18.182% | `tile8x16_column_major` | 0.258561 | `tile8x16_column_major` | 0.258561 | 0.000000% |
+| SYRK | 1024 | 4/22 | 18.182% | `tile8x32_column_major` | 1.446287 | `tile8x32_column_major` | 1.446287 | 0.000000% |
+
+![Retained fraction versus frontier regret](layout_ranking_plots/retained_fraction_vs_regret.png)
+
+### Epsilon-optimal coverage, purity, and enrichment
+
+An epsilon-optimal layout has median runtime no greater than `(1 + epsilon)` times the measured optimum. Purity is the epsilon-optimal fraction of the frontier; enrichment divides that purity by the epsilon-optimal fraction of the full layout set.
+
+| Epsilon | Covered | Coverage | Random coverage | Mean purity | Median purity | Mean enrichment | Median enrichment |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.00% | 14/15 | 93.333% | 21.818% | 20.190% | 25.000% | 4.442x | 5.500x |
+| 0.25% | 14/15 | 93.333% | 30.104% | 29.524% | 25.000% | 4.259x | 4.400x |
+| 0.50% | 15/15 | 100.000% | 47.015% | 46.143% | 50.000% | 4.002x | 4.400x |
+| 1.00% | 15/15 | 100.000% | 57.986% | 58.095% | 75.000% | 3.762x | 4.125x |
+| 2.00% | 15/15 | 100.000% | 61.921% | 60.714% | 75.000% | 3.623x | 4.125x |
+| 5.00% | 15/15 | 100.000% | 77.003% | 71.238% | 75.000% | 2.935x | 3.143x |
+
+![Epsilon-optimal frontier coverage](layout_ranking_plots/epsilon_optimal_coverage.png)
+
+![Frontier purity and enrichment](layout_ranking_plots/purity_and_enrichment.png)
+
+### Top-k scalar-score regret
+
+For an exact candidate budget `k`, layouts are ordered by the selected scalar score and then by layout name to break exact ties deterministically. The reported regret uses the fastest measured layout among those `k` candidates.
+
+| k | Median regret | Mean regret | Maximum regret |
+| --- | --- | --- | --- |
+| 1 | 0.171156% | 0.603345% | 3.768428% |
+| 2 | 0.000000% | 0.077902% | 0.592775% |
+| 4 | 0.000000% | 0.017160% | 0.257397% |
+| 8 | 0.000000% | 0.000000% | 0.000000% |
+| 16 | 0.000000% | 0.000000% | 0.000000% |
+| 22 | 0.000000% | 0.000000% | 0.000000% |
+
+![Top-k scalar-score regret](layout_ranking_plots/top_k_regret.png)
+
 ## ATAX — N=256
 
 Workgroup: `128`.
