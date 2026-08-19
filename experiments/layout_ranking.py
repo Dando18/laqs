@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-r"""Compare RELAY layout scores with GEMM and GESUMMV runtimes.
+r"""Compare RELAY layout scores with five representative GPU kernels.
 
-The experiment applies the same traditional canonical layout to every target
-matrix in a kernel and repeats the comparison for several square matrix sizes.
-Canonical words list physical element-address bits from low to high.  Context
-vectors in GESUMMV remain contiguous.
+The experiment applies the same canonical layout to every target matrix in a
+kernel and repeats the comparison for several square matrix sizes. The suite
+contains global, square-tiled, rectangular-tiled, and interleaved controls.
+Canonical words list physical element-address bits from low to high. Non-target
+vector operands retain their fixed contiguous layouts.
 
 Runtime ranks use exact sample medians.  Variation-aware metrics do not change
 those ranks: they only check whether a score rank lies within the plausible
@@ -30,15 +31,18 @@ import statistics
 import subprocess
 import sys
 from types import ModuleType
-from typing import Mapping, Sequence
+from typing import Literal, Mapping, Sequence
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from kernels.atax import problem as atax_problem
 from kernels.gemm import problem as gemm_problem
 from kernels.gesummv import problem as gesummv_problem
+from kernels.mvt import problem as mvt_problem
+from kernels.syrk import problem as syrk_problem
 from relay import (
     SCORE_MODES,
     CanonicalLayout,
@@ -62,6 +66,16 @@ PARETO_OBJECTIVES = (
     "wave_load.64B.raw-region-count",
     "peak-normalized-excess",
     "weighted-normalized-excess",
+    "codegen-runs",
+    "codegen-xors",
+)
+RECTANGULAR_TILE_SHAPES = (
+    (8, 16),
+    (16, 8),
+    (8, 32),
+    (32, 8),
+    (16, 32),
+    (32, 16),
 )
 
 
@@ -74,15 +88,25 @@ class KernelSpec:
     problem: ModuleType
     evaluator: Path
     evaluator_arrays: tuple[str, ...]
+    block_style: Literal["1d", "2d"]
 
 
 KERNEL_SPECS = {
+    "atax": KernelSpec(
+        "atax",
+        "ATAX",
+        atax_problem,
+        REPOSITORY_ROOT / "kernels" / "atax" / "evaluate.py",
+        ("A",),
+        "1d",
+    ),
     "gemm": KernelSpec(
         "gemm",
         "GEMM",
         gemm_problem,
         REPOSITORY_ROOT / "kernels" / "gemm" / "evaluate.py",
         ("A", "B", "C"),
+        "2d",
     ),
     "gesummv": KernelSpec(
         "gesummv",
@@ -90,13 +114,30 @@ KERNEL_SPECS = {
         gesummv_problem,
         REPOSITORY_ROOT / "kernels" / "gesummv" / "evaluate.py",
         ("A", "B"),
+        "1d",
+    ),
+    "mvt": KernelSpec(
+        "mvt",
+        "MVT",
+        mvt_problem,
+        REPOSITORY_ROOT / "kernels" / "mvt" / "evaluate.py",
+        ("A",),
+        "1d",
+    ),
+    "syrk": KernelSpec(
+        "syrk",
+        "SYRK",
+        syrk_problem,
+        REPOSITORY_ROOT / "kernels" / "syrk" / "evaluate.py",
+        ("A", "C"),
+        "2d",
     ),
 }
 
 
 @dataclass(frozen=True)
 class LayoutCase:
-    """One traditional canonical layout applied to every target matrix."""
+    """One canonical layout applied to every target matrix."""
 
     name: str
     word: str
@@ -115,8 +156,13 @@ class TimingResult:
     samples_ms: tuple[float, ...]
 
 
-def traditional_layout_cases(n: int) -> tuple[LayoutCase, ...]:
-    """Return uniform global and square-tiled row/column-major controls."""
+def layout_cases(n: int) -> tuple[LayoutCase, ...]:
+    """Return global, tiled, rectangular, and interleaved controls.
+
+    Tile names use ``i x j`` dimensions. For each rectangular shape, the
+    row-major inner word places the ``j`` bits low and the column-major word
+    places the ``i`` bits low. Outer tiles remain row-major.
+    """
 
     if n < 2 or n & (n - 1):
         raise ValueError("matrix sizes must be powers of two greater than one")
@@ -142,7 +188,52 @@ def traditional_layout_cases(n: int) -> tuple[LayoutCase, ...]:
                 ),
             )
         )
+    for i_extent, j_extent in RECTANGULAR_TILE_SHAPES:
+        if i_extent > n or j_extent > n:
+            continue
+        i_bits = i_extent.bit_length() - 1
+        j_bits = j_extent.bit_length() - 1
+        prefix = f"tile{i_extent}x{j_extent}"
+        cases.extend(
+            (
+                LayoutCase(
+                    f"{prefix}_row_major",
+                    "j" * j_bits + "i" * i_bits,
+                ),
+                LayoutCase(
+                    f"{prefix}_column_major",
+                    "i" * i_bits + "j" * j_bits,
+                ),
+            )
+        )
+    for tile_size in (16, 32):
+        if tile_size > n:
+            continue
+        tile_bits = tile_size.bit_length() - 1
+        cases.append(
+            LayoutCase(
+                f"tile{tile_size}_interleaved",
+                "ji" * tile_bits,
+            )
+        )
     return tuple(cases)
+
+
+def selected_layout_cases(
+    n: int, names: Sequence[str] | None = None
+) -> tuple[LayoutCase, ...]:
+    """Return all cases or an explicitly ordered named subset."""
+
+    available = layout_cases(n)
+    if not names:
+        return available
+    by_name = {case.name: case for case in available}
+    unknown = [name for name in dict.fromkeys(names) if name not in by_name]
+    if unknown:
+        raise ValueError(
+            f"N={n} does not provide layout cases: {', '.join(unknown)}"
+        )
+    return tuple(by_name[name] for name in dict.fromkeys(names))
 
 
 def average_tie_ranks(values: Sequence[float]) -> list[float]:
@@ -223,7 +314,7 @@ def variation_aware_rank_metrics(
 
 
 def parse_evaluator_output(output: str) -> TimingResult:
-    """Parse the correctness and timing block shared by both HIP evaluators."""
+    """Parse the correctness and timing block shared by the HIP evaluators."""
 
     lines = output.splitlines()
     if not any(line.startswith("Correctness: PASS") for line in lines):
@@ -321,7 +412,7 @@ def layouts_for_case(
 def notes_pareto_frontier(
     scores: Mapping[str, LayoutScore],
 ) -> dict[str, object]:
-    """Build the notes-aligned ``(Q_fine, J_peak, J_area)`` frontier."""
+    """Build the notes-aligned locality/codegen cost frontier."""
 
     frontier = pareto_frontier(
         scores,
@@ -337,6 +428,8 @@ def notes_pareto_frontier(
             PARETO_OBJECTIVES[2]: (
                 lambda score: score.weighted_normalized_excess
             ),
+            PARETO_OBJECTIVES[3]: lambda score: float(score.codegen.runs),
+            PARETO_OBJECTIVES[4]: lambda score: float(score.codegen.xors),
         },
     )
     return {
@@ -359,6 +452,14 @@ def notes_pareto_frontier(
                 "name": PARETO_OBJECTIVES[2],
                 "definition": "J_area = sum(tau * normalized excess)",
             },
+            {
+                "name": PARETO_OBJECTIVES[3],
+                "definition": "sum of address-expression runs over target arrays",
+            },
+            {
+                "name": PARETO_OBJECTIVES[4],
+                "definition": "sum of address-expression XORs over target arrays",
+            },
         ],
         "members": [
             {
@@ -373,10 +474,10 @@ def notes_pareto_frontier(
 def _problem_config(
     spec: KernelSpec, n: int, args: argparse.Namespace
 ) -> tuple[object, object]:
-    if spec.name == "gemm":
-        block = (args.gemm_block_x, args.gemm_block_y, 1)
+    if spec.block_style == "2d":
+        block = (args.block_x, args.block_y, 1)
         return spec.problem.build_config(problem_size=n, block_size=block), list(block)
-    block = args.gesummv_block_size
+    block = args.block_size
     return spec.problem.build_config(problem_size=n, block_size=block), block
 
 
@@ -403,17 +504,17 @@ def evaluator_command(
         "--device",
         str(args.device),
     ]
-    if spec.name == "gemm":
+    if spec.block_style == "2d":
         command.extend(
             (
                 "--block-x",
-                str(args.gemm_block_x),
+                str(args.block_x),
                 "--block-y",
-                str(args.gemm_block_y),
+                str(args.block_y),
             )
         )
     else:
-        command.extend(("--block-size", str(args.gesummv_block_size)))
+        command.extend(("--block-size", str(args.block_size)))
     command.extend(("--compiler", args.compiler))
     if args.arch:
         command.extend(("--arch", args.arch))
@@ -477,7 +578,7 @@ def parse_arguments(
         action="append",
         choices=tuple(KERNEL_SPECS),
         default=None,
-        help="kernel to include; repeat as needed (default: both)",
+        help="kernel to include; repeat as needed (default: all five)",
     )
     parser.add_argument(
         "--size",
@@ -486,6 +587,16 @@ def parse_arguments(
         default=None,
         metavar="N",
         help="square matrix size; repeat as needed (default: 256, 512, 1024)",
+    )
+    parser.add_argument(
+        "--layout-case",
+        action="append",
+        default=None,
+        metavar="NAME",
+        help=(
+            "layout case to include; repeat for an ordered subset "
+            "(default: all documented cases)"
+        ),
     )
     parser.add_argument(
         "--samples",
@@ -512,27 +623,27 @@ def parse_arguments(
         help="HIP device ordinal (default: %(default)s)",
     )
     parser.add_argument(
-        "--gemm-block-x",
+        "--block-x",
         type=positive_integer,
         default=32,
-        help="GEMM workgroup width / j threads (default: %(default)s)",
+        help="workgroup width for two-dimensional kernels (default: %(default)s)",
     )
     parser.add_argument(
-        "--gemm-block-y",
+        "--block-y",
         type=positive_integer,
         default=32,
-        help="GEMM workgroup height / i threads (default: %(default)s)",
+        help="workgroup height for two-dimensional kernels (default: %(default)s)",
     )
     parser.add_argument(
-        "--gesummv-block-size",
+        "--block-size",
         type=positive_integer,
         default=128,
-        help="GESUMMV one-dimensional workgroup size (default: %(default)s)",
+        help="workgroup size for one-dimensional kernels (default: %(default)s)",
     )
     parser.add_argument(
         "--compiler",
         default="hipcc",
-        help="HIP compiler command passed to both evaluators (default: %(default)s)",
+        help="HIP compiler command passed to every evaluator (default: %(default)s)",
     )
     parser.add_argument(
         "--arch",
@@ -561,9 +672,29 @@ def parse_arguments(
         help="compute scores and reports without running HIP evaluators",
     )
     parser.add_argument(
+        "--prepare-checkpoint",
+        action="store_true",
+        help=(
+            "compute scores and write an incomplete benchmark checkpoint; "
+            "resume it inside a GPU allocation"
+        ),
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
         help="resume missing benchmarks from an existing compatible JSON report",
+    )
+    parser.add_argument(
+        "--reuse-timings",
+        type=Path,
+        action="append",
+        default=None,
+        metavar="JSON",
+        help=(
+            "score the current objective model and attach matching timings "
+            "from completed reports instead of running evaluators; repeat "
+            "to combine disjoint reports"
+        ),
     )
     parser.add_argument(
         "--max-benchmarks",
@@ -617,7 +748,7 @@ def score_group(
 ) -> tuple[dict[str, object], tuple[LayoutCase, ...], set[str]]:
     """Build and score one kernel/size group."""
 
-    cases = traditional_layout_cases(n)
+    cases = selected_layout_cases(n, args.layout_case)
     config, block = _problem_config(spec, n, args)
     matrices_tuple = tuple(spec.problem.get_matrices(config))
     event_items, sequences = spec.problem.get_events_and_sequences(config)
@@ -652,7 +783,7 @@ def score_group(
     mode: ScoreMode = args.score_mode
     records: list[dict[str, object]] = []
     scores_by_name: dict[str, LayoutScore] = {}
-    print(f"Scoring {len(cases)} traditional layouts...", flush=True)
+    print(f"Scoring {len(cases)} layout controls...", flush=True)
     for case in cases:
         layouts = layouts_for_case(case, matrices)
         score = score_layouts(
@@ -829,6 +960,10 @@ def markdown_report(report: Mapping[str, object]) -> str:
         "All scores, runtimes, and ranks are ascending costs; lower is better. "
         f"The displayed score uses `{score_mode}`.",
         "",
+        "Runs and XORs are separate address-code generation costs. They are "
+        "included in the Pareto frontier but are not folded into the scalar "
+        "locality score or score rank.",
+        "",
         "Runtime rank is the raw rank of the exact sample median. Score rank is "
         "the raw rank of the exact modeled score. Timing variation does not "
         "change either rank or any table value.",
@@ -839,9 +974,19 @@ def markdown_report(report: Mapping[str, object]) -> str:
         "accurate when it lies inside that range. This is a conservative observed-"
         "sample check, not a confidence interval.",
         "",
-        "## Summary",
-        "",
     ]
+    timing_sources = report.get("timing_sources")
+    if isinstance(timing_sources, list):
+        rendered_sources = ", ".join(f"`{source}`" for source in timing_sources)
+        lines.extend(
+            (
+                "Runtime samples were reused from "
+                f"{rendered_sources}; objective scores and all rank metrics "
+                "were recomputed for this report.",
+                "",
+            )
+        )
+    lines.extend(("## Summary", ""))
 
     summary_rows: list[list[str]] = []
     for group in groups:
@@ -937,17 +1082,26 @@ def markdown_report(report: Mapping[str, object]) -> str:
                 f"{float(member['values'][PARETO_OBJECTIVES[0]]):.6g}",
                 f"{float(member['values'][PARETO_OBJECTIVES[1]]):.6g}",
                 f"{float(member['values'][PARETO_OBJECTIVES[2]]):.6g}",
+                f"{float(member['values'][PARETO_OBJECTIVES[3]]):.6g}",
+                f"{float(member['values'][PARETO_OBJECTIVES[4]]):.6g}",
             ]
             for member in frontier_members
         ]
         lines.extend(
             (
                 "This is the exact non-dominated set over the notes-aligned "
-                "`(Q_fine, J_peak, J_area)` score vector. Runtime is not a "
-                "Pareto objective.",
+                "locality vector plus separate codegen run and XOR costs. "
+                "Runtime is not a Pareto objective.",
                 "",
                 _markdown_table(
-                    ("Layout", "Q fine", "J peak", "J area"),
+                    (
+                        "Layout",
+                        "Q fine",
+                        "J peak",
+                        "J area",
+                        "Runs",
+                        "XORs",
+                    ),
                     frontier_rows,
                 ),
                 "",
@@ -964,13 +1118,22 @@ def markdown_report(report: Mapping[str, object]) -> str:
         )
         group_complete = all(record["timing"] is not None for record in records)
         if score_only:
-            headers = ("Score rank", "Layout", "Word (low→high)", "Score")
+            headers = (
+                "Score rank",
+                "Layout",
+                "Word (low→high)",
+                "Score",
+                "Runs",
+                "XORs",
+            )
             rows = [
                 [
                     _format_rank(record["score_rank"]),
                     f"`{record['name']}`",
                     f"`{record['word']}`",
                     f"{float(record['selected_score']):.6g}",
+                    str(record["score"]["codegen"]["runs"]),
+                    str(record["score"]["codegen"]["xors"]),
                 ]
                 for record in ordered
             ]
@@ -981,6 +1144,8 @@ def markdown_report(report: Mapping[str, object]) -> str:
                 "Layout",
                 "Word (low→high)",
                 "Score",
+                "Runs",
+                "XORs",
                 "Median ms",
                 "Mean ms",
                 "SD ms",
@@ -1000,6 +1165,8 @@ def markdown_report(report: Mapping[str, object]) -> str:
                             f"`{record['name']}`",
                             f"`{record['word']}`",
                             f"{float(record['selected_score']):.6g}",
+                            str(record["score"]["codegen"]["runs"]),
+                            str(record["score"]["codegen"]["xors"]),
                             "pending",
                             "pending",
                             "pending",
@@ -1023,6 +1190,8 @@ def markdown_report(report: Mapping[str, object]) -> str:
                         f"`{record['name']}`",
                         f"`{record['word']}`",
                         f"{float(record['selected_score']):.6g}",
+                        str(record["score"]["codegen"]["runs"]),
+                        str(record["score"]["codegen"]["xors"]),
                         f"{float(timing['median_ms']):.6f}",
                         f"{float(timing['mean_ms']):.6f}",
                         f"{float(timing['sd_ms']):.6f}",
@@ -1091,7 +1260,7 @@ def print_summary(report: Mapping[str, object]) -> None:
     assert isinstance(configuration, dict)
     assert isinstance(groups, list)
     score_mode = str(report["score_mode"])
-    print("\nRELAY multi-kernel traditional-layout experiment")
+    print("\nRELAY multi-kernel layout experiment")
     print(f"  score mode: {score_mode} (lower is better)")
     for group in groups:
         assert isinstance(group, dict)
@@ -1124,8 +1293,9 @@ def _configuration(
     return {
         "kernels": list(kernel_names),
         "matrix_sizes": list(sizes),
-        "gemm_block": [args.gemm_block_x, args.gemm_block_y, 1],
-        "gesummv_block_size": args.gesummv_block_size,
+        "layout_cases": list(args.layout_case) if args.layout_case else None,
+        "two_dimensional_block": [args.block_x, args.block_y, 1],
+        "one_dimensional_block_size": args.block_size,
         "samples": args.samples,
         "iterations": args.iterations,
         "warmup": args.warmup,
@@ -1133,6 +1303,14 @@ def _configuration(
         "compiler": args.compiler,
         "arch": args.arch,
         "score_only": args.score_only,
+        "reuse_timings": (
+            [
+                str(path.expanduser().resolve())
+                for path in args.reuse_timings
+            ]
+            if args.reuse_timings
+            else None
+        ),
         "seed": args.seed,
     }
 
@@ -1187,6 +1365,137 @@ def _prepared_from_report(
     return prepared
 
 
+def reuse_report_timings(
+    report: dict[str, object], sources: Sequence[Mapping[str, object]]
+) -> None:
+    """Attach matching records from timing reports and recompute rank metrics."""
+
+    configuration = report.get("configuration")
+    if not isinstance(configuration, dict):
+        raise ValueError("target report has no experiment configuration")
+    timing_fields = (
+        "samples",
+        "iterations",
+        "warmup",
+        "device",
+        "compiler",
+        "arch",
+    )
+    source_records: dict[tuple[str, int, str, str], Mapping[str, object]] = {}
+    source_groups: dict[tuple[str, int], Mapping[str, object]] = {}
+    source_orders: list[object] = []
+    for source in sources:
+        source_configuration = source.get("configuration")
+        if not isinstance(source_configuration, dict):
+            raise ValueError("timing source has no experiment configuration")
+        mismatched_fields = [
+            field
+            for field in timing_fields
+            if configuration.get(field) != source_configuration.get(field)
+        ]
+        if mismatched_fields:
+            raise ValueError(
+                "timing source uses different benchmark settings: "
+                + ", ".join(mismatched_fields)
+            )
+        source_runs = source.get("runs")
+        if not isinstance(source_runs, list):
+            raise ValueError("timing source has no run list")
+        for group in source_runs:
+            if not isinstance(group, dict) or not isinstance(
+                group.get("results"), list
+            ):
+                raise ValueError("timing source contains an invalid run")
+            group_key = (str(group["kernel"]), int(group["matrix_size"]))
+            if group_key in source_groups:
+                raise ValueError(
+                    "timing sources contain duplicate runs for "
+                    f"{group_key[0]} N={group_key[1]}"
+                )
+            source_groups[group_key] = group
+            for record in group["results"]:
+                if not isinstance(record, dict):
+                    raise ValueError("timing source contains an invalid result")
+                key = (
+                    str(group["kernel"]),
+                    int(group["matrix_size"]),
+                    str(record["name"]),
+                    str(record["word"]),
+                )
+                if record.get("timing") is not None:
+                    source_records[key] = record
+        source_order = source.get("benchmark_run_order", [])
+        if not isinstance(source_order, list):
+            raise ValueError(
+                "timing source contains an invalid benchmark run order"
+            )
+        source_orders.extend(source_order)
+
+    runs = report["runs"]
+    assert isinstance(runs, list)
+    target_record_keys: set[tuple[str, int, str, str]] = set()
+    for group in runs:
+        assert isinstance(group, dict)
+        group_key = (str(group["kernel"]), int(group["matrix_size"]))
+        source_group = source_groups.get(group_key)
+        if source_group is None:
+            raise ValueError(
+                "timing source has no matching run for "
+                f"{group_key[0]} N={group_key[1]}"
+            )
+        if group.get("block") != source_group.get("block"):
+            raise ValueError(
+                "timing source uses a different workgroup for "
+                f"{group_key[0]} N={group_key[1]}"
+            )
+        records = group["results"]
+        assert isinstance(records, list)
+        target_names = {str(record["name"]) for record in records}
+        for record in records:
+            assert isinstance(record, dict)
+            key = (
+                str(group["kernel"]),
+                int(group["matrix_size"]),
+                str(record["name"]),
+                str(record["word"]),
+            )
+            target_record_keys.add(key)
+            source_record = source_records.get(key)
+            if source_record is None:
+                raise ValueError(
+                    "timing source has no completed matching benchmark for "
+                    f"{key[0]} N={key[1]} {key[2]}"
+                )
+            for field in (
+                "timing",
+                "benchmark_command",
+                "benchmark_stdout",
+                "benchmark_stderr",
+            ):
+                record[field] = source_record.get(field)
+        source_group_order = source_group.get("benchmark_run_order", [])
+        if not isinstance(source_group_order, list):
+            raise ValueError("timing source contains an invalid run order")
+        group["benchmark_run_order"] = [
+            str(name) for name in source_group_order if str(name) in target_names
+        ]
+        finalize_runtime_group(group)
+
+    filtered_order = []
+    for item in source_orders:
+        if not isinstance(item, dict):
+            raise ValueError("timing source contains an invalid benchmark run order")
+        key_prefix = (
+            str(item.get("kernel")),
+            int(item.get("matrix_size")),
+            str(item.get("layout")),
+        )
+        if any(key[:3] == key_prefix for key in target_record_keys):
+            filtered_order.append(dict(item))
+    report["benchmark_run_order"] = filtered_order
+    report["complete"] = True
+
+
 def run(argv: list[str] | None = None) -> int:
     parser, args = parse_arguments(argv)
     try:
@@ -1196,17 +1505,41 @@ def run(argv: list[str] | None = None) -> int:
         kernel_names = tuple(dict.fromkeys(args.kernel or KERNEL_SPECS))
         sizes = tuple(dict.fromkeys(args.size or DEFAULT_SIZES))
         for n in sizes:
-            traditional_layout_cases(n)
-        if args.gemm_block_x * args.gemm_block_y > 1024:
+            selected_layout_cases(n, args.layout_case)
+        if args.block_x * args.block_y > 1024:
             raise ValueError(
-                "--gemm-block-x times --gemm-block-y must not exceed 1024"
+                "--block-x times --block-y must not exceed 1024"
             )
-        if args.gesummv_block_size > 1024:
-            raise ValueError("--gesummv-block-size must not exceed 1024")
+        if args.block_size > 1024:
+            raise ValueError("--block-size must not exceed 1024")
         if args.resume and args.score_only:
             raise ValueError("--resume cannot be combined with --score-only")
+        if args.prepare_checkpoint and args.score_only:
+            raise ValueError(
+                "--prepare-checkpoint cannot be combined with --score-only"
+            )
+        if args.prepare_checkpoint and args.resume:
+            raise ValueError(
+                "--prepare-checkpoint cannot be combined with --resume"
+            )
+        if args.prepare_checkpoint and args.reuse_timings is not None:
+            raise ValueError(
+                "--prepare-checkpoint cannot be combined with --reuse-timings"
+            )
+        if args.prepare_checkpoint and args.max_benchmarks is not None:
+            raise ValueError(
+                "--prepare-checkpoint cannot be combined with --max-benchmarks"
+            )
+        if args.resume and args.reuse_timings is not None:
+            raise ValueError("--resume cannot be combined with --reuse-timings")
+        if args.score_only and args.reuse_timings is not None:
+            raise ValueError("--score-only cannot be combined with --reuse-timings")
         if args.max_benchmarks is not None and args.score_only:
             raise ValueError("--max-benchmarks cannot be combined with --score-only")
+        if args.max_benchmarks is not None and args.reuse_timings is not None:
+            raise ValueError(
+                "--max-benchmarks cannot be combined with --reuse-timings"
+            )
     except ValueError as error:
         parser.error(str(error))
 
@@ -1223,7 +1556,7 @@ def run(argv: list[str] | None = None) -> int:
             parser.error(f"--resume report does not exist: {output_path}")
         try:
             report = json.loads(output_path.read_text())
-            if report.get("experiment") != "multi-kernel-traditional-layout-ranking":
+            if report.get("experiment") != "multi-kernel-layout-ranking":
                 raise ValueError("resume report is from a different experiment")
             if report.get("configuration") != expected_configuration:
                 raise ValueError(
@@ -1269,7 +1602,7 @@ def run(argv: list[str] | None = None) -> int:
             )
 
         report = {
-            "experiment": "multi-kernel-traditional-layout-ranking",
+            "experiment": "multi-kernel-layout-ranking",
             "configuration": expected_configuration,
             "score_mode": args.score_mode,
             "component_weight_overrides": component_weight_overrides,
@@ -1282,9 +1615,23 @@ def run(argv: list[str] | None = None) -> int:
             "complete": bool(args.score_only),
             "runs": [group for _, _, group, _ in prepared],
         }
+        if args.reuse_timings is not None:
+            timing_paths = [path.expanduser().resolve() for path in args.reuse_timings]
+            try:
+                timing_sources = [
+                    json.loads(path.read_text()) for path in timing_paths
+                ]
+                reuse_report_timings(report, timing_sources)
+            except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+                parser.error(str(error))
+            report["timing_sources"] = [str(path) for path in timing_paths]
         write_reports(report, output_path, markdown_path)
 
-    if not args.score_only:
+    if (
+        not args.score_only
+        and not args.prepare_checkpoint
+        and args.reuse_timings is None
+    ):
         jobs: list[
             tuple[
                 KernelSpec,

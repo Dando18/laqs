@@ -50,7 +50,8 @@ Run tests:
 The public scorer evaluates concrete layouts without running layout search. It
 reports each objective's weighted aligned-region count, its capacity-only
 packing lower bound, and its normalized excess over that bound. It also
-supports three explicitly named scalar costs:
+reports per-array and total address-code run/XOR costs, and supports three
+explicitly named scalar locality costs:
 
 - `weighted-region-count`;
 - `peak-normalized-excess`; and
@@ -74,20 +75,20 @@ layout-word convention, CLI contract, and JSON fields.
 
 ## Compare score and runtime ranks
 
-The combined experiment scores eight conventional global and tiled layouts for
-both GEMM and GESUMMV at several matrix sizes. It runs the matching HIP
-benchmark for each case and compares ascending score rank to ascending
-median-runtime rank. Exact raw numbers and ranks are written to JSON and
-Markdown. Variation-aware metrics use observed timing sample ranges without
-changing those raw ranks. Each kernel/size report also includes the exact
-non-dominated score frontier over `(Q_fine, J_peak, J_area)`; runtime is not a
-Pareto objective.
+The combined experiment scores global, square-tiled, rectangular-tiled, and
+interleaved canonical layouts for five FP64 kernels: ATAX, GEMM, GESUMMV, MVT,
+and SYRK. It runs the matching HIP benchmark for each case and compares
+ascending score rank to ascending median-runtime rank. Exact raw numbers and
+ranks are written to JSON and Markdown. Variation-aware metrics use observed
+timing sample ranges without changing those raw ranks. Each kernel/size report
+also includes the exact non-dominated cost frontier over
+`(Q_fine, J_peak, J_area, codegen runs, codegen XORs)`; runtime is not a Pareto
+objective.
 
 Validate scoring without a GPU:
 
 ```bash
 .venv/bin/python experiments/layout_ranking.py \
-  --kernel gemm --kernel gesummv \
   --size 256 --size 512 --score-only \
   --output results/layout-ranking-score-only.json
 ```
@@ -99,10 +100,14 @@ module load rocm/7.0.2
 flux run -n1 -g1 -t 5m -q pdebug \
   .venv/bin/python experiments/layout_ranking.py \
   --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942 \
+  --size 256 --samples 5 --iterations 3 --warmup 2 \
+  --max-benchmarks 40 \
   --output results/layout-ranking.json
 ```
 
-The default size set is 256, 512, and 1024. See
+Repeat the same command with `--resume` to finish a checkpointed hardware run.
+The default kernel set contains all five kernels, and the default size set is
+256, 512, and 1024. See
 [Multi-kernel layout score/runtime experiment](docs/layout-experiment.md) for
 the exact layout set, variation-aware rank formula, timing boundary, options,
 checkpoint/resume workflow, output fields, and interpretation limits.
@@ -111,9 +116,29 @@ The kernel problem files distinguish traced, `grounded` wave scopes from
 `hypothesis` reuse and cache-neighborhood scopes. The latter are modeling
 assumptions, not claims about a particular cache implementation. Reports list
 the provenance, region size, meaning, and applied `tau` for every objective.
-The current combined MI300A tables are in
-[`results/layout_ranking.md`](results/layout_ranking.md), with complete
-component and timing data in the adjacent JSON file.
+The five-kernel `N=256` MI300A measurements before objective calibration are
+in
+[`results/layout_ranking_five_kernel_baseline.md`](results/layout_ranking_five_kernel_baseline.md).
+The revised objective model, rescored against those exact timing samples, is
+in
+[`results/layout_ranking_five_kernel_final.md`](results/layout_ranking_five_kernel_final.md).
+The corresponding JSON files retain complete components, raw samples, and
+commands.
+
+The current combined result is
+[`results/layout_ranking.md`](results/layout_ranking.md). It contains fresh
+post-calibration MI300A measurements for all five kernels, all 22 layouts, and
+N=256, 512, and 1024: 330 correctness-checked benchmark cases in total. Its
+adjacent JSON retains every raw sample, score component, rank, Pareto member,
+and evaluator command.
+
+The revised weights were selected by inspecting the same 22-layout, `N=256`
+measurements shown in the final report. The baseline-to-final improvement is
+therefore exploratory and in-sample, not holdout evidence that the model will
+generalize. The fresh multi-size sweep exposes substantial size sensitivity,
+which is preserved rather than folded back into another calibration round.
+The experiment documentation records both sets of results and a
+`--reuse-timings` workflow for reproducibly combining exact timing reports.
 
 A historical GEMM-only `N=256` MI300A run is available at
 [`results/gemm_layout_ranking_256.json`](results/gemm_layout_ranking_256.json).
@@ -121,7 +146,25 @@ For this sample, the 8x8 and 16x16 row-inner layouts exchanged adjacent raw
 ranks while their observed timing ranges overlapped—the situation the new
 variation-aware metric is designed to represent.
 
-## Model and evaluate GESUMMV
+## Kernel problem/evaluator pairs
+
+Each non-trivial kernel has a `problem.py` that constructs its representative
+trace and labeled objectives, plus an `evaluate.py` that generates, validates,
+and times a matching HIP implementation:
+
+| Kernel | Operation | Layout targets | Workgroup option |
+| --- | --- | --- | --- |
+| ATAX | `tmp=A*x; y=A^T*tmp` | A | `--block-size` |
+| GEMM | `C=alpha*A*B+beta*C` | A, B, C | `--block-x`, `--block-y` |
+| GESUMMV | `y=alpha*A*x+beta*B*x` | A, B | `--block-size` |
+| MVT | simultaneous `A*y1` and `A^T*y2` updates | A | `--block-size` |
+| SYRK | `C=alpha*A*A^T+beta*C` | A, C | `--block-x`, `--block-y` |
+
+All vector operands use fixed contiguous layouts. During the ranking
+experiment, the selected canonical layout is applied uniformly to every target
+matrix named in a row.
+
+### GESUMMV example
 
 `kernels/gesummv/problem.py` describes the FP64 kernel
 

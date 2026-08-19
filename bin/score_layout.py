@@ -161,6 +161,15 @@ def _print_score(
     for name, layout in layouts.items():
         print(f"  {name}: {_layout_description(layout, matrices[name])}")
 
+    print("\nAddress codegen costs")
+    print("  array                          grammar          runs  XORs")
+    for array in score.codegen.arrays:
+        print(
+            f"  {array.array:<30} {array.grammar:<15} "
+            f"{array.runs:>4}  {array.xors:>4}"
+        )
+    print(f"  {'total':<46} {score.codegen.runs:>4}  {score.codegen.xors:>4}")
+
     print("\nObjective components")
     print(
         "  name                            region  weight  "

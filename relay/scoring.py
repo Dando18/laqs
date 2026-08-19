@@ -78,10 +78,42 @@ class ComponentScore:
 
 
 @dataclass(frozen=True)
+class ArrayCodegenCost:
+    """Address-code cost proxies for one target array's realized layout."""
+
+    array: str
+    grammar: str
+    runs: int
+    xors: int
+
+
+@dataclass(frozen=True)
+class CodegenCost:
+    """Per-array and total address-code cost proxies.
+
+    A run is one contiguous source-mode run in a canonical bit-selection
+    expression, and an XOR is one XOR operation in a linear expression.  The
+    measures deliberately remain separate because their machine costs are not
+    assumed to be interchangeable.
+    """
+
+    arrays: tuple[ArrayCodegenCost, ...]
+
+    @property
+    def runs(self) -> int:
+        return sum(array.runs for array in self.arrays)
+
+    @property
+    def xors(self) -> int:
+        return sum(array.xors for array in self.arrays)
+
+
+@dataclass(frozen=True)
 class LayoutScore:
-    """Detailed component scores and the supported scalar aggregates."""
+    """Detailed locality scores, codegen costs, and scalar aggregates."""
 
     components: tuple[ComponentScore, ...]
+    codegen: CodegenCost
     weighted_region_count: float
     peak_normalized_excess: float
     weighted_normalized_excess: float
@@ -143,17 +175,21 @@ def pareto_frontier(
     Every objective is minimized. A score is dominated when another score is
     no greater in every objective and strictly smaller in at least one.
     Objective order follows the supplied mapping; when omitted, all public
-    aggregate score modes are used in :data:`SCORE_MODES` order. Exact ties
-    remain as distinct frontier members.
+    aggregate score modes followed by codegen runs and XORs are used. Exact
+    ties remain as distinct frontier members.
     """
 
     if objectives is None:
-        objective_items: tuple[tuple[str, ScoreExtractor], ...] = tuple(
-            (
-                mode,
-                lambda score, selected_mode=mode: score.value(selected_mode),
-            )
-            for mode in SCORE_MODES
+        objective_items: tuple[tuple[str, ScoreExtractor], ...] = (
+            *tuple(
+                (
+                    mode,
+                    lambda score, selected_mode=mode: score.value(selected_mode),
+                )
+                for mode in SCORE_MODES
+            ),
+            ("codegen-runs", lambda score: float(score.codegen.runs)),
+            ("codegen-xors", lambda score: float(score.codegen.xors)),
         )
     else:
         objective_items = tuple(objectives.items())
@@ -268,6 +304,41 @@ def normalized_excess(raw_region_count: float, packing_lower_bound: float) -> fl
     return (raw_region_count - packing_lower_bound) / max(packing_lower_bound, 1.0)
 
 
+def layout_codegen_cost(
+    matrices: Mapping[str, MatrixSpec],
+    layouts: Mapping[str, Layout],
+) -> CodegenCost:
+    """Compute address-code proxies for every target matrix layout.
+
+    Non-target matrices describe fixed context data and are excluded, matching
+    the solver and generated kernel interfaces.  Costs are summed across
+    target arrays because every generated address expression executes in the
+    kernel, while the per-array detail remains available for inspection.
+    """
+
+    arrays: list[ArrayCodegenCost] = []
+    for array_name, matrix in matrices.items():
+        if not matrix.target:
+            continue
+        if array_name not in layouts:
+            raise ValueError(f"no layout supplied for target array {array_name!r}")
+        layout = layouts[array_name]
+        if layout.matrix_name != array_name:
+            raise ValueError(
+                f"layout {layout.name!r} targets {layout.matrix_name!r}, "
+                f"not {array_name!r}"
+            )
+        arrays.append(
+            ArrayCodegenCost(
+                array=array_name,
+                grammar=layout.grammar,
+                runs=layout.runs,
+                xors=layout.xor_count,
+            )
+        )
+    return CodegenCost(tuple(arrays))
+
+
 def score_layouts(
     matrices: Mapping[str, MatrixSpec],
     components: Sequence[ObjectiveComponent],
@@ -282,6 +353,7 @@ def score_layouts(
     is computed.  Component weights are the notes' ``tau[s,d]`` values.
     Unspecified components have weight 1; weight 0 disables a component from
     all three scalar aggregates while retaining it in the detailed report.
+    Address-code runs and XORs are computed independently of those aggregates.
     """
 
     weights = dict(component_weights or {})
@@ -345,6 +417,7 @@ def score_layouts(
     active = [component for component in results if component.weight > 0]
     return LayoutScore(
         components=tuple(results),
+        codegen=layout_codegen_cost(matrices, layouts),
         weighted_region_count=sum(
             component.weighted_region_count for component in active
         ),
@@ -382,6 +455,19 @@ def score_to_dict(score: LayoutScore) -> dict[str, object]:
     """Convert a score to a stable JSON-compatible representation."""
 
     return {
+        "codegen": {
+            "runs": score.codegen.runs,
+            "xors": score.codegen.xors,
+            "arrays": [
+                {
+                    "name": array.array,
+                    "grammar": array.grammar,
+                    "runs": array.runs,
+                    "xors": array.xors,
+                }
+                for array in score.codegen.arrays
+            ],
+        },
         "aggregates": {
             "weighted_region_count": score.weighted_region_count,
             "peak_normalized_excess": score.peak_normalized_excess,

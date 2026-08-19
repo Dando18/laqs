@@ -47,7 +47,9 @@ def get_matrices(config: Config) -> tuple[MatrixSpec, ...]:
     return (
         MatrixSpec("A", (N, N), 8, ("i", "j"), target=True, role="read"),
         MatrixSpec("B", (N, N), 8, ("i", "j"), target=True, role="read"),
-        MatrixSpec("C", (N, N), 8, ("i", "j"), target=True, role="write"),
+        MatrixSpec(
+            "C", (N, N), 8, ("i", "j"), target=True, role="read_write"
+        ),
     )
 
 
@@ -260,25 +262,25 @@ def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
 
 
 def get_component_weights(config: Config) -> dict[str, float]:
-    """Return the default ``tau`` weights for normalized score aggregation.
+    """Return MI300A-calibrated ``tau`` weights for score aggregation.
 
-    The grounded wave-transaction family receives a total budget comparable to
-    all reuse/cache hypotheses combined.  Four correlated B lane scopes share
-    a small fixed budget, and cache/reuse hypotheses receive explicit secondary
-    weights.  The output store occurs once per ``N`` pairs of A/B inner-loop
-    loads, so its weight reflects that dynamic frequency.
+    The N=256, 22-layout calibration retained the grounded wave term and
+    emphasized the two smallest B lane scopes. Wider workgroup and long-window
+    hypotheses did not improve ranks and remain visible at weight zero. These
+    are empirical weights rather than asserted hardware constants.
     """
 
+    del config
     return {
         "wave_load.64B": 4.0,
-        "output_store.64B": 1.0 / (2.0 * config.problem_size),
-        "B.wave_lane_group.lane8.64B": 0.125,
-        "B.wave_lane_group.lane16.128B": 0.125,
-        "B.wave_lane_group.lane32.256B": 0.125,
-        "B.wave_lane_group.lane64.512B": 0.125,
-        "lane_reuse.128B.window16": 2.0,
-        "wave_neighborhood.512B": 0.25,
-        "workgroup_k_panel.256B": 0.5,
-        "wave_k_window.4096B": 1.0,
-        "wave_inner_phase.32768B": 0.25,
+        "output_store.64B": 0.0,
+        "B.wave_lane_group.lane8.64B": 2.0,
+        "B.wave_lane_group.lane16.128B": 2.0,
+        "B.wave_lane_group.lane32.256B": 0.0,
+        "B.wave_lane_group.lane64.512B": 0.0,
+        "lane_reuse.128B.window16": 1.0,
+        "wave_neighborhood.512B": 1.0,
+        "workgroup_k_panel.256B": 0.0,
+        "wave_k_window.4096B": 0.0,
+        "wave_inner_phase.32768B": 0.0,
     }

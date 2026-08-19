@@ -232,25 +232,24 @@ def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
 
 
 def get_component_weights(config: Config) -> dict[str, float]:
-    """Return the default ``tau`` weights for normalized score aggregation.
+    """Return MI300A-calibrated ``tau`` weights for score aggregation.
 
-    Nested lane scopes share a fixed total budget instead of each counting as
-    an independent unit-strength signal.  The temporal-reuse hypothesis is
-    emphasized because reuse spans the entire inner loop, while broad cache
-    neighborhoods remain secondary hypotheses.  The output store occurs once
-    for every two matrix loads per inner-loop step, so its weight reflects that
-    dynamic frequency.
+    The N=256, 22-layout calibration selected the 512-byte wave neighborhood,
+    per-lane reuse, and complete-phase cache scopes. Smaller transaction and
+    workgroup-panel terms remain diagnostic at weight zero. The active scopes
+    are hypotheses about this machine, not universal cache parameters.
     """
 
+    del config
     return {
-        "wave_load.64B": 1.0,
-        "output_store.64B": 1.0 / (2.0 * config.problem_size),
-        "wave_lane_group.lane8.64B": 0.125,
-        "wave_lane_group.lane16.128B": 0.125,
-        "wave_lane_group.lane32.256B": 0.125,
-        "wave_lane_group.lane64.512B": 0.125,
-        "lane_reuse.128B.window16": 2.0,
-        "wave_neighborhood.512B": 0.25,
-        "workgroup_step_panel.1024B": 0.5,
-        "wave_phase.4096B": 0.5,
+        "wave_load.64B": 0.0,
+        "output_store.64B": 0.0,
+        "wave_lane_group.lane8.64B": 0.0,
+        "wave_lane_group.lane16.128B": 0.0,
+        "wave_lane_group.lane32.256B": 0.0,
+        "wave_lane_group.lane64.512B": 0.5,
+        "lane_reuse.128B.window16": 1.0,
+        "wave_neighborhood.512B": 0.5,
+        "workgroup_step_panel.1024B": 0.0,
+        "wave_phase.4096B": 4.0,
     }

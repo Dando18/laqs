@@ -5,15 +5,18 @@ import unittest
 from relay import (
     SCORE_MODES,
     Access,
+    CodegenCost,
     ComponentScore,
     Hyperedge,
     LayoutScore,
+    LinearInnerLayout,
     MatrixSpec,
     MemoryEvent,
     ObjectiveComponent,
     RelayProblem,
     SimultaneousRegions,
     column_major_layout,
+    layout_codegen_cost,
     normalized_excess,
     pareto_frontier,
     quotient_region_count,
@@ -145,6 +148,27 @@ class AggregateScoringTests(unittest.TestCase):
         data = score_to_dict(self.score)
 
         self.assertEqual(
+            data["codegen"],
+            {
+                "runs": 4,
+                "xors": 0,
+                "arrays": [
+                    {
+                        "name": "A",
+                        "grammar": "canonical",
+                        "runs": 2,
+                        "xors": 0,
+                    },
+                    {
+                        "name": "B",
+                        "grammar": "canonical",
+                        "runs": 2,
+                        "xors": 0,
+                    },
+                ],
+            },
+        )
+        self.assertEqual(
             data["aggregates"],
             {
                 "weighted_region_count": 10.0,
@@ -184,6 +208,34 @@ class AggregateScoringTests(unittest.TestCase):
         self.assertEqual(coarse["weight"], 0.0)
         self.assertEqual(coarse["weighted_region_count"], 0.0)
         self.assertEqual(coarse["weighted_normalized_excess"], 0.0)
+
+    def test_codegen_cost_counts_runs_and_xors_without_mixing_them(self) -> None:
+        matrix = MatrixSpec("L", (4, 4), 4, ("i", "j"))
+        layout = LinearInnerLayout(
+            "linear",
+            "L",
+            (1, 1),
+            (0b11, 0b10),
+            (1, 0),
+        )
+
+        cost = layout_codegen_cost({"L": matrix}, {"L": layout})
+
+        self.assertEqual(cost.runs, 2)
+        self.assertEqual(cost.xors, 1)
+        self.assertEqual(cost.arrays[0].grammar, "linear_inner")
+
+    def test_codegen_cost_excludes_non_target_context_arrays(self) -> None:
+        target = MatrixSpec("A", (4, 4), 4, ("i", "j"))
+        context = MatrixSpec("x", (4,), 4, ("i",), target=False)
+
+        cost = layout_codegen_cost(
+            {"A": target, "x": context},
+            {"A": row_major_layout(target), "x": row_major_layout(context)},
+        )
+
+        self.assertEqual([array.array for array in cost.arrays], ["A"])
+        self.assertEqual(cost.runs, 2)
 
 
 class ProblemScoringTests(unittest.TestCase):
@@ -231,6 +283,7 @@ class ParetoFrontierTests(unittest.TestCase):
         )
         return LayoutScore(
             components=(fine,),
+            codegen=CodegenCost(()),
             weighted_region_count=fine_q,
             peak_normalized_excess=peak,
             weighted_normalized_excess=area,
@@ -273,7 +326,7 @@ class ParetoFrontierTests(unittest.TestCase):
         )
         self.assertEqual(frontier.points[1].values, (2.0, 3.0, 2.0))
 
-    def test_default_objectives_use_all_public_aggregate_modes(self) -> None:
+    def test_default_objectives_include_aggregates_and_codegen_costs(self) -> None:
         frontier = pareto_frontier(
             {
                 "best": self.score(1.0, 1.0, 1.0),
@@ -281,7 +334,10 @@ class ParetoFrontierTests(unittest.TestCase):
             }
         )
 
-        self.assertEqual(frontier.objectives, tuple(SCORE_MODES))
+        self.assertEqual(
+            frontier.objectives,
+            (*SCORE_MODES, "codegen-runs", "codegen-xors"),
+        )
         self.assertEqual(frontier.names, ("best",))
 
     def test_frontier_requires_an_objective(self) -> None:

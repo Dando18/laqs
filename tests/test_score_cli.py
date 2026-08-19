@@ -53,6 +53,8 @@ class ScoreLayoutCliTests(unittest.TestCase):
             "Selected score (peak-normalized-excess): 3",
             output.getvalue(),
         )
+        self.assertIn("Address codegen costs", output.getvalue())
+        self.assertIn("total                                             2     0", output.getvalue())
 
     def test_json_reports_selected_mode_value_and_layout(self) -> None:
         report = self.run_json(
@@ -67,6 +69,21 @@ class ScoreLayoutCliTests(unittest.TestCase):
         self.assertEqual(report["layouts"], {"A": "iijj"})
         self.assertEqual(report["component_weights"], {"column-wave-16B": 0.5})
         self.assertEqual(report["component_weight_overrides"], {})
+        self.assertEqual(
+            report["codegen"],
+            {
+                "runs": 2,
+                "xors": 0,
+                "arrays": [
+                    {
+                        "name": "A",
+                        "grammar": "canonical",
+                        "runs": 2,
+                        "xors": 0,
+                    }
+                ],
+            },
+        )
 
     def test_row_column_and_word_layout_specs(self) -> None:
         cases = (

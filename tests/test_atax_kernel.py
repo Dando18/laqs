@@ -6,12 +6,12 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from kernels.gesummv import evaluate, problem
+from kernels.atax import evaluate, problem
 from relay.objectives import build_objectives
 
 
-class GesummvProblemTests(unittest.TestCase):
-    def test_problem_models_one_complete_workgroup_trace(self) -> None:
+class AtaxProblemTests(unittest.TestCase):
+    def test_problem_models_both_complete_matrix_vector_stages(self) -> None:
         config = problem.build_config(problem_size=8, block_size=8)
         matrices = problem.get_matrices(config)
         events, sequences = problem.get_events_and_sequences(config)
@@ -20,27 +20,44 @@ class GesummvProblemTests(unittest.TestCase):
             [(matrix.name, matrix.shape, matrix.target) for matrix in matrices],
             [
                 ("A", (8, 8), True),
-                ("B", (8, 8), True),
                 ("x", (8,), False),
+                ("tmp", (8,), False),
                 ("y", (8,), False),
             ],
         )
-        self.assertEqual(len(events), 3 * 8 + 1)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0].event_ids, tuple(event.id for event in events))
-
-        first_a, first_b, first_x = events[:3]
-        self.assertEqual(first_a.site, "A.load")
+        self.assertEqual(len(events), 2 * (2 * 8 + 1))
         self.assertEqual(
-            [access.coord for access in first_a.accesses],
+            [sequence.name for sequence in sequences],
+            ["stage1.wave0", "stage2.wave0"],
+        )
+
+        first_stage_a, first_x = events[:2]
+        self.assertEqual(first_stage_a.site, "A.stage1.load")
+        self.assertEqual(
+            [access.coord for access in first_stage_a.accesses],
             [(i, 0) for i in range(8)],
         )
-        self.assertEqual(first_b.site, "B.load")
-        self.assertEqual(first_x.site, "x.load")
         self.assertEqual({access.coord for access in first_x.accesses}, {(0,)})
-        self.assertEqual(events[-1].site, "y.store")
+        self.assertEqual(events[16].site, "tmp.store")
 
-    def test_objectives_cover_matrix_loads_and_output_stores(self) -> None:
+        first_second_stage_a, first_tmp = events[17:19]
+        self.assertEqual(first_second_stage_a.site, "A.stage2.load")
+        self.assertEqual(
+            [access.coord for access in first_second_stage_a.accesses],
+            [(0, j) for j in range(8)],
+        )
+        self.assertEqual({access.coord for access in first_tmp.accesses}, {(0,)})
+        self.assertEqual(events[-1].site, "y.store")
+        self.assertEqual(
+            sequences[0].event_ids,
+            tuple(event.id for event in events[:17]),
+        )
+        self.assertEqual(
+            sequences[1].event_ids,
+            tuple(event.id for event in events[17:]),
+        )
+
+    def test_objectives_capture_both_a_access_orientations(self) -> None:
         config = problem.build_config(problem_size=8, block_size=8)
         matrices = {matrix.name: matrix for matrix in problem.get_matrices(config)}
         event_items, sequences = problem.get_events_and_sequences(config)
@@ -50,25 +67,28 @@ class GesummvProblemTests(unittest.TestCase):
         )
         by_name = {component.name: component for component in components}
 
-        self.assertEqual(len(components), 10)
-        self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["A"]), 8)
-        self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["B"]), 8)
-        self.assertNotIn("x", by_name["wave_load.64B"].edges_by_array)
+        self.assertEqual(len(components), 12)
+        wave_edges = by_name["wave_load.64B"].edges_by_array["A"]
+        self.assertEqual(len(wave_edges), 16)
+        self.assertEqual(wave_edges[0].points, tuple((i, 0) for i in range(8)))
+        self.assertEqual(wave_edges[8].points, tuple((0, j) for j in range(8)))
+        self.assertEqual(
+            len(by_name["stage1_wave_load.64B"].edges_by_array["A"]),
+            8,
+        )
+        self.assertEqual(
+            by_name["stage1_wave_neighborhood.256B"].provenance,
+            "hypothesis",
+        )
+        self.assertEqual(
+            len(by_name["output_store.64B"].edges_by_array["tmp"]), 1
+        )
         self.assertEqual(
             len(by_name["output_store.64B"].edges_by_array["y"]), 1
         )
-        self.assertIn("lane_reuse.128B.window16", by_name)
         self.assertEqual(
-            by_name["wave_lane_group.lane8.64B"]
-            .edges_by_array["A"][0]
-            .points,
-            tuple((i, 0) for i in range(8)),
-        )
-        self.assertEqual(
-            by_name["workgroup_step_panel.1024B"]
-            .edges_by_array["A"][0]
-            .points,
-            tuple((i, 0) for i in range(8)),
+            len(by_name["workgroup_step_panel.1024B"].edges_by_array["A"]),
+            16,
         )
         self.assertEqual(
             {
@@ -76,32 +96,21 @@ class GesummvProblemTests(unittest.TestCase):
                 for component in components
                 if component.provenance == "grounded"
             },
-            {"wave_load.64B", "output_store.64B"},
+            {"wave_load.64B", "stage1_wave_load.64B", "output_store.64B"},
         )
+        self.assertEqual(set(problem.get_component_weights(config)), set(by_name))
+        self.assertEqual(problem.get_component_weights(config)["wave_load.64B"], 0.0)
         self.assertEqual(
-            set(problem.get_component_weights(config)),
-            set(by_name),
-        )
-        self.assertEqual(
-            problem.get_component_weights(config)[
-                "wave_lane_group.lane16.128B"
-            ],
-            0.0,
-        )
-        self.assertEqual(
-            problem.get_component_weights(config)["wave_phase.4096B"],
+            problem.get_component_weights(config)["wave_lane_group.lane16.128B"],
             4.0,
         )
 
 
-class GesummvEvaluatorTests(unittest.TestCase):
+class AtaxEvaluatorTests(unittest.TestCase):
     def test_canonical_layout_and_generated_source(self) -> None:
-        layouts = (
-            evaluate.canonical_layout("jjii", "a_word"),
-            evaluate.canonical_layout("iijj", "b_word"),
-        )
+        layout = evaluate.canonical_layout("jjii", "a_word")
         source = evaluate.generate_source(
-            layouts,
+            layout,
             n=16,
             samples=3,
             iterations=4,
@@ -110,14 +119,15 @@ class GesummvEvaluatorTests(unittest.TestCase):
             block_size=64,
         )
 
-        self.assertEqual(layouts[0].tile_rows, 4)
-        self.assertEqual(layouts[0].tile_columns, 4)
-        self.assertIn("__global__ void gesummv_kernel", source)
+        self.assertEqual(layout.tile_rows, 4)
+        self.assertEqual(layout.tile_columns, 4)
+        self.assertIn("__global__ void atax_tmp_kernel", source)
+        self.assertIn("__global__ void atax_y_kernel", source)
         self.assertIn("word(low -> high)=jjii", source)
-        self.assertIn("word(low -> high)=iijj", source)
         self.assertIn("constexpr uint32_t n = 16;", source)
         self.assertIn("constexpr uint32_t block_size = 64;", source)
         self.assertIn("Correctness: %s", source)
+        self.assertIn("median_ms  mean_ms  min_ms  sd_ms  GFLOP/s", source)
         self.assertIn("Samples (ms):", source)
 
     def test_emit_only_cli_writes_the_generated_driver(self) -> None:
@@ -127,7 +137,6 @@ class GesummvEvaluatorTests(unittest.TestCase):
                 status = evaluate.run(
                     [
                         "jjjiii",
-                        "iiijjj",
                         "--n",
                         "64",
                         "--block-size",
@@ -139,23 +148,19 @@ class GesummvEvaluatorTests(unittest.TestCase):
                 )
 
             self.assertEqual(status, 0)
-            source_path = Path(directory) / "generated_gesummv.cu"
+            source_path = Path(directory) / "generated_atax.cu"
             self.assertTrue(source_path.exists())
-            self.assertIn(
-                "Layouts: A=%s B=%s",
-                source_path.read_text(),
-            )
+            self.assertIn("Layouts: A=%s", source_path.read_text())
             self.assertIn(str(source_path.resolve()), output.getvalue())
 
-    def test_layout_words_must_tile_the_problem(self) -> None:
+    def test_layout_word_must_tile_the_problem(self) -> None:
         errors = StringIO()
         with (
             redirect_stdout(StringIO()),
             redirect_stderr(errors),
             self.assertRaises(SystemExit) as caught,
         ):
-            # A has a 16-row inner tile, which cannot tile N=8.
-            evaluate.run(["iiii", "jjj", "--n", "8", "--emit-only"])
+            evaluate.run(["iiii", "--n", "8", "--emit-only"])
         self.assertEqual(caught.exception.code, 2)
         self.assertIn("must be divisible", errors.getvalue())
 

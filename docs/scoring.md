@@ -63,6 +63,22 @@ only chooses the scalar printed as `Selected score` and stored as
 `selected_score` in JSON.  This keeps the underlying multi-objective vector
 visible rather than hiding it behind one unexplained label.
 
+## Code-generation costs
+
+Concrete scores also report two integer address-code proxies for every target
+array and their totals:
+
+- `runs` is the number of contiguous source-mode runs in a canonical bit
+  selection. For example, `jjjjiiii` has 2 runs and `jijijiji` has 8.
+- `xors` is the number of XOR operations in a general linear inner-layout
+  expression. Canonical layouts have 0 XORs.
+
+These costs reuse the layout grammar's code-generation definitions. Non-target
+context arrays are omitted because their layout is fixed rather than selected.
+Runs and XORs remain separate: RELAY does not assume a conversion factor
+between mask/shift work and XOR work. They are not folded into `Q`, `e`,
+`J_peak`, `J_area`, or any scalar score mode.
+
 ## Pareto frontiers
 
 `pareto_frontier` compares several named `LayoutScore` objects over any ordered
@@ -72,8 +88,9 @@ strictly smaller in at least one. Exact objective ties are retained as distinct
 frontier members.
 
 With no explicit extractors, the function compares all three public aggregate
-score modes. A caller can instead construct the multi-objective vector from the
-notes, including a particular fine-scale component:
+score modes followed by `codegen-runs` and `codegen-xors`. A caller can instead
+construct the multi-objective vector from the notes, including a particular
+fine-scale component and the codegen proxies:
 
 ```python
 from relay import pareto_frontier
@@ -94,6 +111,8 @@ frontier = pareto_frontier(
         "weighted-normalized-excess": (
             lambda score: score.weighted_normalized_excess
         ),
+        "codegen-runs": lambda score: score.codegen.runs,
+        "codegen-xors": lambda score: score.codegen.xors,
     },
 )
 
@@ -139,6 +158,7 @@ The main public routines are:
 - `quotient_region_count`: unweighted `q` for one hyperedge;
 - `weighted_component_region_count`: one array's `Q` contribution;
 - `normalized_excess`: computes `e` from `Q` and `LB`;
+- `layout_codegen_cost`: computes per-target-array and total run/XOR proxies;
 - `score_layouts`: scores materialized objective components without rebuilding
   them, which is best when comparing many layouts;
 - `score_problem`: convenience wrapper that builds a `RelayProblem`'s
@@ -210,6 +230,6 @@ the explicit spelling `word:jjjiii`. `--problem-option NAME=JSON_VALUE` passes
 configuration into `build_config`; numbers, strings, booleans, and lists must
 therefore use JSON syntax.
 
-The JSON report includes the selected score, all aggregate scores, every
-component's `Q`, `LB`, normalized excess and weight, plus per-array component
-contributions.
+The JSON report includes the selected score, all aggregate scores, per-array
+and total codegen costs, every component's `Q`, `LB`, normalized excess and
+weight, plus per-array component contributions.
