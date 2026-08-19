@@ -8,15 +8,74 @@ budgeted top-k scalar-score diagnostic.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 from pathlib import Path
+import random
 import statistics
 import tempfile
 from typing import Mapping, Sequence
 
 
 DEFAULT_EPSILONS = (0.0, 0.0025, 0.005, 0.01, 0.02, 0.05)
+TAU_PERTURBATION_FACTORS = (0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5)
+DEFAULT_TAU_PERTURBATION_TRIALS = 128
+
+
+def _runtime(record: Mapping[str, object]) -> float:
+    timing = record["timing"]
+    assert isinstance(timing, dict)
+    return float(timing["median_ms"])
+
+
+def _score_components(record: Mapping[str, object]) -> list[Mapping[str, object]]:
+    score = record["score"]
+    assert isinstance(score, dict)
+    components = score["components"]
+    assert isinstance(components, list)
+    return components
+
+
+def _base_score_vector(
+    record: Mapping[str, object], *, include_fine: bool
+) -> tuple[float, ...]:
+    fine = next(
+        float(component["raw_region_count"])
+        for component in _score_components(record)
+        if component["name"] == "wave_load.64B"
+    )
+    score = record["score"]
+    assert isinstance(score, dict)
+    aggregates = score["aggregates"]
+    codegen = score["codegen"]
+    assert isinstance(aggregates, dict) and isinstance(codegen, dict)
+    vector = (
+        float(aggregates["peak_normalized_excess"]),
+        float(aggregates["weighted_normalized_excess"]),
+        float(codegen["runs"]),
+        float(codegen["xors"]),
+    )
+    return (fine, *vector) if include_fine else vector
+
+
+def _pareto_names(
+    named_vectors: Sequence[tuple[str, tuple[float, ...]]],
+) -> set[str]:
+    """Return names with non-dominated vectors, retaining exact ties."""
+
+    vectors = {vector for _, vector in named_vectors}
+    non_dominated = {
+        vector
+        for vector in vectors
+        if not any(
+            other != vector
+            and all(left <= right for left, right in zip(other, vector))
+            and any(left < right for left, right in zip(other, vector))
+            for other in vectors
+        )
+    }
+    return {name for name, vector in named_vectors if vector in non_dominated}
 
 
 def _summary(values: Sequence[float]) -> dict[str, float]:
@@ -330,10 +389,224 @@ def analyze_frontier_report(
     }
 
 
+def _equivalence_groups(
+    records: Sequence[Mapping[str, object]],
+    *,
+    include_fine: bool,
+) -> dict[str, object]:
+    by_vector: dict[tuple[float, ...], list[Mapping[str, object]]] = {}
+    for record in records:
+        by_vector.setdefault(
+            _base_score_vector(record, include_fine=include_fine), []
+        ).append(record)
+
+    groups = []
+    non_singleton_spreads = []
+    for vector, members in sorted(by_vector.items()):
+        runtimes = [_runtime(record) for record in members]
+        spread = max(runtimes) / min(runtimes) - 1.0
+        if len(members) > 1:
+            non_singleton_spreads.append(spread)
+        groups.append(
+            {
+                "score_vector": list(vector),
+                "layout_count": len(members),
+                "layouts": [str(record["name"]) for record in members],
+                "minimum_runtime_ms": min(runtimes),
+                "maximum_runtime_ms": max(runtimes),
+                "runtime_spread": spread,
+            }
+        )
+    return {
+        "group_count": len(groups),
+        "non_singleton_group_count": sum(
+            int(group["layout_count"]) > 1 for group in groups
+        ),
+        "layouts_in_non_singleton_groups": sum(
+            int(group["layout_count"])
+            for group in groups
+            if int(group["layout_count"]) > 1
+        ),
+        "non_singleton_runtime_spread": (
+            _summary(non_singleton_spreads) if non_singleton_spreads else None
+        ),
+        "groups": groups,
+    }
+
+
+def analyze_score_equivalence(
+    group: Mapping[str, object],
+) -> dict[str, object]:
+    """Measure runtime spread among layouts with identical score vectors."""
+
+    records = group["results"]
+    gated = group["fine_locality_gated_frontiers"]
+    assert isinstance(records, list) and isinstance(gated, list)
+    main = _equivalence_groups(records, include_fine=True)
+    main["objectives"] = [
+        "wave_load.64B.raw-region-count",
+        "peak-normalized-excess",
+        "weighted-normalized-excess",
+        "codegen-runs",
+        "codegen-xors",
+    ]
+    gated_results = []
+    for frontier in gated:
+        assert isinstance(frontier, dict)
+        limit = float(frontier["fine_limit"])
+        eligible = [
+            record
+            for record in records
+            if _base_score_vector(record, include_fine=True)[0] <= limit
+        ]
+        result = _equivalence_groups(eligible, include_fine=False)
+        result.update(
+            {
+                "delta": float(frontier["delta"]),
+                "delta_percent": float(frontier["delta_percent"]),
+                "eligible_count": len(eligible),
+                "objectives": [
+                    "peak-normalized-excess",
+                    "weighted-normalized-excess",
+                    "codegen-runs",
+                    "codegen-xors",
+                ],
+            }
+        )
+        gated_results.append(result)
+    return {
+        "definition": "max median runtime / min median runtime - 1",
+        "equality": "exact equality of every score-vector coordinate",
+        "main_frontier_vector": main,
+        "fine_locality_gated_vectors": gated_results,
+    }
+
+
+def analyze_tau_weight_robustness(
+    groups: Sequence[Mapping[str, object]],
+    *,
+    trials: int = DEFAULT_TAU_PERTURBATION_TRIALS,
+    seed: int = 0,
+    factors: Sequence[float] = TAU_PERTURBATION_FACTORS,
+) -> dict[str, object]:
+    """Ablate nonzero tau weights and rebuild the five-cost frontier."""
+
+    if trials <= 0:
+        raise ValueError("tau perturbation trials must be positive")
+    if not factors or any(factor <= 0 for factor in factors):
+        raise ValueError("tau perturbation factors must be positive")
+
+    instances = []
+    all_regrets = []
+    all_retained = []
+    for group in groups:
+        records = group["results"]
+        assert isinstance(records, list)
+        optimum = min(_runtime(record) for record in records)
+        active_names = [
+            str(component["name"])
+            for component in _score_components(records[0])
+            if float(component["weight"]) > 0.0
+        ]
+        base_frontier = [
+            record for record in records if record["pareto_frontier_member"]
+        ]
+        baseline = {
+            "frontier_size": len(base_frontier),
+            "retained_fraction": len(base_frontier) / len(records),
+            "oracle_regret": (
+                min(_runtime(record) for record in base_frontier) / optimum - 1.0
+            ),
+        }
+        trial_results = []
+        for trial in range(trials):
+            digest = hashlib.sha256(
+                (
+                    f"{seed}:{group['kernel']}:{group['matrix_size']}:{trial}"
+                ).encode()
+            ).digest()
+            generator = random.Random(int.from_bytes(digest[:8], "big"))
+            multipliers = {
+                name: float(generator.choice(factors)) for name in active_names
+            }
+            named_vectors = []
+            for record in records:
+                base = _base_score_vector(record, include_fine=True)
+                area = sum(
+                    float(component["weight"])
+                    * multipliers.get(str(component["name"]), 1.0)
+                    * float(component["normalized_excess"])
+                    for component in _score_components(record)
+                    if float(component["weight"]) > 0.0
+                )
+                named_vectors.append(
+                    (
+                        str(record["name"]),
+                        (base[0], base[1], area, base[3], base[4]),
+                    )
+                )
+            frontier_names = _pareto_names(named_vectors)
+            frontier_records = [
+                record
+                for record in records
+                if str(record["name"]) in frontier_names
+            ]
+            regret = (
+                min(_runtime(record) for record in frontier_records) / optimum
+                - 1.0
+            )
+            retained = len(frontier_records) / len(records)
+            all_regrets.append(regret)
+            all_retained.append(retained)
+            trial_results.append(
+                {
+                    "trial": trial,
+                    "multipliers": multipliers,
+                    "frontier_size": len(frontier_records),
+                    "retained_fraction": retained,
+                    "oracle_regret": regret,
+                    "best_frontier_layouts": [
+                        str(record["name"])
+                        for record in frontier_records
+                        if _runtime(record)
+                        == min(_runtime(item) for item in frontier_records)
+                    ],
+                }
+            )
+        instances.append(
+            {
+                "kernel": str(group["kernel"]),
+                "display_name": str(group["display_name"]),
+                "matrix_size": int(group["matrix_size"]),
+                "active_tau_names": active_names,
+                "baseline": baseline,
+                "oracle_regret": _summary(
+                    [float(item["oracle_regret"]) for item in trial_results]
+                ),
+                "retained_fraction": _summary(
+                    [float(item["retained_fraction"]) for item in trial_results]
+                ),
+                "trials": trial_results,
+            }
+        )
+    return {
+        "method": (
+            "independently draw one multiplier per nonzero tau and instance "
+            "from the discrete factor set, then rebuild the notes frontier"
+        ),
+        "seed": seed,
+        "trials_per_instance": trials,
+        "factors": [float(factor) for factor in factors],
+        "oracle_regret": _summary(all_regrets),
+        "retained_fraction": _summary(all_retained),
+        "instances": instances,
+    }
+
+
 def render_frontier_plots(
     analysis: Mapping[str, object], output_directory: Path
 ) -> dict[str, Path]:
-    """Render the four frontier scorecard plots and return their paths."""
+    """Render frontier and tau-robustness scorecard plots."""
 
     matplotlib_cache = Path(tempfile.gettempdir()) / "relay-matplotlib-cache"
     matplotlib_cache.mkdir(parents=True, exist_ok=True)
@@ -359,6 +632,8 @@ def render_frontier_plots(
         / "retained_fraction_vs_regret.png",
         "purity_and_enrichment": output_directory / "purity_and_enrichment.png",
         "top_k_regret": output_directory / "top_k_regret.png",
+        "tau_weight_robustness": output_directory
+        / "tau_weight_robustness.png",
     }
 
     epsilon = analysis["epsilon_optimal"]
@@ -459,6 +734,63 @@ def render_frontier_plots(
     axis.legend()
     figure.tight_layout()
     figure.savefig(paths["top_k_regret"], dpi=180)
+    plt.close(figure)
+
+    robustness = analysis.get("tau_weight_robustness")
+    if not isinstance(robustness, dict):
+        paths.pop("tau_weight_robustness")
+        return paths
+    robustness_instances = robustness["instances"]
+    assert isinstance(robustness_instances, list)
+    labels = []
+    regret_labels = []
+    regrets = []
+    retained_labels = []
+    retained = []
+    baseline_regret = []
+    baseline_retained = []
+    for instance in robustness_instances:
+        assert isinstance(instance, dict)
+        label = f"{instance['display_name']}\nN={instance['matrix_size']}"
+        labels.append(label)
+        trials = instance["trials"]
+        baseline = instance["baseline"]
+        assert isinstance(trials, list) and isinstance(baseline, dict)
+        for trial in trials:
+            assert isinstance(trial, dict)
+            regret_labels.append(label)
+            regrets.append(100.0 * float(trial["oracle_regret"]))
+            retained_labels.append(label)
+            retained.append(100.0 * float(trial["retained_fraction"]))
+        baseline_regret.append(100.0 * float(baseline["oracle_regret"]))
+        baseline_retained.append(100.0 * float(baseline["retained_fraction"]))
+
+    figure, axes = plt.subplots(2, 1, figsize=(12.0, 8.0), sharex=True)
+    sns.boxplot(x=regret_labels, y=regrets, order=labels, ax=axes[0])
+    sns.scatterplot(
+        x=labels,
+        y=baseline_regret,
+        marker="D",
+        color="black",
+        label="Unperturbed tau",
+        ax=axes[0],
+    )
+    axes[0].set(xlabel="", ylabel="Oracle regret (%)")
+    axes[0].legend()
+    sns.boxplot(x=retained_labels, y=retained, order=labels, ax=axes[1])
+    sns.scatterplot(
+        x=labels,
+        y=baseline_retained,
+        marker="D",
+        color="black",
+        label="Unperturbed tau",
+        ax=axes[1],
+    )
+    axes[1].set(xlabel="Kernel / matrix size", ylabel="Retained fraction (%)")
+    axes[1].tick_params(axis="x", rotation=45)
+    axes[1].legend()
+    figure.tight_layout()
+    figure.savefig(paths["tau_weight_robustness"], dpi=180)
     plt.close(figure)
 
     return paths

@@ -3,7 +3,8 @@ r"""Compare RELAY layout scores with five representative GPU kernels.
 
 The experiment applies the same canonical layout to every target matrix in a
 kernel and repeats the comparison for several square matrix sizes. The suite
-contains global, square-tiled, rectangular-tiled, and interleaved controls.
+contains global, square-tiled, rectangular-tiled, interleaved, and complete
+8x8 and 8x16 canonical inner-word families.
 Canonical words list physical element-address bits from low to high. Non-target
 vector operands retain their fixed contiguous layouts.
 
@@ -13,6 +14,8 @@ runtime-rank interval implied by each layout's observed sample range.
 Completed reports also evaluate the score Pareto frontier through oracle
 regret, epsilon-optimal coverage, retained fraction, purity, enrichment, and a
 size-matched random baseline, plus top-k regret for the selected scalar score.
+Fine-locality-gated frontiers, exact-score runtime spread, and randomized tau
+weight robustness are reported alongside the primary frontier.
 
 Scoring runs without a GPU.  Runtime measurement must run in a GPU allocation::
 
@@ -27,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict, dataclass
+from itertools import combinations
 import json
 import os
 from pathlib import Path
@@ -50,6 +54,8 @@ from kernels.syrk import problem as syrk_problem
 from experiments.frontier_analysis import (
     analyze_frontier_group,
     analyze_frontier_report,
+    analyze_score_equivalence,
+    analyze_tau_weight_robustness,
     render_frontier_plots,
 )
 from relay import (
@@ -78,6 +84,8 @@ PARETO_OBJECTIVES = (
     "codegen-runs",
     "codegen-xors",
 )
+FINE_LOCALITY_GATED_DELTAS = (0.0, 0.01, 0.05, 0.10)
+FINE_LOCALITY_GATED_OBJECTIVES = PARETO_OBJECTIVES[1:]
 RECTANGULAR_TILE_SHAPES = (
     (8, 16),
     (16, 8),
@@ -225,6 +233,23 @@ def layout_cases(n: int) -> tuple[LayoutCase, ...]:
                 "ji" * tile_bits,
             )
         )
+    existing_words = {case.word for case in cases}
+    for i_bits, j_bits, label in (
+        (3, 3, "tile8x8"),
+        (3, 4, "tile8x16"),
+    ):
+        if 1 << i_bits > n or 1 << j_bits > n:
+            continue
+        for i_positions in combinations(range(i_bits + j_bits), i_bits):
+            positions = set(i_positions)
+            word = "".join(
+                "i" if position in positions else "j"
+                for position in range(i_bits + j_bits)
+            )
+            if word in existing_words:
+                continue
+            cases.append(LayoutCase(f"{label}_canonical_{word}", word))
+            existing_words.add(word)
     return tuple(cases)
 
 
@@ -480,6 +505,62 @@ def notes_pareto_frontier(
     }
 
 
+def fine_locality_gated_frontiers(
+    scores: Mapping[str, LayoutScore],
+) -> list[dict[str, object]]:
+    """Gate on near-minimal fine locality, then Pareto-filter other costs."""
+
+    fine_values = {
+        name: score.component(PARETO_FINE_COMPONENT).raw_region_count
+        for name, score in scores.items()
+    }
+    minimum = min(fine_values.values())
+    frontiers = []
+    for delta in FINE_LOCALITY_GATED_DELTAS:
+        limit = (1.0 + delta) * minimum
+        eligible = {
+            name: score
+            for name, score in scores.items()
+            if fine_values[name] <= limit
+        }
+        frontier = pareto_frontier(
+            eligible,
+            objectives={
+                FINE_LOCALITY_GATED_OBJECTIVES[0]: (
+                    lambda score: score.peak_normalized_excess
+                ),
+                FINE_LOCALITY_GATED_OBJECTIVES[1]: (
+                    lambda score: score.weighted_normalized_excess
+                ),
+                FINE_LOCALITY_GATED_OBJECTIVES[2]: (
+                    lambda score: float(score.codegen.runs)
+                ),
+                FINE_LOCALITY_GATED_OBJECTIVES[3]: (
+                    lambda score: float(score.codegen.xors)
+                ),
+            },
+        )
+        frontiers.append(
+            {
+                "delta": delta,
+                "delta_percent": 100.0 * delta,
+                "fine_minimum": minimum,
+                "fine_limit": limit,
+                "eligible_count": len(eligible),
+                "objectives": list(frontier.objectives),
+                "members": [
+                    {
+                        "name": point.name,
+                        "values": dict(zip(frontier.objectives, point.values)),
+                    }
+                    for point in frontier.points
+                ],
+                "runtime_analysis": None,
+            }
+        )
+    return frontiers
+
+
 def _problem_config(
     spec: KernelSpec, n: int, args: argparse.Namespace
 ) -> tuple[object, object]:
@@ -706,6 +787,17 @@ def parse_arguments(
         ),
     )
     parser.add_argument(
+        "--seed-timings",
+        type=Path,
+        action="append",
+        default=None,
+        metavar="JSON",
+        help=(
+            "pre-fill matching completed layouts from an older report and "
+            "benchmark only the remaining layouts; repeat for disjoint reports"
+        ),
+    )
+    parser.add_argument(
         "--max-benchmarks",
         type=positive_integer,
         default=None,
@@ -744,6 +836,21 @@ def parse_arguments(
         type=int,
         default=0,
         help="seed used to randomize all benchmark jobs (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--tau-perturbation-trials",
+        type=positive_integer,
+        default=128,
+        help=(
+            "random tau-weight ablations per completed kernel/size "
+            "(default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
+        "--tau-perturbation-seed",
+        type=int,
+        default=0,
+        help="seed for tau-weight ablations (default: %(default)s)",
     )
     return parser, parser.parse_args(argv)
 
@@ -825,6 +932,7 @@ def score_group(
                 "score": score_to_dict(score),
                 "score_rank": None,
                 "pareto_frontier_member": None,
+                "fine_locality_gated_frontier_deltas": [],
                 "runtime_rank": None,
                 "rank_delta": None,
                 "timing": None,
@@ -845,12 +953,19 @@ def score_group(
         record["score_rank"] = rank
 
     frontier = notes_pareto_frontier(scores_by_name)
+    gated_frontiers = fine_locality_gated_frontiers(scores_by_name)
     frontier_members = {
         str(member["name"])
         for member in frontier["members"]
     }
     for record in records:
         record["pareto_frontier_member"] = record["name"] in frontier_members
+        record["fine_locality_gated_frontier_deltas"] = [
+            gated["delta"]
+            for gated in gated_frontiers
+            if record["name"]
+            in {member["name"] for member in gated["members"]}
+        ]
 
     group: dict[str, object] = {
         "kernel": spec.name,
@@ -871,6 +986,8 @@ def score_group(
             for component in components
         ],
         "pareto_frontier": frontier,
+        "fine_locality_gated_frontiers": gated_frontiers,
+        "score_equivalence_analysis": None,
         "benchmark_run_order": [],
         "variation_aware_rank_metrics": {
             aggregate_mode: None for aggregate_mode in SCORE_MODES
@@ -1197,6 +1314,59 @@ def _frontier_scorecard_markdown(
                     "",
                 )
             )
+    robustness = analysis.get("tau_weight_robustness")
+    if isinstance(robustness, dict):
+        lines.extend(
+            (
+                "### Tau-weight robustness",
+                "",
+                "Each trial independently multiplies every nonzero tau by one "
+                "of `0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5`, rebuilds the five-cost "
+                "frontier, and evaluates its regret and retained fraction.",
+                "",
+            )
+        )
+        robustness_rows = []
+        for instance in robustness["instances"]:
+            regret = instance["oracle_regret"]
+            retained = instance["retained_fraction"]
+            robustness_rows.append(
+                (
+                    str(instance["display_name"]),
+                    str(instance["matrix_size"]),
+                    f"{100.0 * float(regret['median']):.6f}%",
+                    f"{100.0 * float(regret['mean']):.6f}%",
+                    f"{100.0 * float(regret['maximum']):.6f}%",
+                    f"{100.0 * float(retained['median']):.3f}%",
+                    f"{100.0 * float(retained['mean']):.3f}%",
+                )
+            )
+        lines.extend(
+            (
+                _markdown_table(
+                    (
+                        "Kernel",
+                        "N",
+                        "Median regret",
+                        "Mean regret",
+                        "Max regret",
+                        "Median retained",
+                        "Mean retained",
+                    ),
+                    robustness_rows,
+                ),
+                "",
+            )
+        )
+        if isinstance(plots, dict):
+            plot = plots.get("tau_weight_robustness")
+            if isinstance(plot, dict):
+                lines.extend(
+                    (
+                        f"![Tau-weight robustness]({plot['markdown_path']})",
+                        "",
+                    )
+                )
     return lines
 
 
@@ -1239,6 +1409,19 @@ def markdown_report(report: Mapping[str, object]) -> str:
                 "Runtime samples were reused from "
                 f"{rendered_sources}; objective scores and all rank metrics "
                 "were recomputed for this report.",
+                "",
+            )
+        )
+    seed_timing_sources = report.get("seed_timing_sources")
+    if isinstance(seed_timing_sources, list):
+        rendered_sources = ", ".join(
+            f"`{source}`" for source in seed_timing_sources
+        )
+        lines.extend(
+            (
+                "Matching runtime samples were seeded from "
+                f"{rendered_sources}; only newly added layouts were "
+                "benchmarked in this run.",
                 "",
             )
         )
@@ -1290,6 +1473,46 @@ def markdown_report(report: Mapping[str, object]) -> str:
     frontier_analysis = report.get("frontier_analysis")
     if isinstance(frontier_analysis, dict):
         lines.extend(_frontier_scorecard_markdown(frontier_analysis))
+
+    gated_analysis = report.get("fine_locality_gated_analysis")
+    if isinstance(gated_analysis, list):
+        gated_rows = []
+        for item in gated_analysis:
+            regret = item["oracle_regret"]
+            retained = item["retained_fraction"]
+            exact = item["exact_winner_coverage"]
+            gated_rows.append(
+                (
+                    f"{float(item['delta_percent']):.0f}%",
+                    f"{exact['covered_instances']}/{item['instance_count']}",
+                    f"{100.0 * float(regret['median']):.6f}%",
+                    f"{100.0 * float(regret['mean']):.6f}%",
+                    f"{100.0 * float(regret['maximum']):.6f}%",
+                    f"{100.0 * float(retained['mean']):.3f}%",
+                )
+            )
+        lines.extend(
+            (
+                "## Fine-locality-gated frontier scorecard",
+                "",
+                "For each delta, candidates first satisfy `Q_fine <= "
+                "(1 + delta) Q_fine*`; the eligible set is then Pareto-"
+                "filtered over `(J_peak, J_area, runs, XORs)`.",
+                "",
+                _markdown_table(
+                    (
+                        "Delta",
+                        "Exact winners",
+                        "Median regret",
+                        "Mean regret",
+                        "Max regret",
+                        "Mean retained",
+                    ),
+                    gated_rows,
+                ),
+                "",
+            )
+        )
 
     for group in groups:
         assert isinstance(group, dict)
@@ -1365,10 +1588,102 @@ def markdown_report(report: Mapping[str, object]) -> str:
                     frontier_rows,
                 ),
                 "",
-                "### Layout ranks",
+                "### Fine-locality-gated frontiers",
                 "",
             )
         )
+        gated_rows = []
+        for gated in group["fine_locality_gated_frontiers"]:
+            runtime_analysis = gated.get("runtime_analysis")
+            regret = (
+                "—"
+                if not isinstance(runtime_analysis, dict)
+                else f"{100.0 * float(runtime_analysis['oracle_regret']):.6f}%"
+            )
+            gated_rows.append(
+                (
+                    f"{float(gated['delta_percent']):.0f}%",
+                    f"{float(gated['fine_limit']):.6g}",
+                    str(gated["eligible_count"]),
+                    str(len(gated["members"])),
+                    ", ".join(
+                        f"`{member['name']}`" for member in gated["members"]
+                    ),
+                    regret,
+                )
+            )
+        lines.extend(
+            (
+                _markdown_table(
+                    (
+                        "Delta",
+                        "Q fine limit",
+                        "Eligible",
+                        "Frontier size",
+                        "Members",
+                        "Regret",
+                    ),
+                    gated_rows,
+                ),
+                "",
+            )
+        )
+        equivalence = group.get("score_equivalence_analysis")
+        if isinstance(equivalence, dict):
+            equivalence_rows = []
+            vector_entries = [
+                ("Main five-cost", equivalence["main_frontier_vector"]),
+                *[
+                    (
+                        f"Gated delta={float(item['delta_percent']):.0f}%",
+                        item,
+                    )
+                    for item in equivalence["fine_locality_gated_vectors"]
+                ],
+            ]
+            for label, item in vector_entries:
+                spread = item["non_singleton_runtime_spread"]
+                equivalence_rows.append(
+                    (
+                        label,
+                        str(item["group_count"]),
+                        str(item["non_singleton_group_count"]),
+                        str(item["layouts_in_non_singleton_groups"]),
+                        "—"
+                        if spread is None
+                        else f"{100.0 * float(spread['median']):.6f}%",
+                        "—"
+                        if spread is None
+                        else f"{100.0 * float(spread['mean']):.6f}%",
+                        "—"
+                        if spread is None
+                        else f"{100.0 * float(spread['maximum']):.6f}%",
+                    )
+                )
+            lines.extend(
+                (
+                    "### Runtime spread within score-equivalent groups",
+                    "",
+                    "Score equality is exact across every coordinate. Spread "
+                    "is `max(median runtime) / min(median runtime) - 1`; "
+                    "singleton groups are excluded from the summaries.",
+                    "",
+                    _markdown_table(
+                        (
+                            "Vector",
+                            "Groups",
+                            "Non-singletons",
+                            "Layouts in non-singletons",
+                            "Median spread",
+                            "Mean spread",
+                            "Max spread",
+                        ),
+                        equivalence_rows,
+                    ),
+                    "",
+                )
+            )
+        lines.extend(("### Layout ranks", ""))
         ordered = sorted(
             records,
             key=lambda record: (
@@ -1588,6 +1903,8 @@ def _configuration(
             else None
         ),
         "seed": args.seed,
+        "tau_perturbation_trials": args.tau_perturbation_trials,
+        "tau_perturbation_seed": args.tau_perturbation_seed,
     }
 
 
@@ -1616,13 +1933,74 @@ def update_frontier_analysis(report: dict[str, object]) -> None:
         )
         if complete:
             group["frontier_runtime_analysis"] = analyze_frontier_group(group)
+            group["score_equivalence_analysis"] = analyze_score_equivalence(
+                group
+            )
+            gated_frontiers = group.get("fine_locality_gated_frontiers")
+            if not isinstance(gated_frontiers, list):
+                raise ValueError("experiment run has no gated frontiers")
+            records_by_name = {
+                str(record["name"]): record for record in records
+            }
+            for gated in gated_frontiers:
+                if not isinstance(gated, dict):
+                    raise ValueError("experiment run has an invalid gated frontier")
+                member_names = {
+                    str(member["name"]) for member in gated["members"]
+                }
+                gated_group = dict(group)
+                gated_group["results"] = [
+                    {
+                        **records_by_name[str(record["name"])],
+                        "pareto_frontier_member": (
+                            str(record["name"]) in member_names
+                        ),
+                    }
+                    for record in records
+                ]
+                gated["runtime_analysis"] = analyze_frontier_group(gated_group)
         else:
             group["frontier_runtime_analysis"] = None
+            group["score_equivalence_analysis"] = None
             all_complete = False
 
-    report["frontier_analysis"] = (
-        analyze_frontier_report(groups) if all_complete else None
+    if not all_complete:
+        report["frontier_analysis"] = None
+        report["fine_locality_gated_analysis"] = None
+        return
+
+    analysis = analyze_frontier_report(groups)
+    configuration = report.get("configuration")
+    assert isinstance(configuration, dict)
+    robustness = analyze_tau_weight_robustness(
+        groups,
+        trials=int(configuration.get("tau_perturbation_trials", 128)),
+        seed=int(configuration.get("tau_perturbation_seed", 0)),
     )
+    analysis["tau_weight_robustness"] = robustness
+    gated_analyses = []
+    for index, delta in enumerate(FINE_LOCALITY_GATED_DELTAS):
+        gated_groups = []
+        for group in groups:
+            gated = group["fine_locality_gated_frontiers"][index]
+            member_names = {
+                str(member["name"]) for member in gated["members"]
+            }
+            gated_group = dict(group)
+            gated_group["results"] = [
+                {
+                    **record,
+                    "pareto_frontier_member": str(record["name"]) in member_names,
+                }
+                for record in group["results"]
+            ]
+            gated_groups.append(gated_group)
+        gated_analysis = analyze_frontier_report(gated_groups)
+        gated_analysis["delta"] = delta
+        gated_analysis["delta_percent"] = 100.0 * delta
+        gated_analyses.append(gated_analysis)
+    report["fine_locality_gated_analysis"] = gated_analyses
+    report["frontier_analysis"] = analysis
 
 
 def write_reports(
@@ -1686,9 +2064,12 @@ def _prepared_from_report(
 
 
 def reuse_report_timings(
-    report: dict[str, object], sources: Sequence[Mapping[str, object]]
+    report: dict[str, object],
+    sources: Sequence[Mapping[str, object]],
+    *,
+    require_all: bool = True,
 ) -> None:
-    """Attach matching records from timing reports and recompute rank metrics."""
+    """Attach matching timing records and recompute completed-run metrics."""
 
     configuration = report.get("configuration")
     if not isinstance(configuration, dict):
@@ -1759,10 +2140,12 @@ def reuse_report_timings(
         group_key = (str(group["kernel"]), int(group["matrix_size"]))
         source_group = source_groups.get(group_key)
         if source_group is None:
-            raise ValueError(
-                "timing source has no matching run for "
-                f"{group_key[0]} N={group_key[1]}"
-            )
+            if require_all:
+                raise ValueError(
+                    "timing source has no matching run for "
+                    f"{group_key[0]} N={group_key[1]}"
+                )
+            continue
         if group.get("block") != source_group.get("block"):
             raise ValueError(
                 "timing source uses a different workgroup for "
@@ -1782,10 +2165,12 @@ def reuse_report_timings(
             target_record_keys.add(key)
             source_record = source_records.get(key)
             if source_record is None:
-                raise ValueError(
-                    "timing source has no completed matching benchmark for "
-                    f"{key[0]} N={key[1]} {key[2]}"
-                )
+                if require_all:
+                    raise ValueError(
+                        "timing source has no completed matching benchmark for "
+                        f"{key[0]} N={key[1]} {key[2]}"
+                    )
+                continue
             for field in (
                 "timing",
                 "benchmark_command",
@@ -1799,7 +2184,8 @@ def reuse_report_timings(
         group["benchmark_run_order"] = [
             str(name) for name in source_group_order if str(name) in target_names
         ]
-        finalize_runtime_group(group)
+        if all(record["timing"] is not None for record in records):
+            finalize_runtime_group(group)
 
     filtered_order = []
     for item in source_orders:
@@ -1813,7 +2199,13 @@ def reuse_report_timings(
         if any(key[:3] == key_prefix for key in target_record_keys):
             filtered_order.append(dict(item))
     report["benchmark_run_order"] = filtered_order
-    report["complete"] = True
+    report["complete"] = all(
+        record["timing"] is not None
+        for group in runs
+        for record in group["results"]
+    )
+    if require_all and report["complete"] is not True:
+        raise ValueError("timing sources did not complete the target report")
 
 
 def run(argv: list[str] | None = None) -> int:
@@ -1846,6 +2238,14 @@ def run(argv: list[str] | None = None) -> int:
             raise ValueError(
                 "--prepare-checkpoint cannot be combined with --reuse-timings"
             )
+        if args.resume and args.seed_timings is not None:
+            raise ValueError("--resume cannot be combined with --seed-timings")
+        if args.reuse_timings is not None and args.seed_timings is not None:
+            raise ValueError(
+                "--reuse-timings cannot be combined with --seed-timings"
+            )
+        if args.score_only and args.seed_timings is not None:
+            raise ValueError("--score-only cannot be combined with --seed-timings")
         if args.prepare_checkpoint and args.max_benchmarks is not None:
             raise ValueError(
                 "--prepare-checkpoint cannot be combined with --max-benchmarks"
@@ -1939,6 +2339,7 @@ def run(argv: list[str] | None = None) -> int:
             "benchmark_run_order": [],
             "complete": bool(args.score_only),
             "frontier_analysis": None,
+            "fine_locality_gated_analysis": None,
             "runs": [group for _, _, group, _ in prepared],
         }
         if args.reuse_timings is not None:
@@ -1951,6 +2352,20 @@ def run(argv: list[str] | None = None) -> int:
             except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
                 parser.error(str(error))
             report["timing_sources"] = [str(path) for path in timing_paths]
+        elif args.seed_timings is not None:
+            timing_paths = [
+                path.expanduser().resolve() for path in args.seed_timings
+            ]
+            try:
+                timing_sources = [
+                    json.loads(path.read_text()) for path in timing_paths
+                ]
+                reuse_report_timings(
+                    report, timing_sources, require_all=False
+                )
+            except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+                parser.error(str(error))
+            report["seed_timing_sources"] = [str(path) for path in timing_paths]
         write_reports(report, output_path, markdown_path, plots_directory)
 
     if (

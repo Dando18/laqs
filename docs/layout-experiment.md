@@ -43,13 +43,18 @@ For every `N x N` matrix the experiment includes:
 | `tileIxJ_column_major` | `i^log2(I) j^log2(J)` |
 | `tile16_interleaved` | `jijijiji` |
 | `tile32_interleaved` | `jijijijiji` |
+| `tile8x8_canonical_WORD` | every six-bit word with three `i` and three `j` bits |
+| `tile8x16_canonical_WORD` | every seven-bit word with three `i` and four `j` bits |
 
 The rectangular `(I, J)` shapes are `(8,16)`, `(16,8)`, `(8,32)`, `(32,8)`,
 `(16,32)`, and `(32,16)`. Tile cases larger than `N` are omitted. Tiled words
 describe the inner tile; the outer tile grid is row-major. Words list physical
 element-address bits from least significant to most significant.
 
-The complete family contains 22 cases. Repeat `--layout-case NAME` to select
+The two exhaustive families contain `C(6,3)=20` and `C(7,3)=35` words. Their
+row- and column-inner endpoints already occur among the controls above, so
+they add 18 and 33 cases rather than duplicating those endpoints. The complete
+family contains 73 cases. Repeat `--layout-case NAME` to select
 an ordered subset by the names above, including the concrete rectangular name
 such as `tile8x16_row_major`. The first occurrence wins when a name is repeated.
 
@@ -156,6 +161,18 @@ layout case is no greater in every entry and strictly smaller in at least one.
 Exact cost ties are retained. This is a frontier of modeled costs only; runtime
 and timing variation are not Pareto objectives.
 
+The report also constructs four fine-locality-gated frontiers. For `delta` in
+0%, 1%, 5%, and 10%, it first forms
+
+```text
+L_delta = { A : Q_fine(A) <= (1 + delta) Q_fine* }
+```
+
+and then Pareto-filters `L_delta` over `(J_peak, J_area, codegen runs,
+codegen XORs)`. The gate prioritizes the grounded fine-load quantity before
+trading among reuse/locality hypotheses and address-code costs. Both frontier
+families remain independent of measured runtime.
+
 ## Frontier candidate-generation scorecard
 
 A completed timing report treats the Pareto frontier as a retained candidate
@@ -196,12 +213,33 @@ epsilon coverage; the plot shows median, mean, and maximum regret. This tests
 the scalar ordering, whereas frontier regret tests analytical candidate
 generation.
 
-The four plots are written to `<output stem>_plots/` by default:
+For each cost-vector definition, layouts with exactly equal modeled vectors
+are grouped before looking at runtime. The report records
+
+```text
+spread(G) = max median runtime in G / min median runtime in G - 1.
+```
+
+Large non-singleton spread identifies a runtime discriminator absent from the
+quotient/locality/codegen vector; small spread means the vector successfully
+collapses layouts that behave similarly. Singleton groups are retained in the
+JSON but excluded from the mean, median, and maximum spread summaries.
+
+The tau-weight robustness ablation independently multiplies each nonzero tau
+by a uniformly selected value from `{0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5}`. It
+recomputes `J_area`, rebuilds the five-cost frontier, and reports oracle regret
+and retained fraction for every trial. `Q_fine`, `J_peak`, runs, and XORs do
+not depend on tau and therefore remain unchanged. The defaults are 128 trials
+per kernel/size with seed 0; use `--tau-perturbation-trials` and
+`--tau-perturbation-seed` to change them reproducibly.
+
+The five plots are written to `<output stem>_plots/` by default:
 
 - `epsilon_optimal_coverage.png`;
 - `retained_fraction_vs_regret.png`;
 - `purity_and_enrichment.png`; and
-- `top_k_regret.png`.
+- `top_k_regret.png`; and
+- `tau_weight_robustness.png`.
 
 Use `--plots-dir DIRECTORY` to select another location. Plotting requires the
 `experiments` optional dependencies from `pyproject.toml`. Score-only and
@@ -269,7 +307,7 @@ flux run -n1 -g1 -t 5m -q pdebug \
 The default sizes are `256`, `512`, and `1024`. Supplying any `--size` replaces
 that set; repeat the option for several sizes. Supplying any `--kernel`
 similarly replaces the default five-kernel set. A complete default sweep is
-330 separately compiled cases, so use checkpointed chunks that fit the cluster
+1,095 separately compiled cases, so use checkpointed chunks that fit the cluster
 allocation limit.
 
 The evaluators check five output points before timing and report HIP-event
@@ -371,6 +409,14 @@ changed evaluator implementation, so inspect the retained source commands when
 code has changed. It cannot be combined with `--score-only`, `--resume`, or
 `--max-benchmarks`.
 
+When expanding a layout family, `--seed-timings JSON` provides partial reuse:
+matching completed records are copied into a newly scored checkpoint, while
+unmatched layouts remain pending and run normally. It uses the same exact
+identity and benchmark-configuration checks as full reuse. Combine it with
+`--prepare-checkpoint` on a CPU node, then resume the output inside GPU
+allocations. Unlike `--reuse-timings`, a seed source need not cover every
+requested layout.
+
 ## Objective calibration result
 
 The checked-in calibration set contains all 22 layouts for all five kernels at
@@ -411,41 +457,48 @@ nonzero.
 ## Fresh post-calibration multi-size result
 
 After fixing the objective definitions and weights, the experiment was run
-again with fresh timing samples at all three default sizes. The complete
-combined report is
-[`../results/layout_ranking.md`](../results/layout_ranking.md), with all 330
+again at all three default sizes. The complete combined report is
+[`../results/layout_ranking.md`](../results/layout_ranking.md), with all 1,095
 raw benchmark records in the adjacent JSON. All cases reported correctness
-PASS. The combined file was rendered by rescoring the current model and
-attaching three freshly measured, exact-configuration size reports; it does
-not use the calibration baseline's timings.
+PASS. The sweep preserves 330 exact-configuration measurements from the prior
+22-layout run and adds 765 newly measured exhaustive-sweep cases. The JSON
+records the three underlying timing reports as seed sources.
 
 For `weighted-normalized-excess`, the fresh variation-aware summary is:
 
 | Kernel | N=256 accuracy / mean error | N=512 accuracy / mean error | N=1024 accuracy / mean error |
 | --- | ---: | ---: | ---: |
-| ATAX | 12/22 (54.5%) / 1.318 | 11/22 (50.0%) / 1.682 | 4/22 (18.2%) / 4.136 |
-| GEMM | 19/22 (86.4%) / 0.250 | 10/22 (45.5%) / 1.273 | 19/22 (86.4%) / 0.091 |
-| GESUMMV | 16/22 (72.7%) / 0.455 | 16/22 (72.7%) / 0.705 | 8/22 (36.4%) / 1.227 |
-| MVT | 18/22 (81.8%) / 0.477 | 15/22 (68.2%) / 0.864 | 3/22 (13.6%) / 2.909 |
-| SYRK | 14/22 (63.6%) / 0.500 | 5/22 (22.7%) / 1.091 | 19/22 (86.4%) / 0.136 |
-| All five | 79/110 (71.8%) / 0.600 | 57/110 (51.8%) / 1.123 | 53/110 (48.2%) / 1.700 |
+| ATAX | 20/73 (27.4%) / 8.870 | 18/73 (24.7%) / 8.548 | 12/73 (16.4%) / 11.349 |
+| GEMM | 34/73 (46.6%) / 8.062 | 17/73 (23.3%) / 11.295 | 70/73 (95.9%) / 0.315 |
+| GESUMMV | 22/73 (30.1%) / 12.514 | 11/73 (15.1%) / 14.541 | 5/73 (6.8%) / 14.021 |
+| MVT | 21/73 (28.8%) / 10.425 | 17/73 (23.3%) / 11.438 | 18/73 (24.7%) / 11.247 |
+| SYRK | 32/73 (43.8%) / 5.897 | 39/73 (53.4%) / 3.014 | 67/73 (91.8%) / 0.370 |
+| All five | 129/365 (35.3%) / 9.153 | 102/365 (27.9%) / 9.767 | 172/365 (47.1%) / 7.460 |
 
-Across all sizes, 189/330 score ranks lie in their observed timing-derived
-rank ranges (57.3%), with mean rank error 1.141. The strong swings by size are
-useful negative evidence: the N=256 calibration does not uniformly generalize,
-particularly for ATAX and MVT at N=1024 and SYRK at N=512. Those validation
-results have not been used for a second round of fitting. Measurements on
-other devices and repeated randomized sweeps remain necessary before treating
-any weight table as portable.
+Across all sizes, 403/1,095 score ranks lie in their observed timing-derived
+rank ranges (36.8%), with mean rank error 8.794. The exhaustive families expose
+many more tied or near-tied score structures and substantially weaken the
+complete-rank diagnostic. The validation results have not been used for a
+second round of fitting. Measurements on other devices and repeated randomized
+sweeps remain necessary before treating any weight table as portable.
 
-The candidate-generation scorecard is considerably stronger than the complete
-rank diagnostic. The frontier retains 21.818% of layouts on average, contains
-the exact measured winner in 14/15 instances, and reaches 15/15 coverage by
-epsilon=0.5%. Oracle regret has median 0%, mean 0.021642%, and maximum
-0.324626%. A size-matched random subset would produce only 3.273 exact hits in
-expectation; the Poisson-binomial probability of at least 14 is approximately
-`4.77e-9`. Exact-optimum frontier purity averages 20.190%, corresponding to
-4.442x mean enrichment over the tested layout set.
+The candidate-generation scorecard remains stronger than the complete-rank
+diagnostic. The main frontier retains 10.411% of layouts on average, contains
+the exact measured winner in 8/15 instances, and reaches 12/15 coverage by
+epsilon=1% and 14/15 by epsilon=5%. Oracle regret has median 0%, mean 1.0054%,
+and maximum 9.5120%.
+
+All four tested fine-locality gates produce the same aggregate result on this
+discrete layout family: 6/15 exact winners, median regret 0.3246%, mean regret
+3.6678%, maximum regret 22.3181%, and 5.753% mean retention. The equality from
+0% through 10% means no additional sampled `Q_fine` level falls inside those
+slack thresholds; it is a result, not an implementation shortcut.
+
+Across 128 tau-perturbation trials per instance, aggregate oracle regret has
+median 0%, mean 0.9944%, and maximum 9.5120%; retained fraction has median
+10.959% and mean 10.974%. Thus the tested weight perturbations do not materially
+change the headline frontier regret, although the per-instance JSON and plot
+retain the full trial distributions.
 
 ## Raw ranks and variation-aware metrics
 
@@ -499,6 +552,12 @@ The JSON report contains:
 - one run record for every kernel and size;
 - each run's Pareto objective definitions, members, objective values, and a
   per-layout membership flag;
+- fine-locality gates and frontiers at all four deltas, plus their completed
+  runtime scorecards;
+- exact score-equivalence groups and runtime spreads for the main and gated
+  vectors;
+- tau-perturbation factors, seeds, every trial result, and aggregate regret and
+  retained-fraction summaries;
 - per-layout canonical words, component scores, aggregate scores, per-array and
   total codegen costs, exact ranks, timing statistics, and raw samples;
 - observed timing intervals and plausible runtime-rank ranges;

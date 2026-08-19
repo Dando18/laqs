@@ -83,10 +83,13 @@ ranks are written to JSON and Markdown. Variation-aware metrics use observed
 timing sample ranges without changing those raw ranks. Each kernel/size report
 also includes the exact non-dominated cost frontier over
 `(Q_fine, J_peak, J_area, codegen runs, codegen XORs)`; runtime is not a Pareto
-objective. Completed reports evaluate that frontier as a candidate generator
+objective. It also reports fine-locality-gated frontiers at 0%, 1%, 5%, and
+10% slack in `Q_fine`. Completed reports evaluate these frontiers as candidate generators
 using best-in-frontier regret, epsilon-optimal coverage, retained fraction,
 purity, enrichment, a size-matched random baseline, and top-k scalar-score
-regret. Four PNG plots are written beside the JSON report.
+regret. Exact-score equivalence groups expose otherwise hidden runtime spread,
+and a discrete random tau-weight ablation reports regret/retention robustness.
+Five PNG plots are written beside the JSON report.
 
 Validate scoring without a GPU:
 
@@ -136,8 +139,10 @@ commands.
 
 The current combined result is
 [`results/layout_ranking.md`](results/layout_ranking.md). It contains fresh
-post-calibration MI300A measurements for all five kernels, all 22 layouts, and
-N=256, 512, and 1024: 330 correctness-checked benchmark cases in total. Its
+post-calibration MI300A measurements for all five kernels at N=256, 512, and
+1024. The current experiment family has 73 layouts per group,
+including complete 8x8 and 8x16 canonical inner-word sweeps, for 1,095
+correctness-checked benchmark cases in total. Its
 adjacent JSON retains every raw sample, score component, rank, Pareto member,
 and evaluator command.
 

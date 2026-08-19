@@ -124,14 +124,24 @@ class CombinedExperimentTests(unittest.TestCase):
         )
 
     def test_tile_cases_wider_than_n_are_omitted(self) -> None:
+        cases = layout_cases(8)
+        self.assertEqual([case.name for case in cases[:4]], [
+            "row_major",
+            "column_major",
+            "tile8_row_major",
+            "tile8_column_major",
+        ])
+        self.assertFalse(any(case.name.startswith("tile16") for case in cases))
         self.assertEqual(
-            [case.name for case in layout_cases(8)],
-            [
-                "row_major",
-                "column_major",
-                "tile8_row_major",
-                "tile8_column_major",
-            ],
+            len(
+                {
+                    case.word
+                    for case in cases
+                    if len(case.word) == 6
+                    and case.word.count("i") == case.word.count("j") == 3
+                }
+            ),
+            20,
         )
 
     def test_rectangular_and_interleaved_cases_are_explicit(self) -> None:
@@ -143,7 +153,27 @@ class CombinedExperimentTests(unittest.TestCase):
         self.assertEqual(cases["tile32x8_column_major"], "iiiiijjj")
         self.assertEqual(cases["tile16_interleaved"], "jijijiji")
         self.assertEqual(cases["tile32_interleaved"], "jijijijiji")
-        self.assertEqual(len(cases), 22)
+        self.assertEqual(len(cases), 73)
+        self.assertEqual(
+            len(
+                {
+                    word
+                    for word in cases.values()
+                    if len(word) == 6 and word.count("i") == 3
+                }
+            ),
+            20,
+        )
+        self.assertEqual(
+            len(
+                {
+                    word
+                    for word in cases.values()
+                    if len(word) == 7 and word.count("i") == 3
+                }
+            ),
+            35,
+        )
 
     def test_named_layout_subset_preserves_requested_order(self) -> None:
         cases = selected_layout_cases(
@@ -249,6 +279,14 @@ class CombinedExperimentTests(unittest.TestCase):
                         if result["pareto_frontier_member"]
                     },
                 )
+                gated = group["fine_locality_gated_frontiers"]
+                self.assertEqual(
+                    [item["delta"] for item in gated],
+                    [0.0, 0.01, 0.05, 0.1],
+                )
+                self.assertTrue(
+                    all(item["members"] and item["eligible_count"] for item in gated)
+                )
             markdown = markdown_path.read_text()
             self.assertIn("## GEMM — N=8", markdown)
             self.assertIn("## GEMM — N=16", markdown)
@@ -293,6 +331,14 @@ class CombinedExperimentTests(unittest.TestCase):
                         "gesummv",
                         "--size",
                         "8",
+                        "--layout-case",
+                        "row_major",
+                        "--layout-case",
+                        "column_major",
+                        "--layout-case",
+                        "tile8_row_major",
+                        "--layout-case",
+                        "tile8_column_major",
                         "--output",
                         str(json_path),
                     ]
@@ -339,6 +385,7 @@ class CombinedExperimentTests(unittest.TestCase):
                     "retained_fraction_vs_regret",
                     "purity_and_enrichment",
                     "top_k_regret",
+                    "tau_weight_robustness",
                 },
             )
             self.assertTrue(
@@ -372,6 +419,14 @@ class CombinedExperimentTests(unittest.TestCase):
                 "gesummv",
                 "--size",
                 "8",
+                "--layout-case",
+                "row_major",
+                "--layout-case",
+                "column_major",
+                "--layout-case",
+                "tile8_row_major",
+                "--layout-case",
+                "tile8_column_major",
                 "--output",
                 str(json_path),
             ]
@@ -477,6 +532,62 @@ class CombinedExperimentTests(unittest.TestCase):
             self.assertIn(
                 "Runtime samples were reused",
                 final_path.with_suffix(".md").read_text(),
+            )
+
+    def test_partial_timing_seed_prefills_only_matching_layouts(self) -> None:
+        def benchmark(spec, n, case, args):
+            del spec, n, args
+            result = timing(float(len(case.name)), 0.9, 1.1)
+            return result, ["mock-evaluator"], "Correctness: PASS", ""
+
+        selected = [
+            "row_major",
+            "column_major",
+            "tile8_row_major",
+            "tile8_column_major",
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            seed_path = Path(directory) / "seed.json"
+            expanded_path = Path(directory) / "expanded.json"
+            subset_arguments = [
+                "--kernel",
+                "gesummv",
+                "--size",
+                "8",
+                *sum((["--layout-case", name] for name in selected), []),
+            ]
+            with patch(
+                "experiments.layout_ranking.benchmark_case",
+                side_effect=benchmark,
+            ), redirect_stdout(StringIO()):
+                self.assertEqual(
+                    run([*subset_arguments, "--output", str(seed_path)]), 0
+                )
+
+            with redirect_stdout(StringIO()):
+                self.assertEqual(
+                    run(
+                        [
+                            "--kernel",
+                            "gesummv",
+                            "--size",
+                            "8",
+                            "--prepare-checkpoint",
+                            "--seed-timings",
+                            str(seed_path),
+                            "--output",
+                            str(expanded_path),
+                        ]
+                    ),
+                    0,
+                )
+
+            expanded = json.loads(expanded_path.read_text())
+            records = expanded["runs"][0]["results"]
+            self.assertEqual(sum(record["timing"] is not None for record in records), 4)
+            self.assertFalse(expanded["complete"])
+            self.assertEqual(
+                expanded["seed_timing_sources"], [str(seed_path.resolve())]
             )
 
     def test_timing_reuse_rejects_incompatible_benchmark_settings(self) -> None:
