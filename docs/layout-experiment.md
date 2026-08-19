@@ -122,10 +122,12 @@ MVT uses these scopes for the opposing row and transpose streams:
 | --- | --- | ---: | ---: | --- |
 | `wave_load.64B` | grounded | 64 | 0 | one traced row or transpose A wave load |
 | `output_store.64B` | grounded | 64 | 0 | one traced x1 or x2 vector store |
-| `A.wave_lane_group.lane{8,16,32,64}.*` | hypothesis | 64/128/256/512 | 0/0/0/0.25 | nested contiguous lane groups over A loads |
+| `A.wave_lane_group.lane{8,16,32,64}.*` | hypothesis | 64/128/256/512 | 0/0/0/0 | nested contiguous lane groups over A loads |
 | `row_lane_stream.128B.window16` | hypothesis | 128 | 0 | one lane's 16 consecutive `A[i,j]` values |
+| `row_lane_stream.512B.window16` | hypothesis | 512 | 0 | the same row-lane window in a broader diagnostic neighborhood |
 | `transpose_lane_stream.128B.window16` | hypothesis | 128 | 0 | one lane's 16 consecutive `A[j,i]` values |
-| `wave_neighborhood.512B` | hypothesis | 512 | 0.25 | one row or transpose wave load at a broader scale |
+| `wave_neighborhood.512B` | hypothesis | 512 | 0 | one row or transpose wave load at a broader scale |
+| `transpose_wave_neighborhood.512B` | hypothesis | 512 | 0 | one transpose wave load at the symmetric-wave scale |
 | `transpose_wave_neighborhood.{1024,4096,8192}B` | hypothesis | 1024/4096/8192 | 0.0625 each | one transpose wave load at three empirically calibrated cache-neighborhood scales |
 | `workgroup_step_cross.2048B` | hypothesis | 2048 | 0 | row and column arms touched by a workgroup at one inner step |
 | `wave_pattern_window.4096B` | hypothesis | 4096 | 0 | 16 consecutive loads from one directional stream |
@@ -478,6 +480,15 @@ weights. The current tables above are the resulting model. The same raw timing
 samples were attached with `--reuse-timings` to produce
 [`../results/layout_ranking_five_kernel_final.md`](../results/layout_ranking_five_kernel_final.md).
 
+That file remains the historical N=256 calibration result. After the expanded
+three-size sweep exposed the MVT N=1024 miss, the current MVT model added two
+zero-weight 512-byte stream diagnostics and disabled both active symmetric
+512-byte wave copies. Those two copies encode the same full-wave edge family
+and jointly caused the false dominance. A discrete ablation over all three
+stored MVT sizes found that activating the new diagnostic scopes recovered the
+winner but degraded total-score ranks more sharply; they therefore remain
+explicit hypotheses at tau zero. This second adjustment is also in-sample.
+
 For the displayed `weighted-normalized-excess` score, the exact
 variation-aware results changed as follows:
 
@@ -514,32 +525,35 @@ For `weighted-normalized-excess`, the fresh variation-aware summary is:
 | ATAX | 20/73 (27.4%) / 8.870 | 18/73 (24.7%) / 8.548 | 12/73 (16.4%) / 11.349 |
 | GEMM | 34/73 (46.6%) / 8.062 | 17/73 (23.3%) / 11.295 | 70/73 (95.9%) / 0.315 |
 | GESUMMV | 22/73 (30.1%) / 12.514 | 11/73 (15.1%) / 14.541 | 5/73 (6.8%) / 14.021 |
-| MVT | 21/73 (28.8%) / 10.425 | 17/73 (23.3%) / 11.438 | 18/73 (24.7%) / 11.247 |
+| MVT | 17/73 (23.3%) / 13.027 | 15/73 (20.5%) / 14.219 | 15/73 (20.5%) / 12.295 |
 | SYRK | 32/73 (43.8%) / 5.897 | 39/73 (53.4%) / 3.014 | 67/73 (91.8%) / 0.370 |
-| All five | 129/365 (35.3%) / 9.153 | 102/365 (27.9%) / 9.767 | 172/365 (47.1%) / 7.460 |
+| All five | 125/365 (34.2%) / 9.674 | 100/365 (27.4%) / 10.323 | 169/365 (46.3%) / 7.670 |
 
-Across all sizes, 403/1,095 score ranks lie in their observed timing-derived
-rank ranges (36.8%), with mean rank error 8.794. The exhaustive families expose
+Across all sizes, 394/1,095 score ranks lie in their observed timing-derived
+rank ranges (36.0%), with mean rank error 9.222. The exhaustive families expose
 many more tied or near-tied score structures and substantially weaken the
-complete-rank diagnostic. The validation results have not been used for a
-second round of fitting. Measurements on other devices and repeated randomized
-sweeps remain necessary before treating any weight table as portable.
+complete-rank diagnostic. The MVT entries include the explicitly in-sample
+second adjustment described above; the other four kernels have not been
+refitted to this expanded sweep. Measurements on other devices and repeated
+randomized sweeps remain necessary before treating any weight table as
+portable.
 
 The candidate-generation scorecard remains stronger than the complete-rank
-diagnostic. The main frontier retains 10.411% of layouts on average, contains
-the exact measured winner in 8/15 instances, and reaches 12/15 coverage by
-epsilon=1% and 14/15 by epsilon=5%. Oracle regret has median 0%, mean 1.0054%,
-and maximum 9.5120%.
+diagnostic. The main frontier retains 10.137% of layouts on average, contains
+the exact measured winner in 9/15 instances, and reaches 13/15 coverage by
+epsilon=1% and 15/15 by epsilon=5%. Oracle regret has median 0%, mean 0.3713%,
+and maximum 2.4318%. Each MVT size now retains 9/73 layouts and contains its
+exact measured winner; MVT N=1024 regret falls from 9.5120% to 0%.
 
 All four tested fine-locality gates produce the same aggregate result on this
-discrete layout family: 6/15 exact winners, median regret 0.3246%, mean regret
-3.6678%, maximum regret 22.3181%, and 5.753% mean retention. The equality from
+discrete layout family: 7/15 exact winners, median regret 0.1826%, mean regret
+3.0336%, maximum regret 22.3181%, and 6.301% mean retention. The equality from
 0% through 10% means no additional sampled `Q_fine` level falls inside those
 slack thresholds; it is a result, not an implementation shortcut.
 
 Across 128 tau-perturbation trials per instance, aggregate oracle regret has
-median 0%, mean 0.9944%, and maximum 9.5120%; retained fraction has median
-10.959% and mean 10.974%. Thus the tested weight perturbations do not materially
+median 0%, mean 0.3603%, and maximum 2.4318%; retained fraction has median
+10.959% and mean 10.700%. Thus the tested weight perturbations do not materially
 change the headline frontier regret, although the per-instance JSON and plot
 retain the full trial distributions.
 
@@ -548,20 +562,22 @@ GPU kernels were rerun. Its aggregate results are:
 
 | Representation | Exact winners | Within 1% | Mean regret | Max regret | Mean retained | Max exact-alias spread |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `F_agg` | 8/15 | 12/15 | 1.0054% | 9.5120% | 10.411% | 50.926% |
-| `F_active` | 11/15 | 12/15 | 0.8899% | 9.5120% | 19.178% | 50.926% |
-| `F_all` | 9/15 | 12/15 | 0.9604% | 9.5120% | 24.932% | 50.926% |
+| `F_agg` | 9/15 | 13/15 | 0.3713% | 2.4318% | 10.137% | 57.286% |
+| `F_active` | 12/15 | 13/15 | 0.2557% | 2.4318% | 18.356% | 57.286% |
+| `F_all` | 10/15 | 13/15 | 0.3263% | 2.4318% | 26.027% | 50.926% |
 | `F_split` | 11/15 | 13/15 | 0.2681% | 2.4318% | 37.626% | 50.926% |
 | `F_dense-d` | 14/15 | 15/15 | 0.0582% | 0.8736% | 68.767% | 31.817% |
 
-The active-component representation fixes three exact-winner misses, showing
-that max/sum aggregation does discard useful dominance information, but it does
-not fix MVT at N=1024. Source splitting does recover that MVT winner, supporting
-the notes' concern about combining its row and transpose streams. Dense scale
-curves recover every winner within 1%, but retain more than two thirds of the
-tested layouts. They also leave exact-vector runtime spreads as large as
-31.817%. Thus the denser quotient representation is a safer screen on this
-sample, but region counts alone still omit a material runtime discriminator.
+The MVT correction shows that its former miss was caused by activated objective
+selection: two copies of the symmetric 512-byte full-wave family made the
+winner analytically dominated. Removing those terms recovers the winner in the
+aggregate and active-component frontiers. The coarser aggregate now has more
+exact aliases, however, raising maximum alias spread from 50.926% to 57.286%.
+Dense scale curves recover every winner within 1%, but retain more than two
+thirds of the tested layouts. They also leave exact-vector runtime spreads as
+large as 31.817%. Thus the revised aggregate is a better candidate screen, not
+a better total ordering, and region counts still omit a material runtime
+discriminator.
 
 Adding coordinates can break a tie in a coarser projection, so the identities
 of Pareto members need not be nested even though a richer representation
@@ -570,7 +586,7 @@ coverage than `F_active`: zero-weight diagnostic coordinates distinguish an
 active-vector tie in the empirically wrong direction for some instances.
 
 Pareto depth provides a cheaper conservative alternative to the very large
-dense frontier. The first three aggregate layers retain 51.598% of layouts on
+dense frontier. The first three aggregate layers retain 51.324% of layouts on
 average and reduce maximum regret to 0.9117%, reaching 15/15 instances within
 1%. Two dense layers retain 87.671% and contain every exact winner. The checked-
 in Markdown report includes every missed-winner dominator and component delta;

@@ -23,9 +23,9 @@ Matching runtime samples were seeded from `/g/g16/dnicho/record-replay/relay/res
 | GESUMMV | 256 | 73 | 8 | 0.301 | 12.514 |
 | GESUMMV | 512 | 73 | 8 | 0.151 | 14.541 |
 | GESUMMV | 1024 | 73 | 8 | 0.068 | 14.021 |
-| MVT | 256 | 73 | 10 | 0.288 | 10.425 |
-| MVT | 512 | 73 | 10 | 0.233 | 11.438 |
-| MVT | 1024 | 73 | 10 | 0.247 | 11.247 |
+| MVT | 256 | 73 | 9 | 0.233 | 13.027 |
+| MVT | 512 | 73 | 9 | 0.205 | 14.219 |
+| MVT | 1024 | 73 | 9 | 0.205 | 12.295 |
 | SYRK | 256 | 73 | 5 | 0.438 | 5.897 |
 | SYRK | 512 | 73 | 5 | 0.534 | 3.014 |
 | SYRK | 1024 | 73 | 5 | 0.918 | 0.370 |
@@ -36,11 +36,11 @@ The frontier is evaluated as a retained candidate set. Oracle regret is the best
 
 | Metric | Mean | Median | Minimum | Maximum |
 | --- | --- | --- | --- | --- |
-| Oracle regret | 1.005400% | 0.000000% | 0.000000% | 9.512018% |
-| Retained fraction | 10.411% | 10.959% | 6.849% | 13.699% |
-| Frontier size | 7.600 | 8.000 | 5 | 10 |
+| Oracle regret | 0.371266% | 0.000000% | 0.000000% | 2.431812% |
+| Retained fraction | 10.137% | 10.959% | 6.849% | 12.329% |
+| Frontier size | 7.400 | 8.000 | 5 | 9 |
 
-Exact-winner coverage is 8/15 (53.333%). A uniformly random subset with each frontier's size would cover 1.562 instances in expectation; its Poisson-binomial probability of at least the observed number of exact hits is 4.18243e-05.
+Exact-winner coverage is 9/15 (60.000%). A uniformly random subset with each frontier's size would cover 1.521 instances in expectation; its Poisson-binomial probability of at least the observed number of exact hits is 2.94978e-06.
 
 ### Retained fraction versus oracle regret
 
@@ -55,9 +55,9 @@ Exact-winner coverage is 8/15 (53.333%). A uniformly random subset with each fro
 | GESUMMV | 256 | 8/73 | 10.959% | `tile8x16_canonical_ijijjji` | 0.031787 | `tile32x8_row_major`, `tile8x8_canonical_iijjji` | 0.032560 | 2.431812% |
 | GESUMMV | 512 | 8/73 | 10.959% | `tile8x16_canonical_ijijjji` | 0.061427 | `tile8x8_canonical_iijjji` | 0.062227 | 1.302359% |
 | GESUMMV | 1024 | 8/73 | 10.959% | `tile16x8_row_major` | 0.129881 | `tile16x8_row_major` | 0.129881 | 0.000000% |
-| MVT | 256 | 10/73 | 13.699% | `tile8x8_canonical_jjiiij` | 0.034533 | `tile8x8_canonical_jjiiij` | 0.034533 | 0.000000% |
-| MVT | 512 | 10/73 | 13.699% | `tile8x8_canonical_iijjji` | 0.066414 | `tile8x8_canonical_iijjji` | 0.066414 | 0.000000% |
-| MVT | 1024 | 10/73 | 13.699% | `tile8x16_canonical_iijjjji` | 0.132054 | `tile8x8_canonical_iijjji` | 0.144615 | 9.512018% |
+| MVT | 256 | 9/73 | 12.329% | `tile8x8_canonical_jjiiij` | 0.034533 | `tile8x8_canonical_jjiiij` | 0.034533 | 0.000000% |
+| MVT | 512 | 9/73 | 12.329% | `tile8x8_canonical_iijjji` | 0.066414 | `tile8x8_canonical_iijjji` | 0.066414 | 0.000000% |
+| MVT | 1024 | 9/73 | 12.329% | `tile8x16_canonical_iijjjji` | 0.132054 | `tile8x16_canonical_iijjjji` | 0.132054 | 0.000000% |
 | SYRK | 256 | 5/73 | 6.849% | `tile8x8_canonical_jjiiji` | 0.065720 | `tile8x8_canonical_iijjji` | 0.065787 | 0.101948% |
 | SYRK | 512 | 5/73 | 6.849% | `tile8x16_column_major` | 0.258561 | `tile8x16_column_major` | 0.258561 | 0.000000% |
 | SYRK | 1024 | 5/73 | 6.849% | `tile8x16_canonical_iijjjji` | 1.437492 | `tile8x16_canonical_iijjjji` | 1.437492 | 0.000000% |
@@ -70,12 +70,12 @@ An epsilon-optimal layout has median runtime no greater than `(1 + epsilon)` tim
 
 | Epsilon | Covered | Coverage | Random coverage | Mean purity | Median purity | Mean enrichment | Median enrichment |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.00% | 8/15 | 53.333% | 10.411% | 7.452% | 10.000% | 5.440x | 7.300x |
-| 0.25% | 9/15 | 60.000% | 18.237% | 14.119% | 10.000% | 5.308x | 4.562x |
-| 0.50% | 10/15 | 66.667% | 28.332% | 23.619% | 12.500% | 4.663x | 2.852x |
-| 1.00% | 12/15 | 80.000% | 42.507% | 33.190% | 14.286% | 3.981x | 3.476x |
-| 2.00% | 13/15 | 86.667% | 60.252% | 37.310% | 25.000% | 2.423x | 2.028x |
-| 5.00% | 14/15 | 93.333% | 84.760% | 62.190% | 71.429% | 2.102x | 2.086x |
+| 0.00% | 9/15 | 60.000% | 10.137% | 8.341% | 11.111% | 6.089x | 8.111x |
+| 0.25% | 10/15 | 66.667% | 17.963% | 15.008% | 11.111% | 5.957x | 8.111x |
+| 0.50% | 11/15 | 73.333% | 27.989% | 24.508% | 12.500% | 5.041x | 4.056x |
+| 1.00% | 13/15 | 86.667% | 42.096% | 34.153% | 14.286% | 4.359x | 4.056x |
+| 2.00% | 14/15 | 93.333% | 59.557% | 39.828% | 28.571% | 2.928x | 2.086x |
+| 5.00% | 15/15 | 100.000% | 83.998% | 64.709% | 71.429% | 2.456x | 2.147x |
 
 ![Epsilon-optimal frontier coverage](layout_ranking_plots/epsilon_optimal_coverage.png)
 
@@ -87,11 +87,11 @@ For an exact candidate budget `k`, layouts are ordered by the selected scalar sc
 
 | k | Median regret | Mean regret | Maximum regret |
 | --- | --- | --- | --- |
-| 1 | 5.259837% | 6.689706% | 17.609463% |
-| 2 | 3.255897% | 5.381569% | 17.609463% |
-| 4 | 2.431812% | 4.457520% | 17.609463% |
-| 8 | 1.358073% | 3.881996% | 16.683229% |
-| 16 | 0.182593% | 3.014952% | 13.742106% |
+| 1 | 5.259837% | 23.785098% | 181.238736% |
+| 2 | 3.255897% | 12.836983% | 55.388924% |
+| 4 | 2.431812% | 11.925081% | 55.388924% |
+| 8 | 1.358073% | 4.089879% | 17.609463% |
+| 16 | 0.000000% | 0.672273% | 3.255897% |
 | 73 | 0.000000% | 0.000000% | 0.000000% |
 
 ![Top-k scalar-score regret](layout_ranking_plots/top_k_regret.png)
@@ -111,9 +111,9 @@ Each trial independently multiplies every nonzero tau by one of `0.5, 0.8, 0.9, 
 | GESUMMV | 256 | 2.431812% | 2.431812% | 2.431812% | 10.959% | 11.922% |
 | GESUMMV | 512 | 1.302359% | 1.302359% | 1.302359% | 10.959% | 11.890% |
 | GESUMMV | 1024 | 0.000000% | 0.000000% | 0.000000% | 10.959% | 12.018% |
-| MVT | 256 | 0.000000% | 0.000000% | 0.000000% | 13.699% | 13.699% |
-| MVT | 512 | 0.000000% | 0.000000% | 0.000000% | 13.699% | 13.699% |
-| MVT | 1024 | 9.512018% | 9.512018% | 9.512018% | 13.699% | 13.699% |
+| MVT | 256 | 0.000000% | 0.000000% | 0.000000% | 12.329% | 12.329% |
+| MVT | 512 | 0.000000% | 0.000000% | 0.000000% | 12.329% | 12.329% |
+| MVT | 1024 | 0.000000% | 0.000000% | 0.000000% | 12.329% | 12.329% |
 | SYRK | 256 | 0.101948% | 0.101948% | 0.101948% | 6.849% | 6.849% |
 | SYRK | 512 | 0.000000% | 0.000000% | 0.000000% | 6.849% | 6.849% |
 | SYRK | 1024 | 0.000000% | 0.000000% | 0.000000% | 6.849% | 6.849% |
@@ -126,10 +126,10 @@ For each delta, candidates first satisfy `Q_fine <= (1 + delta) Q_fine*`; the el
 
 | Delta | Exact winners | Median regret | Mean regret | Max regret | Mean retained |
 | --- | --- | --- | --- | --- | --- |
-| 0% | 6/15 | 0.324626% | 3.667780% | 22.318122% | 5.753% |
-| 1% | 6/15 | 0.324626% | 3.667780% | 22.318122% | 5.753% |
-| 5% | 6/15 | 0.324626% | 3.667780% | 22.318122% | 5.753% |
-| 10% | 6/15 | 0.324626% | 3.667780% | 22.318122% | 5.753% |
+| 0% | 7/15 | 0.182593% | 3.033645% | 22.318122% | 6.301% |
+| 1% | 7/15 | 0.182593% | 3.033645% | 22.318122% | 6.301% |
+| 5% | 7/15 | 0.182593% | 3.033645% | 22.318122% | 6.301% |
+| 10% | 7/15 | 0.182593% | 3.033645% | 22.318122% | 6.301% |
 
 ## Frontier information ladder
 
@@ -137,9 +137,9 @@ This ladder tests where candidate information is lost. `F_agg` is the five-coord
 
 | Representation | Exact winners | Within 1% | Median regret | Mean regret | Max regret | Mean retained | Median alias spread | Mean alias spread | Max alias spread | Median-order violations / dominance pairs | Confirmed violations / dominance pairs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `F_agg` | 8/15 | 12/15 | 0.000000% | 1.005400% | 9.512018% | 10.411% | 1.660% | 4.678% | 50.926% | 4388/14669 (29.9%) | 3257/14669 (22.2%) |
-| `F_active` | 11/15 | 12/15 | 0.000000% | 0.889876% | 9.512018% | 19.178% | 1.660% | 4.678% | 50.926% | 3328/11001 (30.3%) | 2315/11001 (21.0%) |
-| `F_all` | 9/15 | 12/15 | 0.000000% | 0.960436% | 9.512018% | 24.932% | 1.411% | 3.427% | 50.926% | 2135/6924 (30.8%) | 1409/6924 (20.3%) |
+| `F_agg` | 9/15 | 13/15 | 0.000000% | 0.371266% | 2.431812% | 10.137% | 1.608% | 4.433% | 57.286% | 4560/14849 (30.7%) | 3424/14849 (23.1%) |
+| `F_active` | 12/15 | 13/15 | 0.000000% | 0.255741% | 2.431812% | 18.356% | 1.608% | 4.433% | 57.286% | 3449/11316 (30.5%) | 2429/11316 (21.5%) |
+| `F_all` | 10/15 | 13/15 | 0.000000% | 0.326302% | 2.431812% | 26.027% | 1.411% | 3.427% | 50.926% | 1973/6561 (30.1%) | 1263/6561 (19.3%) |
 | `F_split` | 11/15 | 13/15 | 0.000000% | 0.268064% | 2.431812% | 37.626% | 1.411% | 3.088% | 50.926% | 1153/3103 (37.2%) | 681/3103 (21.9%) |
 | `F_dense-d` | 14/15 | 15/15 | 0.000000% | 0.058238% | 0.873569% | 68.767% | 1.370% | 2.823% | 31.817% | 540/2108 (25.6%) | 366/2108 (17.4%) |
 
@@ -151,17 +151,17 @@ Depth one is the ordinary frontier. Each subsequent depth removes the preceding 
 
 | Representation | Depth L | Mean retained | Mean regret | Max regret | Within 1% |
 | --- | --- | --- | --- | --- | --- |
-| `F_agg` | 1 | 10.411% | 1.005400% | 9.512018% | 12/15 |
+| `F_agg` | 1 | 10.137% | 0.371266% | 2.431812% | 13/15 |
 | `F_agg` | 2 | 30.959% | 0.344248% | 2.431812% | 13/15 |
-| `F_agg` | 3 | 51.598% | 0.099786% | 0.911651% | 15/15 |
-| `F_agg` | 13 | 100.000% | 0.000000% | 0.000000% | 15/15 |
-| `F_active` | 1 | 19.178% | 0.889876% | 9.512018% | 12/15 |
-| `F_active` | 2 | 46.027% | 0.214900% | 2.095196% | 13/15 |
-| `F_active` | 3 | 68.219% | 0.099786% | 0.911651% | 15/15 |
+| `F_agg` | 3 | 51.324% | 0.099786% | 0.911651% | 15/15 |
+| `F_agg` | 11 | 100.000% | 0.000000% | 0.000000% | 15/15 |
+| `F_active` | 1 | 18.356% | 0.255741% | 2.431812% | 13/15 |
+| `F_active` | 2 | 44.932% | 0.214900% | 2.095196% | 13/15 |
+| `F_active` | 3 | 67.671% | 0.099786% | 0.911651% | 15/15 |
 | `F_active` | 8 | 100.000% | 0.000000% | 0.000000% | 15/15 |
-| `F_all` | 1 | 24.932% | 0.960436% | 9.512018% | 12/15 |
-| `F_all` | 2 | 50.137% | 0.216219% | 2.095196% | 13/15 |
-| `F_all` | 3 | 70.685% | 0.099786% | 0.911651% | 15/15 |
+| `F_all` | 1 | 26.027% | 0.326302% | 2.431812% | 13/15 |
+| `F_all` | 2 | 52.329% | 0.216219% | 2.095196% | 13/15 |
+| `F_all` | 3 | 72.329% | 0.099786% | 0.911651% | 15/15 |
 | `F_all` | 8 | 100.000% | 0.000000% | 0.000000% | 15/15 |
 | `F_split` | 1 | 37.626% | 0.268064% | 2.431812% | 13/15 |
 | `F_split` | 2 | 66.393% | 0.216219% | 2.095196% | 13/15 |
@@ -243,12 +243,6 @@ For every missed empirical winner, each row lists one layout that dominates it i
 | `F_agg` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile16x8_column_major` | 28.456542% | wave_load.64B=-1; output_store.64B=+0; wave_lane_group.lane8.64B=-1; wave_lane_group.lane16.128B=-3; wave_lane_group.lane32.256B=-6; wave_lane_group.lane64.512B*=-12; lane_reuse.128B.window16*=+12; wave_neighborhood.512B*=-12; workgroup_step_panel.1024B=-8; wave_phase.4096B*=+0 |
 | `F_agg` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile16x32_column_major` | 32.059192% | wave_load.64B=-1; output_store.64B=+0; wave_lane_group.lane8.64B=-1; wave_lane_group.lane16.128B=-3; wave_lane_group.lane32.256B=-6; wave_lane_group.lane64.512B*=-12; lane_reuse.128B.window16*=+12; wave_neighborhood.512B*=-12; workgroup_step_panel.1024B=-8; wave_phase.4096B*=+0 |
 | `F_agg` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile32_column_major` | 32.928517% | wave_load.64B=-1; output_store.64B=+0; wave_lane_group.lane8.64B=-1; wave_lane_group.lane16.128B=-3; wave_lane_group.lane32.256B=-7; wave_lane_group.lane64.512B*=-14; lane_reuse.128B.window16*=+12; wave_neighborhood.512B*=-14; workgroup_step_panel.1024B=-12; wave_phase.4096B*=+0 |
-| `F_agg` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_iijjji` | 9.512018% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_agg` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_jjiiij` | 12.338892% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_agg` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_jiiijj` | 15.256637% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+1; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+4; transpose_lane_stream.128B.window16=-2; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_agg` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_ijjjii` | 21.395035% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+1; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=-2; transpose_lane_stream.128B.window16=+4; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_agg` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x16_canonical_jjiiijj` | 22.203038% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_agg` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x16_canonical_jiiijjj` | 42.770382% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+1; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+4; transpose_lane_stream.128B.window16=-2; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
 | `F_agg` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x16_canonical_jiijjji` | 0.021302% | wave_load.64B*=-1.58385; output_store.64B=+1; A.row_j_lane_group.lane8.64B*=-2; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=+0; A.row_j_lane_group.lane64.512B=+4; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+2; A.workgroup_k_column.256B=+0; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
 | `F_agg` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x8_canonical_iijjji` | 0.101948% | wave_load.64B*=-1.58385; output_store.64B=+1; A.row_j_lane_group.lane8.64B*=-2; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=+0; A.row_j_lane_group.lane64.512B=+0; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+0; A.workgroup_k_column.256B=+0; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
 | `F_agg` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x16_canonical_jjiiijj` | 0.141509% | wave_load.64B*=+0; output_store.64B=+0; A.row_j_lane_group.lane8.64B*=+0; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=-4; A.row_j_lane_group.lane64.512B=+0; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+0; A.workgroup_k_column.256B=-4; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
@@ -280,12 +274,6 @@ For every missed empirical winner, each row lists one layout that dominates it i
 | `F_active` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile8x8_canonical_jiijij` | 7.358328% | wave_load.64B=+0; output_store.64B=+0; wave_lane_group.lane8.64B=+0; wave_lane_group.lane16.128B=+0; wave_lane_group.lane32.256B=-4; wave_lane_group.lane64.512B*=-8; lane_reuse.128B.window16*=+0; wave_neighborhood.512B*=-8; workgroup_step_panel.1024B=+0; wave_phase.4096B*=+0 |
 | `F_active` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile8x16_canonical_jiijjij` | 8.703013% | wave_load.64B=+0; output_store.64B=+0; wave_lane_group.lane8.64B=+0; wave_lane_group.lane16.128B=+0; wave_lane_group.lane32.256B=+0; wave_lane_group.lane64.512B*=-8; lane_reuse.128B.window16*=+0; wave_neighborhood.512B*=-8; workgroup_step_panel.1024B=+0; wave_phase.4096B*=+0 |
 | `F_active` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile8x16_canonical_jiijijj` | 10.549107% | wave_load.64B=+0; output_store.64B=+0; wave_lane_group.lane8.64B=+0; wave_lane_group.lane16.128B=+0; wave_lane_group.lane32.256B=-4; wave_lane_group.lane64.512B*=-8; lane_reuse.128B.window16*=+0; wave_neighborhood.512B*=-8; workgroup_step_panel.1024B=+0; wave_phase.4096B*=+0 |
-| `F_active` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_iijjji` | 9.512018% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_active` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_jjiiij` | 12.338892% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_active` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_jiiijj` | 15.256637% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+1; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+4; transpose_lane_stream.128B.window16=-2; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_active` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_ijjjii` | 21.395035% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+1; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=-2; transpose_lane_stream.128B.window16=+4; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_active` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x16_canonical_jjiiijj` | 22.203038% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_active` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x16_canonical_jiiijjj` | 42.770382% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+1; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+4; transpose_lane_stream.128B.window16=-2; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
 | `F_active` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x16_canonical_jiijjji` | 0.021302% | wave_load.64B*=-1.58385; output_store.64B=+1; A.row_j_lane_group.lane8.64B*=-2; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=+0; A.row_j_lane_group.lane64.512B=+4; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+2; A.workgroup_k_column.256B=+0; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
 | `F_active` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x8_canonical_iijjji` | 0.101948% | wave_load.64B*=-1.58385; output_store.64B=+1; A.row_j_lane_group.lane8.64B*=-2; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=+0; A.row_j_lane_group.lane64.512B=+0; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+0; A.workgroup_k_column.256B=+0; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
 | `F_active` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x16_canonical_jjiiijj` | 0.141509% | wave_load.64B*=+0; output_store.64B=+0; A.row_j_lane_group.lane8.64B*=+0; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=-4; A.row_j_lane_group.lane64.512B=+0; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+0; A.workgroup_k_column.256B=-4; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
@@ -318,9 +306,6 @@ For every missed empirical winner, each row lists one layout that dominates it i
 | `F_all` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile8x8_canonical_jiijij` | 7.358328% | wave_load.64B=+0; output_store.64B=+0; wave_lane_group.lane8.64B=+0; wave_lane_group.lane16.128B=+0; wave_lane_group.lane32.256B=-4; wave_lane_group.lane64.512B*=-8; lane_reuse.128B.window16*=+0; wave_neighborhood.512B*=-8; workgroup_step_panel.1024B=+0; wave_phase.4096B*=+0 |
 | `F_all` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile8x16_canonical_jiijjij` | 8.703013% | wave_load.64B=+0; output_store.64B=+0; wave_lane_group.lane8.64B=+0; wave_lane_group.lane16.128B=+0; wave_lane_group.lane32.256B=+0; wave_lane_group.lane64.512B*=-8; lane_reuse.128B.window16*=+0; wave_neighborhood.512B*=-8; workgroup_step_panel.1024B=+0; wave_phase.4096B*=+0 |
 | `F_all` | GESUMMV | 512 | `tile8x16_canonical_ijijjji` | `tile8x16_canonical_jiijijj` | 10.549107% | wave_load.64B=+0; output_store.64B=+0; wave_lane_group.lane8.64B=+0; wave_lane_group.lane16.128B=+0; wave_lane_group.lane32.256B=-4; wave_lane_group.lane64.512B*=-8; lane_reuse.128B.window16*=+0; wave_neighborhood.512B*=-8; workgroup_step_panel.1024B=+0; wave_phase.4096B*=+0 |
-| `F_all` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_iijjji` | 9.512018% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_all` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x8_canonical_jjiiij` | 12.338892% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
-| `F_all` | MVT | 1024 | `tile8x16_canonical_iijjjji` | `tile8x16_canonical_jjiiijj` | 22.203038% | wave_load.64B=+0; output_store.64B=+0; A.wave_lane_group.lane8.64B=+0; A.wave_lane_group.lane16.128B=+0; A.wave_lane_group.lane32.256B=+0; A.wave_lane_group.lane64.512B*=-2; row_lane_stream.128B.window16=+0; transpose_lane_stream.128B.window16=+0; wave_neighborhood.512B*=-2; transpose_wave_neighborhood.1024B*=+0; transpose_wave_neighborhood.4096B*=+0; transpose_wave_neighborhood.8192B*=+0; workgroup_step_cross.2048B=+0; wave_pattern_window.4096B=+0; wave_pattern_phase.32768B=+0 |
 | `F_all` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x16_canonical_jjiiijj` | 0.141509% | wave_load.64B*=+0; output_store.64B=+0; A.row_j_lane_group.lane8.64B*=+0; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=-4; A.row_j_lane_group.lane64.512B=+0; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+0; A.workgroup_k_column.256B=-4; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
 | `F_all` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x8_canonical_ijjiij` | 0.143031% | wave_load.64B*=+0; output_store.64B=+0; A.row_j_lane_group.lane8.64B*=+0; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=-4; A.row_j_lane_group.lane64.512B=+0; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+0; A.workgroup_k_column.256B=-4; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
 | `F_all` | SYRK | 256 | `tile8x8_canonical_jjiiji` | `tile8x8_canonical_jjiiij` | 0.162812% | wave_load.64B*=+0; output_store.64B=+0; A.row_j_lane_group.lane8.64B*=+0; A.row_j_lane_group.lane16.128B*=+0; A.row_j_lane_group.lane32.256B=-4; A.row_j_lane_group.lane64.512B=+0; A.paired_row_reuse.128B.window16*=+0; A.wave_neighborhood.512B=+0; A.workgroup_k_column.256B=-4; A.wave_k_window.4096B=+0; A.wave_inner_phase.32768B*=+0 |
@@ -1663,10 +1648,12 @@ Workgroup: `128`.
 | `A.wave_lane_group.lane8.64B` | hypothesis | 64 | 0 | contiguous groups of 8 lanes |
 | `A.wave_lane_group.lane16.128B` | hypothesis | 128 | 0 | contiguous groups of 16 lanes |
 | `A.wave_lane_group.lane32.256B` | hypothesis | 256 | 0 | contiguous groups of 32 lanes |
-| `A.wave_lane_group.lane64.512B` | hypothesis | 512 | 0.25 | contiguous groups of 64 lanes |
+| `A.wave_lane_group.lane64.512B` | hypothesis | 512 | 0 | contiguous groups of 64 lanes |
 | `row_lane_stream.128B.window16` | hypothesis | 128 | 0 | sixteen consecutive A[i,j] values used by one lane; a row-stream reuse hypothesis |
+| `row_lane_stream.512B.window16` | hypothesis | 512 | 0 | sixteen consecutive A[i,j] values used by one lane in a 512-byte neighborhood; an empirically calibrated row-stream reuse hypothesis |
 | `transpose_lane_stream.128B.window16` | hypothesis | 128 | 0 | sixteen consecutive A[j,i] values used by one lane; a column-stream reuse hypothesis |
-| `wave_neighborhood.512B` | hypothesis | 512 | 0.25 | one row or transpose wave load in a broader locality region |
+| `wave_neighborhood.512B` | hypothesis | 512 | 0 | one row or transpose wave load in a broader locality region |
+| `transpose_wave_neighborhood.512B` | hypothesis | 512 | 0 | one transpose-stream wave load in a 512-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.1024B` | hypothesis | 1024 | 0.0625 | one transpose-stream wave load in a 1024-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.4096B` | hypothesis | 4096 | 0.0625 | one transpose-stream wave load in a 4096-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.8192B` | hypothesis | 8192 | 0.0625 | one transpose-stream wave load in an 8192-byte cache neighborhood; an empirically calibrated hypothesis |
@@ -1680,25 +1667,24 @@ This is the exact non-dominated set over the notes-aligned locality vector plus 
 
 | Layout | Q fine | J peak | J area | Runs | XORs |
 | --- | --- | --- | --- | --- | --- |
-| `tile8x16_canonical_jiiijjj` | 24576 | 7 | 3.6875 | 3 | 0 |
-| `tile8x16_canonical_jjiiijj` | 24576 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_iijjji` | 24576 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_ijjjii` | 24576 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_jiiijj` | 24576 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_jjiiij` | 24576 | 7 | 3.6875 | 3 | 0 |
-| `tile8_column_major` | 36864 | 7 | 3.6875 | 2 | 0 |
-| `tile8_row_major` | 36864 | 7 | 3.6875 | 2 | 0 |
-| `tile8x16_column_major` | 36864 | 7 | 3.6875 | 2 | 0 |
-| `tile8x32_column_major` | 36864 | 7 | 3.6875 | 2 | 0 |
+| `tile8x16_canonical_iijjjji` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_ijjjjii` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_jiiijjj` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_jjiiijj` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_iijjji` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_ijjjii` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_jiiijj` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_jjiiij` | 24576 | 3 | 0.1875 | 3 | 0 |
+| `row_major` | 36864 | 0 | 0 | 2 | 0 |
 
 ### Fine-locality-gated frontiers
 
 | Delta | Q fine limit | Eligible | Frontier size | Members | Regret |
 | --- | --- | --- | --- | --- | --- |
-| 0% | 24576 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
-| 1% | 24821.8 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
-| 5% | 25804.8 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
-| 10% | 27033.6 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 0% | 24576 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 1% | 24821.8 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 5% | 25804.8 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 10% | 27033.6 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
 
 ### Runtime spread within score-equivalent groups
 
@@ -1706,97 +1692,97 @@ Score equality is exact across every coordinate. Spread is `max(median runtime) 
 
 | Vector | Groups | Non-singletons | Layouts in non-singletons | Median spread | Mean spread | Max spread |
 | --- | --- | --- | --- | --- | --- | --- |
-| Main five-cost | 26 | 12 | 59 | 16.568834% | 12.871248% | 26.639726% |
-| Gated delta=0% | 11 | 8 | 47 | 17.726672% | 18.561723% | 26.639726% |
-| Gated delta=1% | 11 | 8 | 47 | 17.726672% | 18.561723% | 26.639726% |
-| Gated delta=5% | 11 | 8 | 47 | 17.726672% | 18.561723% | 26.639726% |
-| Gated delta=10% | 11 | 8 | 47 | 17.726672% | 18.561723% | 26.639726% |
+| Main five-cost | 20 | 8 | 61 | 18.114220% | 15.169853% | 27.410229% |
+| Gated delta=0% | 7 | 4 | 47 | 21.492638% | 22.434241% | 27.410229% |
+| Gated delta=1% | 7 | 4 | 47 | 21.492638% | 22.434241% | 27.410229% |
+| Gated delta=5% | 7 | 4 | 47 | 21.492638% | 22.434241% | 27.410229% |
+| Gated delta=10% | 7 | 4 | 47 | 21.492638% | 22.434241% | 27.410229% |
 
 ### Layout ranks
 
 | Score rank | Runtime rank | Layout | Word (low→high) | Score | Runs | XORs | Median ms | Mean ms | SD ms | Observed range ms | GFLOP/s | Rank delta |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 21 | 31 | `tile8_column_major` | `iiijjj` | 3.6875 | 2 | 0 | 0.040253 | 0.040264 | 0.000108 | 0.040093–0.040427 | 6.55 | -10.0 |
-| 21 | 23 | `tile8_row_major` | `jjjiii` | 3.6875 | 2 | 0 | 0.039894 | 0.039856 | 0.000075 | 0.039707–0.039907 | 6.61 | -2.0 |
-| 21 | 36 | `tile8x16_canonical_iijijjj` | `iijijjj` | 3.6875 | 4 | 0 | 0.041080 | 0.041051 | 0.000162 | 0.040787–0.041294 | 6.42 | -15.0 |
-| 21 | 30 | `tile8x16_canonical_iijjijj` | `iijjijj` | 3.6875 | 4 | 0 | 0.040187 | 0.040112 | 0.000150 | 0.039840–0.040253 | 6.56 | -9.0 |
-| 21 | 28 | `tile8x16_canonical_iijjjij` | `iijjjij` | 3.6875 | 4 | 0 | 0.040080 | 0.040085 | 0.000241 | 0.039813–0.040507 | 6.58 | -7.0 |
-| 21 | 46 | `tile8x16_canonical_ijiijjj` | `ijiijjj` | 3.6875 | 4 | 0 | 0.042707 | 0.042648 | 0.000221 | 0.042254–0.042920 | 6.17 | -25.0 |
-| 21 | 52 | `tile8x16_canonical_ijijijj` | `ijijijj` | 3.6875 | 6 | 0 | 0.043400 | 0.043427 | 0.000116 | 0.043267–0.043614 | 6.08 | -31.0 |
-| 21 | 25 | `tile8x16_canonical_ijijjij` | `ijijjij` | 3.6875 | 6 | 0 | 0.040013 | 0.040005 | 0.000116 | 0.039827–0.040173 | 6.59 | -4.0 |
-| 21 | 14 | `tile8x16_canonical_ijjiijj` | `ijjiijj` | 3.6875 | 4 | 0 | 0.038614 | 0.038664 | 0.000219 | 0.038440–0.039067 | 6.83 | +7.0 |
-| 21 | 21 | `tile8x16_canonical_ijjijij` | `ijjijij` | 3.6875 | 6 | 0 | 0.039720 | 0.039885 | 0.000267 | 0.039640–0.040347 | 6.64 | +0.0 |
-| 21 | 56 | `tile8x16_canonical_ijjjiij` | `ijjjiij` | 3.6875 | 4 | 0 | 0.044814 | 0.045038 | 0.000393 | 0.044654–0.045614 | 5.88 | -35.0 |
-| 21 | 41 | `tile8x16_canonical_jiiijjj` | `jiiijjj` | 3.6875 | 3 | 0 | 0.042107 | 0.042088 | 0.000168 | 0.041813–0.042333 | 6.26 | -20.0 |
-| 21 | 38 | `tile8x16_canonical_jiijijj` | `jiijijj` | 3.6875 | 5 | 0 | 0.041853 | 0.041797 | 0.000132 | 0.041587–0.041947 | 6.30 | -17.0 |
-| 21 | 19 | `tile8x16_canonical_jiijjij` | `jiijjij` | 3.6875 | 5 | 0 | 0.039307 | 0.039323 | 0.000073 | 0.039227–0.039453 | 6.71 | +2.0 |
-| 21 | 39 | `tile8x16_canonical_jijiijj` | `jijiijj` | 3.6875 | 5 | 0 | 0.041933 | 0.041925 | 0.000187 | 0.041667–0.042173 | 6.29 | -18.0 |
-| 21 | 40 | `tile8x16_canonical_jijijij` | `jijijij` | 3.6875 | 7 | 0 | 0.042040 | 0.042091 | 0.000107 | 0.041987–0.042267 | 6.27 | -19.0 |
-| 21 | 55 | `tile8x16_canonical_jijjiij` | `jijjiij` | 3.6875 | 5 | 0 | 0.043906 | 0.043858 | 0.000348 | 0.043453–0.044280 | 6.01 | -34.0 |
-| 21 | 20 | `tile8x16_canonical_jjiiijj` | `jjiiijj` | 3.6875 | 3 | 0 | 0.039414 | 0.039422 | 0.000083 | 0.039307–0.039534 | 6.69 | +1.0 |
-| 21 | 16.5 | `tile8x16_canonical_jjiijij` | `jjiijij` | 3.6875 | 5 | 0 | 0.039133 | 0.039221 | 0.000179 | 0.039027–0.039480 | 6.74 | +4.5 |
-| 21 | 54 | `tile8x16_canonical_jjijiij` | `jjijiij` | 3.6875 | 5 | 0 | 0.043787 | 0.043872 | 0.000624 | 0.043187–0.044813 | 6.02 | -33.0 |
-| 21 | 47 | `tile8x16_canonical_jjjiiij` | `jjjiiij` | 3.6875 | 3 | 0 | 0.042867 | 0.042931 | 0.000579 | 0.042267–0.043907 | 6.15 | -26.0 |
-| 21 | 27 | `tile8x16_column_major` | `iiijjjj` | 3.6875 | 2 | 0 | 0.040054 | 0.040219 | 0.000257 | 0.040027–0.040707 | 6.58 | -6.0 |
-| 21 | 26 | `tile8x32_column_major` | `iiijjjjj` | 3.6875 | 2 | 0 | 0.040053 | 0.040141 | 0.000129 | 0.040014–0.040347 | 6.58 | -5.0 |
-| 21 | 32 | `tile8x8_canonical_iijijj` | `iijijj` | 3.6875 | 4 | 0 | 0.040494 | 0.040499 | 0.000099 | 0.040400–0.040667 | 6.51 | -11.0 |
-| 21 | 5 | `tile8x8_canonical_iijjij` | `iijjij` | 3.6875 | 4 | 0 | 0.035387 | 0.035414 | 0.000084 | 0.035334–0.035574 | 7.45 | +16.0 |
-| 21 | 2 | `tile8x8_canonical_iijjji` | `iijjji` | 3.6875 | 3 | 0 | 0.034840 | 0.034784 | 0.000150 | 0.034587–0.034960 | 7.57 | +19.0 |
-| 21 | 22 | `tile8x8_canonical_ijiijj` | `ijiijj` | 3.6875 | 4 | 0 | 0.039853 | 0.039941 | 0.000346 | 0.039600–0.040520 | 6.62 | -1.0 |
-| 21 | 45 | `tile8x8_canonical_ijijij` | `ijijij` | 3.6875 | 6 | 0 | 0.042614 | 0.042648 | 0.000164 | 0.042440–0.042880 | 6.19 | -24.0 |
-| 21 | 11 | `tile8x8_canonical_ijijji` | `ijijji` | 3.6875 | 5 | 0 | 0.037307 | 0.037390 | 0.000135 | 0.037254–0.037560 | 7.07 | +10.0 |
-| 21 | 8 | `tile8x8_canonical_ijjiij` | `ijjiij` | 3.6875 | 4 | 0 | 0.035933 | 0.035941 | 0.000094 | 0.035827–0.036067 | 7.34 | +13.0 |
-| 21 | 10 | `tile8x8_canonical_ijjiji` | `ijjiji` | 3.6875 | 5 | 0 | 0.037240 | 0.037299 | 0.000125 | 0.037173–0.037520 | 7.08 | +11.0 |
-| 21 | 16.5 | `tile8x8_canonical_ijjjii` | `ijjjii` | 3.6875 | 3 | 0 | 0.039133 | 0.039117 | 0.000227 | 0.038733–0.039440 | 6.74 | +4.5 |
-| 21 | 18 | `tile8x8_canonical_jiiijj` | `jiiijj` | 3.6875 | 3 | 0 | 0.039280 | 0.039293 | 0.000183 | 0.039053–0.039560 | 6.71 | +3.0 |
-| 21 | 42 | `tile8x8_canonical_jiijij` | `jiijij` | 3.6875 | 5 | 0 | 0.042240 | 0.042413 | 0.000226 | 0.042227–0.042747 | 6.24 | -21.0 |
-| 21 | 7 | `tile8x8_canonical_jiijji` | `jiijji` | 3.6875 | 4 | 0 | 0.035707 | 0.035712 | 0.000075 | 0.035627–0.035827 | 7.38 | +14.0 |
-| 21 | 43 | `tile8x8_canonical_jijiij` | `jijiij` | 3.6875 | 5 | 0 | 0.042360 | 0.042438 | 0.000164 | 0.042214–0.042640 | 6.22 | -22.0 |
-| 21 | 15 | `tile8x8_canonical_jijiji` | `jijiji` | 3.6875 | 6 | 0 | 0.038813 | 0.038877 | 0.000151 | 0.038693–0.039120 | 6.79 | +6.0 |
-| 21 | 29 | `tile8x8_canonical_jijjii` | `jijjii` | 3.6875 | 4 | 0 | 0.040120 | 0.040147 | 0.000191 | 0.039960–0.040507 | 6.57 | -8.0 |
-| 21 | 1 | `tile8x8_canonical_jjiiij` | `jjiiij` | 3.6875 | 3 | 0 | 0.034533 | 0.034541 | 0.000205 | 0.034240–0.034880 | 7.64 | +20.0 |
-| 21 | 6 | `tile8x8_canonical_jjiiji` | `jjiiji` | 3.6875 | 4 | 0 | 0.035533 | 0.035584 | 0.000121 | 0.035467–0.035787 | 7.42 | +15.0 |
-| 21 | 34 | `tile8x8_canonical_jjijii` | `jjijii` | 3.6875 | 4 | 0 | 0.040720 | 0.040755 | 0.000222 | 0.040533–0.041173 | 6.48 | -13.0 |
-| 42 | 44 | `tile16_interleaved` | `jijijiji` | 3.75 | 8 | 0 | 0.042427 | 0.042368 | 0.000195 | 0.042014–0.042547 | 6.21 | -2.0 |
-| 43 | 62 | `tile32_interleaved` | `jijijijiji` | 3.8125 | 10 | 0 | 0.048013 | 0.047987 | 0.000658 | 0.046867–0.048854 | 5.49 | -19.0 |
-| 44 | 51 | `tile16x8_row_major` | `jjjiiii` | 4 | 2 | 0 | 0.043347 | 0.043531 | 0.000291 | 0.043254–0.044014 | 6.08 | -7.0 |
-| 45 | 48.5 | `tile32x8_row_major` | `jjjiiiii` | 4.1875 | 2 | 0 | 0.042907 | 0.043038 | 0.000262 | 0.042827–0.043520 | 6.15 | -3.5 |
-| 53 | 3 | `tile8x16_canonical_iijjjji` | `iijjjji` | 4.6875 | 3 | 0 | 0.034920 | 0.034976 | 0.000198 | 0.034774–0.035307 | 7.55 | +50.0 |
-| 53 | 13 | `tile8x16_canonical_ijijjji` | `ijijjji` | 4.6875 | 5 | 0 | 0.038120 | 0.038107 | 0.000186 | 0.037827–0.038400 | 6.92 | +40.0 |
-| 53 | 12 | `tile8x16_canonical_ijjijji` | `ijjijji` | 4.6875 | 5 | 0 | 0.037720 | 0.037757 | 0.000151 | 0.037520–0.037920 | 6.99 | +41.0 |
-| 53 | 58 | `tile8x16_canonical_ijjjiji` | `ijjjiji` | 4.6875 | 5 | 0 | 0.045080 | 0.044819 | 0.000484 | 0.044147–0.045400 | 5.85 | -5.0 |
-| 53 | 35 | `tile8x16_canonical_ijjjjii` | `ijjjjii` | 4.6875 | 3 | 0 | 0.040947 | 0.040915 | 0.000115 | 0.040707–0.041040 | 6.44 | +18.0 |
-| 53 | 4 | `tile8x16_canonical_jiijjji` | `jiijjji` | 4.6875 | 4 | 0 | 0.035173 | 0.035080 | 0.000148 | 0.034893–0.035227 | 7.50 | +49.0 |
-| 53 | 24 | `tile8x16_canonical_jijijji` | `jijijji` | 4.6875 | 6 | 0 | 0.039973 | 0.039971 | 0.000288 | 0.039667–0.040493 | 6.60 | +29.0 |
-| 53 | 61 | `tile8x16_canonical_jijjiji` | `jijjiji` | 4.6875 | 6 | 0 | 0.046320 | 0.046128 | 0.000363 | 0.045520–0.046480 | 5.69 | -8.0 |
-| 53 | 37 | `tile8x16_canonical_jijjjii` | `jijjjii` | 4.6875 | 4 | 0 | 0.041347 | 0.041336 | 0.000047 | 0.041253–0.041387 | 6.38 | +16.0 |
-| 53 | 9 | `tile8x16_canonical_jjiijji` | `jjiijji` | 4.6875 | 4 | 0 | 0.036360 | 0.036371 | 0.000168 | 0.036160–0.036560 | 7.25 | +44.0 |
-| 53 | 59 | `tile8x16_canonical_jjijiji` | `jjijiji` | 4.6875 | 6 | 0 | 0.045480 | 0.045541 | 0.000436 | 0.044934–0.046293 | 5.80 | -6.0 |
-| 53 | 33 | `tile8x16_canonical_jjijjii` | `jjijjii` | 4.6875 | 4 | 0 | 0.040573 | 0.040619 | 0.000231 | 0.040347–0.040893 | 6.50 | +20.0 |
-| 53 | 50 | `tile8x16_canonical_jjjiiji` | `jjjiiji` | 4.6875 | 4 | 0 | 0.043147 | 0.043120 | 0.000276 | 0.042680–0.043494 | 6.11 | +3.0 |
-| 53 | 48.5 | `tile8x16_canonical_jjjijii` | `jjjijii` | 4.6875 | 4 | 0 | 0.042907 | 0.042939 | 0.000480 | 0.042307–0.043560 | 6.15 | +4.5 |
-| 53 | 57 | `tile8x16_row_major` | `jjjjiii` | 4.6875 | 2 | 0 | 0.044987 | 0.044846 | 0.000254 | 0.044494–0.045107 | 5.86 | -4.0 |
-| 61 | 60 | `tile16_row_major` | `jjjjiiii` | 4.75 | 2 | 0 | 0.045547 | 0.045571 | 0.000215 | 0.045241–0.045854 | 5.79 | +1.0 |
-| 62 | 53 | `tile32x16_row_major` | `jjjjiiiii` | 4.9375 | 2 | 0 | 0.043573 | 0.043566 | 0.000172 | 0.043347–0.043787 | 6.05 | +9.0 |
-| 64 | 65 | `tile16_column_major` | `iiiijjjj` | 5 | 2 | 0 | 0.050667 | 0.050603 | 0.000357 | 0.049934–0.051000 | 5.20 | -1.0 |
-| 64 | 63 | `tile16x32_column_major` | `iiiijjjjj` | 5 | 2 | 0 | 0.049147 | 0.049147 | 0.000311 | 0.048827–0.049694 | 5.37 | +1.0 |
-| 64 | 64 | `tile16x8_column_major` | `iiiijjj` | 5 | 2 | 0 | 0.049507 | 0.049435 | 0.000315 | 0.048840–0.049774 | 5.33 | +0.0 |
-| 66 | 66 | `tile8x32_row_major` | `jjjjjiii` | 8.0625 | 2 | 0 | 0.052294 | 0.052358 | 0.000310 | 0.052027–0.052934 | 5.04 | +0.0 |
-| 67 | 67 | `tile16x32_row_major` | `jjjjjiiii` | 8.125 | 2 | 0 | 0.054507 | 0.054537 | 0.000382 | 0.054000–0.054974 | 4.84 | +0.0 |
-| 68 | 68 | `tile32_row_major` | `jjjjjiiiii` | 8.1875 | 2 | 0 | 0.054826 | 0.054864 | 0.000520 | 0.054360–0.055800 | 4.81 | +0.0 |
-| 70 | 72 | `tile32_column_major` | `iiiiijjjjj` | 9.1875 | 2 | 0 | 0.055627 | 0.055598 | 0.000178 | 0.055387–0.055880 | 4.74 | -2.0 |
-| 70 | 70 | `tile32x16_column_major` | `iiiiijjjj` | 9.1875 | 2 | 0 | 0.054920 | 0.054958 | 0.000120 | 0.054774–0.055120 | 4.80 | +0.0 |
-| 70 | 69 | `tile32x8_column_major` | `iiiiijjj` | 9.1875 | 2 | 0 | 0.054854 | 0.054816 | 0.000338 | 0.054373–0.055347 | 4.81 | +1.0 |
-| 72 | 73 | `row_major` | `jjjjjjjjiiiiiiii` | 15.75 | 2 | 0 | 0.055654 | 0.055966 | 0.000516 | 0.055400–0.056774 | 4.74 | -1.0 |
-| 73 | 71 | `column_major` | `iiiiiiiijjjjjjjj` | 22.5625 | 2 | 0 | 0.055373 | 0.055312 | 0.000324 | 0.054800–0.055640 | 4.76 | +2.0 |
+| 1 | 73 | `row_major` | `jjjjjjjjiiiiiiii` | 0 | 2 | 0 | 0.055654 | 0.055966 | 0.000516 | 0.055400–0.056774 | 4.74 | -72.0 |
+| 2 | 66 | `tile8x32_row_major` | `jjjjjiii` | 0.0625 | 2 | 0 | 0.052294 | 0.052358 | 0.000310 | 0.052027–0.052934 | 5.04 | -64.0 |
+| 3 | 67 | `tile16x32_row_major` | `jjjjjiiii` | 0.125 | 2 | 0 | 0.054507 | 0.054537 | 0.000382 | 0.054000–0.054974 | 4.84 | -64.0 |
+| 32 | 68 | `tile32_row_major` | `jjjjjiiiii` | 0.1875 | 2 | 0 | 0.054826 | 0.054864 | 0.000520 | 0.054360–0.055800 | 4.81 | -36.0 |
+| 32 | 31 | `tile8_column_major` | `iiijjj` | 0.1875 | 2 | 0 | 0.040253 | 0.040264 | 0.000108 | 0.040093–0.040427 | 6.55 | +1.0 |
+| 32 | 23 | `tile8_row_major` | `jjjiii` | 0.1875 | 2 | 0 | 0.039894 | 0.039856 | 0.000075 | 0.039707–0.039907 | 6.61 | +9.0 |
+| 32 | 36 | `tile8x16_canonical_iijijjj` | `iijijjj` | 0.1875 | 4 | 0 | 0.041080 | 0.041051 | 0.000162 | 0.040787–0.041294 | 6.42 | -4.0 |
+| 32 | 30 | `tile8x16_canonical_iijjijj` | `iijjijj` | 0.1875 | 4 | 0 | 0.040187 | 0.040112 | 0.000150 | 0.039840–0.040253 | 6.56 | +2.0 |
+| 32 | 28 | `tile8x16_canonical_iijjjij` | `iijjjij` | 0.1875 | 4 | 0 | 0.040080 | 0.040085 | 0.000241 | 0.039813–0.040507 | 6.58 | +4.0 |
+| 32 | 3 | `tile8x16_canonical_iijjjji` | `iijjjji` | 0.1875 | 3 | 0 | 0.034920 | 0.034976 | 0.000198 | 0.034774–0.035307 | 7.55 | +29.0 |
+| 32 | 46 | `tile8x16_canonical_ijiijjj` | `ijiijjj` | 0.1875 | 4 | 0 | 0.042707 | 0.042648 | 0.000221 | 0.042254–0.042920 | 6.17 | -14.0 |
+| 32 | 52 | `tile8x16_canonical_ijijijj` | `ijijijj` | 0.1875 | 6 | 0 | 0.043400 | 0.043427 | 0.000116 | 0.043267–0.043614 | 6.08 | -20.0 |
+| 32 | 25 | `tile8x16_canonical_ijijjij` | `ijijjij` | 0.1875 | 6 | 0 | 0.040013 | 0.040005 | 0.000116 | 0.039827–0.040173 | 6.59 | +7.0 |
+| 32 | 13 | `tile8x16_canonical_ijijjji` | `ijijjji` | 0.1875 | 5 | 0 | 0.038120 | 0.038107 | 0.000186 | 0.037827–0.038400 | 6.92 | +19.0 |
+| 32 | 14 | `tile8x16_canonical_ijjiijj` | `ijjiijj` | 0.1875 | 4 | 0 | 0.038614 | 0.038664 | 0.000219 | 0.038440–0.039067 | 6.83 | +18.0 |
+| 32 | 21 | `tile8x16_canonical_ijjijij` | `ijjijij` | 0.1875 | 6 | 0 | 0.039720 | 0.039885 | 0.000267 | 0.039640–0.040347 | 6.64 | +11.0 |
+| 32 | 12 | `tile8x16_canonical_ijjijji` | `ijjijji` | 0.1875 | 5 | 0 | 0.037720 | 0.037757 | 0.000151 | 0.037520–0.037920 | 6.99 | +20.0 |
+| 32 | 56 | `tile8x16_canonical_ijjjiij` | `ijjjiij` | 0.1875 | 4 | 0 | 0.044814 | 0.045038 | 0.000393 | 0.044654–0.045614 | 5.88 | -24.0 |
+| 32 | 58 | `tile8x16_canonical_ijjjiji` | `ijjjiji` | 0.1875 | 5 | 0 | 0.045080 | 0.044819 | 0.000484 | 0.044147–0.045400 | 5.85 | -26.0 |
+| 32 | 35 | `tile8x16_canonical_ijjjjii` | `ijjjjii` | 0.1875 | 3 | 0 | 0.040947 | 0.040915 | 0.000115 | 0.040707–0.041040 | 6.44 | -3.0 |
+| 32 | 41 | `tile8x16_canonical_jiiijjj` | `jiiijjj` | 0.1875 | 3 | 0 | 0.042107 | 0.042088 | 0.000168 | 0.041813–0.042333 | 6.26 | -9.0 |
+| 32 | 38 | `tile8x16_canonical_jiijijj` | `jiijijj` | 0.1875 | 5 | 0 | 0.041853 | 0.041797 | 0.000132 | 0.041587–0.041947 | 6.30 | -6.0 |
+| 32 | 19 | `tile8x16_canonical_jiijjij` | `jiijjij` | 0.1875 | 5 | 0 | 0.039307 | 0.039323 | 0.000073 | 0.039227–0.039453 | 6.71 | +13.0 |
+| 32 | 4 | `tile8x16_canonical_jiijjji` | `jiijjji` | 0.1875 | 4 | 0 | 0.035173 | 0.035080 | 0.000148 | 0.034893–0.035227 | 7.50 | +28.0 |
+| 32 | 39 | `tile8x16_canonical_jijiijj` | `jijiijj` | 0.1875 | 5 | 0 | 0.041933 | 0.041925 | 0.000187 | 0.041667–0.042173 | 6.29 | -7.0 |
+| 32 | 40 | `tile8x16_canonical_jijijij` | `jijijij` | 0.1875 | 7 | 0 | 0.042040 | 0.042091 | 0.000107 | 0.041987–0.042267 | 6.27 | -8.0 |
+| 32 | 24 | `tile8x16_canonical_jijijji` | `jijijji` | 0.1875 | 6 | 0 | 0.039973 | 0.039971 | 0.000288 | 0.039667–0.040493 | 6.60 | +8.0 |
+| 32 | 55 | `tile8x16_canonical_jijjiij` | `jijjiij` | 0.1875 | 5 | 0 | 0.043906 | 0.043858 | 0.000348 | 0.043453–0.044280 | 6.01 | -23.0 |
+| 32 | 61 | `tile8x16_canonical_jijjiji` | `jijjiji` | 0.1875 | 6 | 0 | 0.046320 | 0.046128 | 0.000363 | 0.045520–0.046480 | 5.69 | -29.0 |
+| 32 | 37 | `tile8x16_canonical_jijjjii` | `jijjjii` | 0.1875 | 4 | 0 | 0.041347 | 0.041336 | 0.000047 | 0.041253–0.041387 | 6.38 | -5.0 |
+| 32 | 20 | `tile8x16_canonical_jjiiijj` | `jjiiijj` | 0.1875 | 3 | 0 | 0.039414 | 0.039422 | 0.000083 | 0.039307–0.039534 | 6.69 | +12.0 |
+| 32 | 16.5 | `tile8x16_canonical_jjiijij` | `jjiijij` | 0.1875 | 5 | 0 | 0.039133 | 0.039221 | 0.000179 | 0.039027–0.039480 | 6.74 | +15.5 |
+| 32 | 9 | `tile8x16_canonical_jjiijji` | `jjiijji` | 0.1875 | 4 | 0 | 0.036360 | 0.036371 | 0.000168 | 0.036160–0.036560 | 7.25 | +23.0 |
+| 32 | 54 | `tile8x16_canonical_jjijiij` | `jjijiij` | 0.1875 | 5 | 0 | 0.043787 | 0.043872 | 0.000624 | 0.043187–0.044813 | 6.02 | -22.0 |
+| 32 | 59 | `tile8x16_canonical_jjijiji` | `jjijiji` | 0.1875 | 6 | 0 | 0.045480 | 0.045541 | 0.000436 | 0.044934–0.046293 | 5.80 | -27.0 |
+| 32 | 33 | `tile8x16_canonical_jjijjii` | `jjijjii` | 0.1875 | 4 | 0 | 0.040573 | 0.040619 | 0.000231 | 0.040347–0.040893 | 6.50 | -1.0 |
+| 32 | 47 | `tile8x16_canonical_jjjiiij` | `jjjiiij` | 0.1875 | 3 | 0 | 0.042867 | 0.042931 | 0.000579 | 0.042267–0.043907 | 6.15 | -15.0 |
+| 32 | 50 | `tile8x16_canonical_jjjiiji` | `jjjiiji` | 0.1875 | 4 | 0 | 0.043147 | 0.043120 | 0.000276 | 0.042680–0.043494 | 6.11 | -18.0 |
+| 32 | 48.5 | `tile8x16_canonical_jjjijii` | `jjjijii` | 0.1875 | 4 | 0 | 0.042907 | 0.042939 | 0.000480 | 0.042307–0.043560 | 6.15 | -16.5 |
+| 32 | 27 | `tile8x16_column_major` | `iiijjjj` | 0.1875 | 2 | 0 | 0.040054 | 0.040219 | 0.000257 | 0.040027–0.040707 | 6.58 | +5.0 |
+| 32 | 57 | `tile8x16_row_major` | `jjjjiii` | 0.1875 | 2 | 0 | 0.044987 | 0.044846 | 0.000254 | 0.044494–0.045107 | 5.86 | -25.0 |
+| 32 | 26 | `tile8x32_column_major` | `iiijjjjj` | 0.1875 | 2 | 0 | 0.040053 | 0.040141 | 0.000129 | 0.040014–0.040347 | 6.58 | +6.0 |
+| 32 | 32 | `tile8x8_canonical_iijijj` | `iijijj` | 0.1875 | 4 | 0 | 0.040494 | 0.040499 | 0.000099 | 0.040400–0.040667 | 6.51 | +0.0 |
+| 32 | 5 | `tile8x8_canonical_iijjij` | `iijjij` | 0.1875 | 4 | 0 | 0.035387 | 0.035414 | 0.000084 | 0.035334–0.035574 | 7.45 | +27.0 |
+| 32 | 2 | `tile8x8_canonical_iijjji` | `iijjji` | 0.1875 | 3 | 0 | 0.034840 | 0.034784 | 0.000150 | 0.034587–0.034960 | 7.57 | +30.0 |
+| 32 | 22 | `tile8x8_canonical_ijiijj` | `ijiijj` | 0.1875 | 4 | 0 | 0.039853 | 0.039941 | 0.000346 | 0.039600–0.040520 | 6.62 | +10.0 |
+| 32 | 45 | `tile8x8_canonical_ijijij` | `ijijij` | 0.1875 | 6 | 0 | 0.042614 | 0.042648 | 0.000164 | 0.042440–0.042880 | 6.19 | -13.0 |
+| 32 | 11 | `tile8x8_canonical_ijijji` | `ijijji` | 0.1875 | 5 | 0 | 0.037307 | 0.037390 | 0.000135 | 0.037254–0.037560 | 7.07 | +21.0 |
+| 32 | 8 | `tile8x8_canonical_ijjiij` | `ijjiij` | 0.1875 | 4 | 0 | 0.035933 | 0.035941 | 0.000094 | 0.035827–0.036067 | 7.34 | +24.0 |
+| 32 | 10 | `tile8x8_canonical_ijjiji` | `ijjiji` | 0.1875 | 5 | 0 | 0.037240 | 0.037299 | 0.000125 | 0.037173–0.037520 | 7.08 | +22.0 |
+| 32 | 16.5 | `tile8x8_canonical_ijjjii` | `ijjjii` | 0.1875 | 3 | 0 | 0.039133 | 0.039117 | 0.000227 | 0.038733–0.039440 | 6.74 | +15.5 |
+| 32 | 18 | `tile8x8_canonical_jiiijj` | `jiiijj` | 0.1875 | 3 | 0 | 0.039280 | 0.039293 | 0.000183 | 0.039053–0.039560 | 6.71 | +14.0 |
+| 32 | 42 | `tile8x8_canonical_jiijij` | `jiijij` | 0.1875 | 5 | 0 | 0.042240 | 0.042413 | 0.000226 | 0.042227–0.042747 | 6.24 | -10.0 |
+| 32 | 7 | `tile8x8_canonical_jiijji` | `jiijji` | 0.1875 | 4 | 0 | 0.035707 | 0.035712 | 0.000075 | 0.035627–0.035827 | 7.38 | +25.0 |
+| 32 | 43 | `tile8x8_canonical_jijiij` | `jijiij` | 0.1875 | 5 | 0 | 0.042360 | 0.042438 | 0.000164 | 0.042214–0.042640 | 6.22 | -11.0 |
+| 32 | 15 | `tile8x8_canonical_jijiji` | `jijiji` | 0.1875 | 6 | 0 | 0.038813 | 0.038877 | 0.000151 | 0.038693–0.039120 | 6.79 | +17.0 |
+| 32 | 29 | `tile8x8_canonical_jijjii` | `jijjii` | 0.1875 | 4 | 0 | 0.040120 | 0.040147 | 0.000191 | 0.039960–0.040507 | 6.57 | +3.0 |
+| 32 | 1 | `tile8x8_canonical_jjiiij` | `jjiiij` | 0.1875 | 3 | 0 | 0.034533 | 0.034541 | 0.000205 | 0.034240–0.034880 | 7.64 | +31.0 |
+| 32 | 6 | `tile8x8_canonical_jjiiji` | `jjiiji` | 0.1875 | 4 | 0 | 0.035533 | 0.035584 | 0.000121 | 0.035467–0.035787 | 7.42 | +26.0 |
+| 32 | 34 | `tile8x8_canonical_jjijii` | `jjijii` | 0.1875 | 4 | 0 | 0.040720 | 0.040755 | 0.000222 | 0.040533–0.041173 | 6.48 | -2.0 |
+| 61.5 | 44 | `tile16_interleaved` | `jijijiji` | 0.25 | 8 | 0 | 0.042427 | 0.042368 | 0.000195 | 0.042014–0.042547 | 6.21 | +17.5 |
+| 61.5 | 60 | `tile16_row_major` | `jjjjiiii` | 0.25 | 2 | 0 | 0.045547 | 0.045571 | 0.000215 | 0.045241–0.045854 | 5.79 | +1.5 |
+| 63 | 62 | `tile32_interleaved` | `jijijijiji` | 0.3125 | 10 | 0 | 0.048013 | 0.047987 | 0.000658 | 0.046867–0.048854 | 5.49 | +1.0 |
+| 64 | 53 | `tile32x16_row_major` | `jjjjiiiii` | 0.4375 | 2 | 0 | 0.043573 | 0.043566 | 0.000172 | 0.043347–0.043787 | 6.05 | +11.0 |
+| 66.5 | 65 | `tile16_column_major` | `iiiijjjj` | 0.5 | 2 | 0 | 0.050667 | 0.050603 | 0.000357 | 0.049934–0.051000 | 5.20 | +1.5 |
+| 66.5 | 63 | `tile16x32_column_major` | `iiiijjjjj` | 0.5 | 2 | 0 | 0.049147 | 0.049147 | 0.000311 | 0.048827–0.049694 | 5.37 | +3.5 |
+| 66.5 | 64 | `tile16x8_column_major` | `iiiijjj` | 0.5 | 2 | 0 | 0.049507 | 0.049435 | 0.000315 | 0.048840–0.049774 | 5.33 | +2.5 |
+| 66.5 | 51 | `tile16x8_row_major` | `jjjiiii` | 0.5 | 2 | 0 | 0.043347 | 0.043531 | 0.000291 | 0.043254–0.044014 | 6.08 | +15.5 |
+| 69 | 48.5 | `tile32x8_row_major` | `jjjiiiii` | 0.6875 | 2 | 0 | 0.042907 | 0.043038 | 0.000262 | 0.042827–0.043520 | 6.15 | +20.5 |
+| 71 | 72 | `tile32_column_major` | `iiiiijjjjj` | 1.1875 | 2 | 0 | 0.055627 | 0.055598 | 0.000178 | 0.055387–0.055880 | 4.74 | -1.0 |
+| 71 | 70 | `tile32x16_column_major` | `iiiiijjjj` | 1.1875 | 2 | 0 | 0.054920 | 0.054958 | 0.000120 | 0.054774–0.055120 | 4.80 | +1.0 |
+| 71 | 69 | `tile32x8_column_major` | `iiiiijjj` | 1.1875 | 2 | 0 | 0.054854 | 0.054816 | 0.000338 | 0.054373–0.055347 | 4.81 | +2.0 |
+| 73 | 71 | `column_major` | `iiiiiiiijjjjjjjj` | 6.8125 | 2 | 0 | 0.055373 | 0.055312 | 0.000324 | 0.054800–0.055640 | 4.76 | +2.0 |
 
 ### Variation-aware metrics
 
 | Score mode | Ranks within variation | Accuracy | Mean rank error | Max rank error |
 | --- | --- | --- | --- | --- |
-| `weighted-region-count` | 21/73 | 0.288 | 10.425 | 49.000 |
-| `peak-normalized-excess` | 18/73 | 0.247 | 11.918 | 51.500 |
-| `weighted-normalized-excess` (selected) | 21/73 | 0.288 | 10.425 | 49.000 |
+| `weighted-region-count` | 17/73 | 0.233 | 13.027 | 69.000 |
+| `peak-normalized-excess` | 9/73 | 0.123 | 14.281 | 69.000 |
+| `weighted-normalized-excess` (selected) | 17/73 | 0.233 | 13.027 | 69.000 |
 
 ## MVT — N=512
 
@@ -1813,10 +1799,12 @@ Workgroup: `128`.
 | `A.wave_lane_group.lane8.64B` | hypothesis | 64 | 0 | contiguous groups of 8 lanes |
 | `A.wave_lane_group.lane16.128B` | hypothesis | 128 | 0 | contiguous groups of 16 lanes |
 | `A.wave_lane_group.lane32.256B` | hypothesis | 256 | 0 | contiguous groups of 32 lanes |
-| `A.wave_lane_group.lane64.512B` | hypothesis | 512 | 0.25 | contiguous groups of 64 lanes |
+| `A.wave_lane_group.lane64.512B` | hypothesis | 512 | 0 | contiguous groups of 64 lanes |
 | `row_lane_stream.128B.window16` | hypothesis | 128 | 0 | sixteen consecutive A[i,j] values used by one lane; a row-stream reuse hypothesis |
+| `row_lane_stream.512B.window16` | hypothesis | 512 | 0 | sixteen consecutive A[i,j] values used by one lane in a 512-byte neighborhood; an empirically calibrated row-stream reuse hypothesis |
 | `transpose_lane_stream.128B.window16` | hypothesis | 128 | 0 | sixteen consecutive A[j,i] values used by one lane; a column-stream reuse hypothesis |
-| `wave_neighborhood.512B` | hypothesis | 512 | 0.25 | one row or transpose wave load in a broader locality region |
+| `wave_neighborhood.512B` | hypothesis | 512 | 0 | one row or transpose wave load in a broader locality region |
+| `transpose_wave_neighborhood.512B` | hypothesis | 512 | 0 | one transpose-stream wave load in a 512-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.1024B` | hypothesis | 1024 | 0.0625 | one transpose-stream wave load in a 1024-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.4096B` | hypothesis | 4096 | 0.0625 | one transpose-stream wave load in a 4096-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.8192B` | hypothesis | 8192 | 0.0625 | one transpose-stream wave load in an 8192-byte cache neighborhood; an empirically calibrated hypothesis |
@@ -1830,25 +1818,24 @@ This is the exact non-dominated set over the notes-aligned locality vector plus 
 
 | Layout | Q fine | J peak | J area | Runs | XORs |
 | --- | --- | --- | --- | --- | --- |
-| `tile8x16_canonical_jiiijjj` | 49152 | 7 | 3.6875 | 3 | 0 |
-| `tile8x16_canonical_jjiiijj` | 49152 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_iijjji` | 49152 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_ijjjii` | 49152 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_jiiijj` | 49152 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_jjiiij` | 49152 | 7 | 3.6875 | 3 | 0 |
-| `tile8_column_major` | 73728 | 7 | 3.6875 | 2 | 0 |
-| `tile8_row_major` | 73728 | 7 | 3.6875 | 2 | 0 |
-| `tile8x16_column_major` | 73728 | 7 | 3.6875 | 2 | 0 |
-| `tile8x32_column_major` | 73728 | 7 | 3.6875 | 2 | 0 |
+| `tile8x16_canonical_iijjjji` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_ijjjjii` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_jiiijjj` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_jjiiijj` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_iijjji` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_ijjjii` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_jiiijj` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_jjiiij` | 49152 | 3 | 0.1875 | 3 | 0 |
+| `row_major` | 73728 | 0 | 0 | 2 | 0 |
 
 ### Fine-locality-gated frontiers
 
 | Delta | Q fine limit | Eligible | Frontier size | Members | Regret |
 | --- | --- | --- | --- | --- | --- |
-| 0% | 49152 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
-| 1% | 49643.5 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
-| 5% | 51609.6 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
-| 10% | 54067.2 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 0% | 49152 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 1% | 49643.5 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 5% | 51609.6 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 10% | 54067.2 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
 
 ### Runtime spread within score-equivalent groups
 
@@ -1856,97 +1843,97 @@ Score equality is exact across every coordinate. Spread is `max(median runtime) 
 
 | Vector | Groups | Non-singletons | Layouts in non-singletons | Median spread | Mean spread | Max spread |
 | --- | --- | --- | --- | --- | --- | --- |
-| Main five-cost | 26 | 12 | 59 | 18.358683% | 14.003762% | 28.543551% |
-| Gated delta=0% | 11 | 8 | 47 | 19.598873% | 20.239586% | 28.543551% |
-| Gated delta=1% | 11 | 8 | 47 | 19.598873% | 20.239586% | 28.543551% |
-| Gated delta=5% | 11 | 8 | 47 | 19.598873% | 20.239586% | 28.543551% |
-| Gated delta=10% | 11 | 8 | 47 | 19.598873% | 20.239586% | 28.543551% |
+| Main five-cost | 20 | 8 | 61 | 18.914972% | 16.145304% | 30.520354% |
+| Gated delta=0% | 7 | 4 | 47 | 22.597779% | 24.288444% | 30.520354% |
+| Gated delta=1% | 7 | 4 | 47 | 22.597779% | 24.288444% | 30.520354% |
+| Gated delta=5% | 7 | 4 | 47 | 22.597779% | 24.288444% | 30.520354% |
+| Gated delta=10% | 7 | 4 | 47 | 22.597779% | 24.288444% | 30.520354% |
 
 ### Layout ranks
 
 | Score rank | Runtime rank | Layout | Word (low→high) | Score | Runs | XORs | Median ms | Mean ms | SD ms | Observed range ms | GFLOP/s | Rank delta |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 21 | 28 | `tile8_column_major` | `iiijjj` | 3.6875 | 2 | 0 | 0.077840 | 0.077840 | 0.000301 | 0.077493–0.078307 | 13.51 | -7.0 |
-| 21 | 27 | `tile8_row_major` | `jjjiii` | 3.6875 | 2 | 0 | 0.077721 | 0.077699 | 0.000216 | 0.077414–0.078067 | 13.53 | -6.0 |
-| 21 | 36 | `tile8x16_canonical_iijijjj` | `iijijjj` | 3.6875 | 4 | 0 | 0.079947 | 0.079918 | 0.000258 | 0.079574–0.080241 | 13.15 | -15.0 |
-| 21 | 24 | `tile8x16_canonical_iijjijj` | `iijjijj` | 3.6875 | 4 | 0 | 0.077600 | 0.077621 | 0.000158 | 0.077373–0.077853 | 13.55 | -3.0 |
-| 21 | 22.5 | `tile8x16_canonical_iijjjij` | `iijjjij` | 3.6875 | 4 | 0 | 0.077494 | 0.077504 | 0.000207 | 0.077294–0.077880 | 13.57 | -1.5 |
-| 21 | 45 | `tile8x16_canonical_ijiijjj` | `ijiijjj` | 3.6875 | 4 | 0 | 0.082894 | 0.082705 | 0.000305 | 0.082214–0.082987 | 12.69 | -24.0 |
-| 21 | 51 | `tile8x16_canonical_ijijijj` | `ijijijj` | 3.6875 | 6 | 0 | 0.084653 | 0.084587 | 0.000111 | 0.084400–0.084680 | 12.42 | -30.0 |
-| 21 | 22.5 | `tile8x16_canonical_ijijjij` | `ijijjij` | 3.6875 | 6 | 0 | 0.077494 | 0.077510 | 0.000251 | 0.077094–0.077854 | 13.57 | -1.5 |
-| 21 | 14 | `tile8x16_canonical_ijjiijj` | `ijjiijj` | 3.6875 | 4 | 0 | 0.074640 | 0.074645 | 0.000138 | 0.074480–0.074813 | 14.09 | +7.0 |
-| 21 | 29 | `tile8x16_canonical_ijjijij` | `ijjijij` | 3.6875 | 6 | 0 | 0.077920 | 0.078022 | 0.000288 | 0.077747–0.078494 | 13.50 | -8.0 |
-| 21 | 58 | `tile8x16_canonical_ijjjiij` | `ijjjiij` | 3.6875 | 4 | 0 | 0.088267 | 0.088680 | 0.000800 | 0.088014–0.090187 | 11.91 | -37.0 |
-| 21 | 41 | `tile8x16_canonical_jiiijjj` | `jiiijjj` | 3.6875 | 3 | 0 | 0.081827 | 0.081848 | 0.000137 | 0.081654–0.082054 | 12.85 | -20.0 |
-| 21 | 39 | `tile8x16_canonical_jiijijj` | `jiijijj` | 3.6875 | 5 | 0 | 0.081480 | 0.081491 | 0.000092 | 0.081347–0.081613 | 12.91 | -18.0 |
-| 21 | 19 | `tile8x16_canonical_jiijjij` | `jiijjij` | 3.6875 | 5 | 0 | 0.076627 | 0.076683 | 0.000119 | 0.076547–0.076894 | 13.72 | +2.0 |
-| 21 | 38 | `tile8x16_canonical_jijiijj` | `jijiijj` | 3.6875 | 5 | 0 | 0.081413 | 0.081464 | 0.000166 | 0.081214–0.081680 | 12.92 | -17.0 |
-| 21 | 40 | `tile8x16_canonical_jijijij` | `jijijij` | 3.6875 | 7 | 0 | 0.081521 | 0.081411 | 0.000202 | 0.081014–0.081547 | 12.90 | -19.0 |
-| 21 | 54 | `tile8x16_canonical_jijjiij` | `jijjiij` | 3.6875 | 5 | 0 | 0.087107 | 0.087139 | 0.000316 | 0.086654–0.087560 | 12.07 | -33.0 |
-| 21 | 20 | `tile8x16_canonical_jjiiijj` | `jjiiijj` | 3.6875 | 3 | 0 | 0.076774 | 0.076761 | 0.000128 | 0.076600–0.076947 | 13.70 | +1.0 |
-| 21 | 18 | `tile8x16_canonical_jjiijij` | `jjiijij` | 3.6875 | 5 | 0 | 0.075694 | 0.075662 | 0.000108 | 0.075494–0.075787 | 13.89 | +3.0 |
-| 21 | 56 | `tile8x16_canonical_jjijiij` | `jjijiij` | 3.6875 | 5 | 0 | 0.088080 | 0.087630 | 0.000733 | 0.086734–0.088400 | 11.94 | -35.0 |
-| 21 | 47 | `tile8x16_canonical_jjjiiij` | `jjjiiij` | 3.6875 | 3 | 0 | 0.083920 | 0.083803 | 0.000393 | 0.083267–0.084387 | 12.53 | -26.0 |
-| 21 | 30 | `tile8x16_column_major` | `iiijjjj` | 3.6875 | 2 | 0 | 0.078267 | 0.078091 | 0.000308 | 0.077587–0.078373 | 13.44 | -9.0 |
-| 21 | 26 | `tile8x32_column_major` | `iiijjjjj` | 3.6875 | 2 | 0 | 0.077707 | 0.077688 | 0.000353 | 0.077147–0.078254 | 13.53 | -5.0 |
-| 21 | 34 | `tile8x8_canonical_iijijj` | `iijijj` | 3.6875 | 4 | 0 | 0.078801 | 0.078702 | 0.000205 | 0.078440–0.078960 | 13.35 | -13.0 |
-| 21 | 6 | `tile8x8_canonical_iijjij` | `iijjij` | 3.6875 | 4 | 0 | 0.068907 | 0.068910 | 0.000133 | 0.068761–0.069107 | 15.26 | +15.0 |
-| 21 | 1 | `tile8x8_canonical_iijjji` | `iijjji` | 3.6875 | 3 | 0 | 0.066414 | 0.066499 | 0.000175 | 0.066307–0.066747 | 15.83 | +20.0 |
-| 21 | 31 | `tile8x8_canonical_ijiijj` | `ijiijj` | 3.6875 | 4 | 0 | 0.078307 | 0.078152 | 0.000393 | 0.077454–0.078561 | 13.43 | -10.0 |
-| 21 | 46 | `tile8x8_canonical_ijijij` | `ijijij` | 3.6875 | 6 | 0 | 0.083307 | 0.083259 | 0.000242 | 0.082973–0.083627 | 12.62 | -25.0 |
-| 21 | 11 | `tile8x8_canonical_ijijji` | `ijijji` | 3.6875 | 5 | 0 | 0.072507 | 0.072475 | 0.000100 | 0.072320–0.072614 | 14.50 | +10.0 |
-| 21 | 8 | `tile8x8_canonical_ijjiij` | `ijjiij` | 3.6875 | 4 | 0 | 0.069907 | 0.069787 | 0.000219 | 0.069414–0.070000 | 15.04 | +13.0 |
-| 21 | 10 | `tile8x8_canonical_ijjiji` | `ijjiji` | 3.6875 | 5 | 0 | 0.072280 | 0.072304 | 0.000151 | 0.072093–0.072547 | 14.55 | +11.0 |
-| 21 | 17 | `tile8x8_canonical_ijjjii` | `ijjjii` | 3.6875 | 3 | 0 | 0.075600 | 0.075800 | 0.000343 | 0.075454–0.076347 | 13.91 | +4.0 |
-| 21 | 16 | `tile8x8_canonical_jiiijj` | `jiiijj` | 3.6875 | 3 | 0 | 0.075534 | 0.075414 | 0.000311 | 0.074854–0.075720 | 13.92 | +5.0 |
-| 21 | 44 | `tile8x8_canonical_jiijij` | `jiijij` | 3.6875 | 5 | 0 | 0.082574 | 0.082633 | 0.000150 | 0.082427–0.082854 | 12.74 | -23.0 |
-| 21 | 7 | `tile8x8_canonical_jiijji` | `jiijji` | 3.6875 | 4 | 0 | 0.069720 | 0.069622 | 0.000254 | 0.069120–0.069800 | 15.08 | +14.0 |
-| 21 | 43 | `tile8x8_canonical_jijiij` | `jijiij` | 3.6875 | 5 | 0 | 0.082427 | 0.082433 | 0.000246 | 0.082041–0.082814 | 12.76 | -22.0 |
-| 21 | 15 | `tile8x8_canonical_jijiji` | `jijiji` | 3.6875 | 6 | 0 | 0.075320 | 0.075496 | 0.000371 | 0.075119–0.076120 | 13.96 | +6.0 |
-| 21 | 25 | `tile8x8_canonical_jijjii` | `jijjii` | 3.6875 | 4 | 0 | 0.077627 | 0.077611 | 0.000198 | 0.077280–0.077893 | 13.55 | -4.0 |
-| 21 | 2 | `tile8x8_canonical_jjiiij` | `jjiiij` | 3.6875 | 3 | 0 | 0.067120 | 0.067214 | 0.000364 | 0.066747–0.067827 | 15.67 | +19.0 |
-| 21 | 5 | `tile8x8_canonical_jjiiji` | `jjiiji` | 3.6875 | 4 | 0 | 0.068667 | 0.068755 | 0.000154 | 0.068640–0.069054 | 15.32 | +16.0 |
-| 21 | 33 | `tile8x8_canonical_jjijii` | `jjijii` | 3.6875 | 4 | 0 | 0.078587 | 0.078606 | 0.000145 | 0.078454–0.078867 | 13.38 | -12.0 |
-| 42 | 42 | `tile16_interleaved` | `jijijiji` | 3.75 | 8 | 0 | 0.082147 | 0.082195 | 0.000120 | 0.082080–0.082414 | 12.80 | +0.0 |
-| 43 | 62 | `tile32_interleaved` | `jijijijiji` | 3.8125 | 10 | 0 | 0.095747 | 0.095830 | 0.000167 | 0.095667–0.096120 | 10.98 | -19.0 |
-| 44 | 49 | `tile16x8_row_major` | `jjjiiii` | 4 | 2 | 0 | 0.084187 | 0.084312 | 0.000267 | 0.083974–0.084654 | 12.49 | -5.0 |
-| 45 | 48 | `tile32x8_row_major` | `jjjiiiii` | 4.1875 | 2 | 0 | 0.083987 | 0.083845 | 0.000282 | 0.083387–0.084174 | 12.52 | -3.0 |
-| 53 | 3 | `tile8x16_canonical_iijjjji` | `iijjjji` | 4.6875 | 3 | 0 | 0.067533 | 0.067597 | 0.000272 | 0.067293–0.067960 | 15.57 | +50.0 |
-| 53 | 13 | `tile8x16_canonical_ijijjji` | `ijijjji` | 4.6875 | 5 | 0 | 0.073561 | 0.073561 | 0.000212 | 0.073281–0.073867 | 14.30 | +40.0 |
-| 53 | 12 | `tile8x16_canonical_ijjijji` | `ijjijji` | 4.6875 | 5 | 0 | 0.073253 | 0.073357 | 0.000376 | 0.072907–0.074027 | 14.36 | +41.0 |
-| 53 | 57 | `tile8x16_canonical_ijjjiji` | `ijjjiji` | 4.6875 | 5 | 0 | 0.088173 | 0.087981 | 0.000442 | 0.087240–0.088533 | 11.93 | -4.0 |
-| 53 | 35 | `tile8x16_canonical_ijjjjii` | `ijjjjii` | 4.6875 | 3 | 0 | 0.079641 | 0.079625 | 0.000076 | 0.079481–0.079694 | 13.20 | +18.0 |
-| 53 | 4 | `tile8x16_canonical_jiijjji` | `jiijjji` | 4.6875 | 4 | 0 | 0.067627 | 0.067600 | 0.000230 | 0.067214–0.067934 | 15.55 | +49.0 |
-| 53 | 21 | `tile8x16_canonical_jijijji` | `jijijji` | 4.6875 | 6 | 0 | 0.076973 | 0.077069 | 0.000212 | 0.076853–0.077426 | 13.66 | +32.0 |
-| 53 | 61 | `tile8x16_canonical_jijjiji` | `jijjiji` | 4.6875 | 6 | 0 | 0.091467 | 0.091526 | 0.000287 | 0.091107–0.091854 | 11.50 | -8.0 |
-| 53 | 37 | `tile8x16_canonical_jijjjii` | `jijjjii` | 4.6875 | 4 | 0 | 0.080333 | 0.080381 | 0.000327 | 0.080040–0.080933 | 13.09 | +16.0 |
-| 53 | 9 | `tile8x16_canonical_jjiijji` | `jjiijji` | 4.6875 | 4 | 0 | 0.070294 | 0.070392 | 0.000196 | 0.070161–0.070707 | 14.96 | +44.0 |
-| 53 | 59 | `tile8x16_canonical_jjijiji` | `jjijiji` | 4.6875 | 6 | 0 | 0.089107 | 0.089000 | 0.000475 | 0.088134–0.089480 | 11.80 | -6.0 |
-| 53 | 32 | `tile8x16_canonical_jjijjii` | `jjijjii` | 4.6875 | 4 | 0 | 0.078547 | 0.078486 | 0.000463 | 0.077840–0.079080 | 13.39 | +21.0 |
-| 53 | 53 | `tile8x16_canonical_jjjiiji` | `jjjiiji` | 4.6875 | 4 | 0 | 0.085027 | 0.085037 | 0.000307 | 0.084507–0.085373 | 12.37 | +0.0 |
-| 53 | 50 | `tile8x16_canonical_jjjijii` | `jjjijii` | 4.6875 | 4 | 0 | 0.084214 | 0.084259 | 0.000299 | 0.083907–0.084747 | 12.49 | +3.0 |
-| 53 | 55 | `tile8x16_row_major` | `jjjjiii` | 4.6875 | 2 | 0 | 0.087160 | 0.087190 | 0.000219 | 0.086880–0.087467 | 12.07 | -2.0 |
-| 61 | 60 | `tile16_row_major` | `jjjjiiii` | 4.75 | 2 | 0 | 0.089347 | 0.089144 | 0.000407 | 0.088494–0.089640 | 11.77 | +1.0 |
-| 62 | 52 | `tile32x16_row_major` | `jjjjiiiii` | 4.9375 | 2 | 0 | 0.084947 | 0.084776 | 0.000478 | 0.083894–0.085320 | 12.38 | +10.0 |
-| 64 | 65 | `tile16_column_major` | `iiiijjjj` | 5 | 2 | 0 | 0.097987 | 0.098001 | 0.000473 | 0.097254–0.098747 | 10.73 | -1.0 |
-| 64 | 64 | `tile16x32_column_major` | `iiiijjjjj` | 5 | 2 | 0 | 0.096227 | 0.096360 | 0.000221 | 0.096174–0.096760 | 10.93 | +0.0 |
-| 64 | 63 | `tile16x8_column_major` | `iiiijjj` | 5 | 2 | 0 | 0.096107 | 0.096217 | 0.000296 | 0.095827–0.096667 | 10.94 | +1.0 |
-| 66 | 66 | `tile8x32_row_major` | `jjjjjiii` | 8.0625 | 2 | 0 | 0.103200 | 0.103243 | 0.000461 | 0.102534–0.103947 | 10.19 | +0.0 |
-| 67 | 70 | `tile16x32_row_major` | `jjjjjiiii` | 8.125 | 2 | 0 | 0.107627 | 0.107643 | 0.000506 | 0.107094–0.108427 | 9.77 | -3.0 |
-| 68 | 73 | `tile32_row_major` | `jjjjjiiiii` | 8.1875 | 2 | 0 | 0.110147 | 0.109880 | 0.000691 | 0.108787–0.110814 | 9.55 | -5.0 |
-| 70 | 71 | `tile32_column_major` | `iiiiijjjjj` | 9.1875 | 2 | 0 | 0.109360 | 0.109342 | 0.000325 | 0.108760–0.109734 | 9.62 | -1.0 |
-| 70 | 68 | `tile32x16_column_major` | `iiiiijjjj` | 9.1875 | 2 | 0 | 0.106707 | 0.106725 | 0.000344 | 0.106333–0.107267 | 9.86 | +2.0 |
-| 70 | 69 | `tile32x8_column_major` | `iiiiijjj` | 9.1875 | 2 | 0 | 0.107546 | 0.107402 | 0.000297 | 0.106973–0.107746 | 9.78 | +1.0 |
-| 72 | 72 | `row_major` | `jjjjjjjjjiiiiiiiii` | 15.75 | 2 | 0 | 0.109854 | 0.109750 | 0.000596 | 0.108694–0.110454 | 9.57 | +0.0 |
-| 73 | 67 | `column_major` | `iiiiiiiiijjjjjjjjj` | 25.5625 | 2 | 0 | 0.106374 | 0.106123 | 0.000570 | 0.105040–0.106641 | 9.89 | +6.0 |
+| 1 | 72 | `row_major` | `jjjjjjjjjiiiiiiiii` | 0 | 2 | 0 | 0.109854 | 0.109750 | 0.000596 | 0.108694–0.110454 | 9.57 | -71.0 |
+| 2 | 66 | `tile8x32_row_major` | `jjjjjiii` | 0.0625 | 2 | 0 | 0.103200 | 0.103243 | 0.000461 | 0.102534–0.103947 | 10.19 | -64.0 |
+| 3 | 70 | `tile16x32_row_major` | `jjjjjiiii` | 0.125 | 2 | 0 | 0.107627 | 0.107643 | 0.000506 | 0.107094–0.108427 | 9.77 | -67.0 |
+| 32 | 73 | `tile32_row_major` | `jjjjjiiiii` | 0.1875 | 2 | 0 | 0.110147 | 0.109880 | 0.000691 | 0.108787–0.110814 | 9.55 | -41.0 |
+| 32 | 28 | `tile8_column_major` | `iiijjj` | 0.1875 | 2 | 0 | 0.077840 | 0.077840 | 0.000301 | 0.077493–0.078307 | 13.51 | +4.0 |
+| 32 | 27 | `tile8_row_major` | `jjjiii` | 0.1875 | 2 | 0 | 0.077721 | 0.077699 | 0.000216 | 0.077414–0.078067 | 13.53 | +5.0 |
+| 32 | 36 | `tile8x16_canonical_iijijjj` | `iijijjj` | 0.1875 | 4 | 0 | 0.079947 | 0.079918 | 0.000258 | 0.079574–0.080241 | 13.15 | -4.0 |
+| 32 | 24 | `tile8x16_canonical_iijjijj` | `iijjijj` | 0.1875 | 4 | 0 | 0.077600 | 0.077621 | 0.000158 | 0.077373–0.077853 | 13.55 | +8.0 |
+| 32 | 22.5 | `tile8x16_canonical_iijjjij` | `iijjjij` | 0.1875 | 4 | 0 | 0.077494 | 0.077504 | 0.000207 | 0.077294–0.077880 | 13.57 | +9.5 |
+| 32 | 3 | `tile8x16_canonical_iijjjji` | `iijjjji` | 0.1875 | 3 | 0 | 0.067533 | 0.067597 | 0.000272 | 0.067293–0.067960 | 15.57 | +29.0 |
+| 32 | 45 | `tile8x16_canonical_ijiijjj` | `ijiijjj` | 0.1875 | 4 | 0 | 0.082894 | 0.082705 | 0.000305 | 0.082214–0.082987 | 12.69 | -13.0 |
+| 32 | 51 | `tile8x16_canonical_ijijijj` | `ijijijj` | 0.1875 | 6 | 0 | 0.084653 | 0.084587 | 0.000111 | 0.084400–0.084680 | 12.42 | -19.0 |
+| 32 | 22.5 | `tile8x16_canonical_ijijjij` | `ijijjij` | 0.1875 | 6 | 0 | 0.077494 | 0.077510 | 0.000251 | 0.077094–0.077854 | 13.57 | +9.5 |
+| 32 | 13 | `tile8x16_canonical_ijijjji` | `ijijjji` | 0.1875 | 5 | 0 | 0.073561 | 0.073561 | 0.000212 | 0.073281–0.073867 | 14.30 | +19.0 |
+| 32 | 14 | `tile8x16_canonical_ijjiijj` | `ijjiijj` | 0.1875 | 4 | 0 | 0.074640 | 0.074645 | 0.000138 | 0.074480–0.074813 | 14.09 | +18.0 |
+| 32 | 29 | `tile8x16_canonical_ijjijij` | `ijjijij` | 0.1875 | 6 | 0 | 0.077920 | 0.078022 | 0.000288 | 0.077747–0.078494 | 13.50 | +3.0 |
+| 32 | 12 | `tile8x16_canonical_ijjijji` | `ijjijji` | 0.1875 | 5 | 0 | 0.073253 | 0.073357 | 0.000376 | 0.072907–0.074027 | 14.36 | +20.0 |
+| 32 | 58 | `tile8x16_canonical_ijjjiij` | `ijjjiij` | 0.1875 | 4 | 0 | 0.088267 | 0.088680 | 0.000800 | 0.088014–0.090187 | 11.91 | -26.0 |
+| 32 | 57 | `tile8x16_canonical_ijjjiji` | `ijjjiji` | 0.1875 | 5 | 0 | 0.088173 | 0.087981 | 0.000442 | 0.087240–0.088533 | 11.93 | -25.0 |
+| 32 | 35 | `tile8x16_canonical_ijjjjii` | `ijjjjii` | 0.1875 | 3 | 0 | 0.079641 | 0.079625 | 0.000076 | 0.079481–0.079694 | 13.20 | -3.0 |
+| 32 | 41 | `tile8x16_canonical_jiiijjj` | `jiiijjj` | 0.1875 | 3 | 0 | 0.081827 | 0.081848 | 0.000137 | 0.081654–0.082054 | 12.85 | -9.0 |
+| 32 | 39 | `tile8x16_canonical_jiijijj` | `jiijijj` | 0.1875 | 5 | 0 | 0.081480 | 0.081491 | 0.000092 | 0.081347–0.081613 | 12.91 | -7.0 |
+| 32 | 19 | `tile8x16_canonical_jiijjij` | `jiijjij` | 0.1875 | 5 | 0 | 0.076627 | 0.076683 | 0.000119 | 0.076547–0.076894 | 13.72 | +13.0 |
+| 32 | 4 | `tile8x16_canonical_jiijjji` | `jiijjji` | 0.1875 | 4 | 0 | 0.067627 | 0.067600 | 0.000230 | 0.067214–0.067934 | 15.55 | +28.0 |
+| 32 | 38 | `tile8x16_canonical_jijiijj` | `jijiijj` | 0.1875 | 5 | 0 | 0.081413 | 0.081464 | 0.000166 | 0.081214–0.081680 | 12.92 | -6.0 |
+| 32 | 40 | `tile8x16_canonical_jijijij` | `jijijij` | 0.1875 | 7 | 0 | 0.081521 | 0.081411 | 0.000202 | 0.081014–0.081547 | 12.90 | -8.0 |
+| 32 | 21 | `tile8x16_canonical_jijijji` | `jijijji` | 0.1875 | 6 | 0 | 0.076973 | 0.077069 | 0.000212 | 0.076853–0.077426 | 13.66 | +11.0 |
+| 32 | 54 | `tile8x16_canonical_jijjiij` | `jijjiij` | 0.1875 | 5 | 0 | 0.087107 | 0.087139 | 0.000316 | 0.086654–0.087560 | 12.07 | -22.0 |
+| 32 | 61 | `tile8x16_canonical_jijjiji` | `jijjiji` | 0.1875 | 6 | 0 | 0.091467 | 0.091526 | 0.000287 | 0.091107–0.091854 | 11.50 | -29.0 |
+| 32 | 37 | `tile8x16_canonical_jijjjii` | `jijjjii` | 0.1875 | 4 | 0 | 0.080333 | 0.080381 | 0.000327 | 0.080040–0.080933 | 13.09 | -5.0 |
+| 32 | 20 | `tile8x16_canonical_jjiiijj` | `jjiiijj` | 0.1875 | 3 | 0 | 0.076774 | 0.076761 | 0.000128 | 0.076600–0.076947 | 13.70 | +12.0 |
+| 32 | 18 | `tile8x16_canonical_jjiijij` | `jjiijij` | 0.1875 | 5 | 0 | 0.075694 | 0.075662 | 0.000108 | 0.075494–0.075787 | 13.89 | +14.0 |
+| 32 | 9 | `tile8x16_canonical_jjiijji` | `jjiijji` | 0.1875 | 4 | 0 | 0.070294 | 0.070392 | 0.000196 | 0.070161–0.070707 | 14.96 | +23.0 |
+| 32 | 56 | `tile8x16_canonical_jjijiij` | `jjijiij` | 0.1875 | 5 | 0 | 0.088080 | 0.087630 | 0.000733 | 0.086734–0.088400 | 11.94 | -24.0 |
+| 32 | 59 | `tile8x16_canonical_jjijiji` | `jjijiji` | 0.1875 | 6 | 0 | 0.089107 | 0.089000 | 0.000475 | 0.088134–0.089480 | 11.80 | -27.0 |
+| 32 | 32 | `tile8x16_canonical_jjijjii` | `jjijjii` | 0.1875 | 4 | 0 | 0.078547 | 0.078486 | 0.000463 | 0.077840–0.079080 | 13.39 | +0.0 |
+| 32 | 47 | `tile8x16_canonical_jjjiiij` | `jjjiiij` | 0.1875 | 3 | 0 | 0.083920 | 0.083803 | 0.000393 | 0.083267–0.084387 | 12.53 | -15.0 |
+| 32 | 53 | `tile8x16_canonical_jjjiiji` | `jjjiiji` | 0.1875 | 4 | 0 | 0.085027 | 0.085037 | 0.000307 | 0.084507–0.085373 | 12.37 | -21.0 |
+| 32 | 50 | `tile8x16_canonical_jjjijii` | `jjjijii` | 0.1875 | 4 | 0 | 0.084214 | 0.084259 | 0.000299 | 0.083907–0.084747 | 12.49 | -18.0 |
+| 32 | 30 | `tile8x16_column_major` | `iiijjjj` | 0.1875 | 2 | 0 | 0.078267 | 0.078091 | 0.000308 | 0.077587–0.078373 | 13.44 | +2.0 |
+| 32 | 55 | `tile8x16_row_major` | `jjjjiii` | 0.1875 | 2 | 0 | 0.087160 | 0.087190 | 0.000219 | 0.086880–0.087467 | 12.07 | -23.0 |
+| 32 | 26 | `tile8x32_column_major` | `iiijjjjj` | 0.1875 | 2 | 0 | 0.077707 | 0.077688 | 0.000353 | 0.077147–0.078254 | 13.53 | +6.0 |
+| 32 | 34 | `tile8x8_canonical_iijijj` | `iijijj` | 0.1875 | 4 | 0 | 0.078801 | 0.078702 | 0.000205 | 0.078440–0.078960 | 13.35 | -2.0 |
+| 32 | 6 | `tile8x8_canonical_iijjij` | `iijjij` | 0.1875 | 4 | 0 | 0.068907 | 0.068910 | 0.000133 | 0.068761–0.069107 | 15.26 | +26.0 |
+| 32 | 1 | `tile8x8_canonical_iijjji` | `iijjji` | 0.1875 | 3 | 0 | 0.066414 | 0.066499 | 0.000175 | 0.066307–0.066747 | 15.83 | +31.0 |
+| 32 | 31 | `tile8x8_canonical_ijiijj` | `ijiijj` | 0.1875 | 4 | 0 | 0.078307 | 0.078152 | 0.000393 | 0.077454–0.078561 | 13.43 | +1.0 |
+| 32 | 46 | `tile8x8_canonical_ijijij` | `ijijij` | 0.1875 | 6 | 0 | 0.083307 | 0.083259 | 0.000242 | 0.082973–0.083627 | 12.62 | -14.0 |
+| 32 | 11 | `tile8x8_canonical_ijijji` | `ijijji` | 0.1875 | 5 | 0 | 0.072507 | 0.072475 | 0.000100 | 0.072320–0.072614 | 14.50 | +21.0 |
+| 32 | 8 | `tile8x8_canonical_ijjiij` | `ijjiij` | 0.1875 | 4 | 0 | 0.069907 | 0.069787 | 0.000219 | 0.069414–0.070000 | 15.04 | +24.0 |
+| 32 | 10 | `tile8x8_canonical_ijjiji` | `ijjiji` | 0.1875 | 5 | 0 | 0.072280 | 0.072304 | 0.000151 | 0.072093–0.072547 | 14.55 | +22.0 |
+| 32 | 17 | `tile8x8_canonical_ijjjii` | `ijjjii` | 0.1875 | 3 | 0 | 0.075600 | 0.075800 | 0.000343 | 0.075454–0.076347 | 13.91 | +15.0 |
+| 32 | 16 | `tile8x8_canonical_jiiijj` | `jiiijj` | 0.1875 | 3 | 0 | 0.075534 | 0.075414 | 0.000311 | 0.074854–0.075720 | 13.92 | +16.0 |
+| 32 | 44 | `tile8x8_canonical_jiijij` | `jiijij` | 0.1875 | 5 | 0 | 0.082574 | 0.082633 | 0.000150 | 0.082427–0.082854 | 12.74 | -12.0 |
+| 32 | 7 | `tile8x8_canonical_jiijji` | `jiijji` | 0.1875 | 4 | 0 | 0.069720 | 0.069622 | 0.000254 | 0.069120–0.069800 | 15.08 | +25.0 |
+| 32 | 43 | `tile8x8_canonical_jijiij` | `jijiij` | 0.1875 | 5 | 0 | 0.082427 | 0.082433 | 0.000246 | 0.082041–0.082814 | 12.76 | -11.0 |
+| 32 | 15 | `tile8x8_canonical_jijiji` | `jijiji` | 0.1875 | 6 | 0 | 0.075320 | 0.075496 | 0.000371 | 0.075119–0.076120 | 13.96 | +17.0 |
+| 32 | 25 | `tile8x8_canonical_jijjii` | `jijjii` | 0.1875 | 4 | 0 | 0.077627 | 0.077611 | 0.000198 | 0.077280–0.077893 | 13.55 | +7.0 |
+| 32 | 2 | `tile8x8_canonical_jjiiij` | `jjiiij` | 0.1875 | 3 | 0 | 0.067120 | 0.067214 | 0.000364 | 0.066747–0.067827 | 15.67 | +30.0 |
+| 32 | 5 | `tile8x8_canonical_jjiiji` | `jjiiji` | 0.1875 | 4 | 0 | 0.068667 | 0.068755 | 0.000154 | 0.068640–0.069054 | 15.32 | +27.0 |
+| 32 | 33 | `tile8x8_canonical_jjijii` | `jjijii` | 0.1875 | 4 | 0 | 0.078587 | 0.078606 | 0.000145 | 0.078454–0.078867 | 13.38 | -1.0 |
+| 61.5 | 42 | `tile16_interleaved` | `jijijiji` | 0.25 | 8 | 0 | 0.082147 | 0.082195 | 0.000120 | 0.082080–0.082414 | 12.80 | +19.5 |
+| 61.5 | 60 | `tile16_row_major` | `jjjjiiii` | 0.25 | 2 | 0 | 0.089347 | 0.089144 | 0.000407 | 0.088494–0.089640 | 11.77 | +1.5 |
+| 63 | 62 | `tile32_interleaved` | `jijijijiji` | 0.3125 | 10 | 0 | 0.095747 | 0.095830 | 0.000167 | 0.095667–0.096120 | 10.98 | +1.0 |
+| 64 | 52 | `tile32x16_row_major` | `jjjjiiiii` | 0.4375 | 2 | 0 | 0.084947 | 0.084776 | 0.000478 | 0.083894–0.085320 | 12.38 | +12.0 |
+| 66.5 | 65 | `tile16_column_major` | `iiiijjjj` | 0.5 | 2 | 0 | 0.097987 | 0.098001 | 0.000473 | 0.097254–0.098747 | 10.73 | +1.5 |
+| 66.5 | 64 | `tile16x32_column_major` | `iiiijjjjj` | 0.5 | 2 | 0 | 0.096227 | 0.096360 | 0.000221 | 0.096174–0.096760 | 10.93 | +2.5 |
+| 66.5 | 63 | `tile16x8_column_major` | `iiiijjj` | 0.5 | 2 | 0 | 0.096107 | 0.096217 | 0.000296 | 0.095827–0.096667 | 10.94 | +3.5 |
+| 66.5 | 49 | `tile16x8_row_major` | `jjjiiii` | 0.5 | 2 | 0 | 0.084187 | 0.084312 | 0.000267 | 0.083974–0.084654 | 12.49 | +17.5 |
+| 69 | 48 | `tile32x8_row_major` | `jjjiiiii` | 0.6875 | 2 | 0 | 0.083987 | 0.083845 | 0.000282 | 0.083387–0.084174 | 12.52 | +21.0 |
+| 71 | 71 | `tile32_column_major` | `iiiiijjjjj` | 1.1875 | 2 | 0 | 0.109360 | 0.109342 | 0.000325 | 0.108760–0.109734 | 9.62 | +0.0 |
+| 71 | 68 | `tile32x16_column_major` | `iiiiijjjj` | 1.1875 | 2 | 0 | 0.106707 | 0.106725 | 0.000344 | 0.106333–0.107267 | 9.86 | +3.0 |
+| 71 | 69 | `tile32x8_column_major` | `iiiiijjj` | 1.1875 | 2 | 0 | 0.107546 | 0.107402 | 0.000297 | 0.106973–0.107746 | 9.78 | +2.0 |
+| 73 | 67 | `column_major` | `iiiiiiiiijjjjjjjjj` | 9.8125 | 2 | 0 | 0.106374 | 0.106123 | 0.000570 | 0.105040–0.106641 | 9.89 | +6.0 |
 
 ### Variation-aware metrics
 
 | Score mode | Ranks within variation | Accuracy | Mean rank error | Max rank error |
 | --- | --- | --- | --- | --- |
-| `weighted-region-count` | 17/73 | 0.233 | 11.438 | 49.000 |
-| `peak-normalized-excess` | 16/73 | 0.219 | 13.021 | 51.500 |
-| `weighted-normalized-excess` (selected) | 17/73 | 0.233 | 11.438 | 49.000 |
+| `weighted-region-count` | 15/73 | 0.205 | 14.219 | 70.000 |
+| `peak-normalized-excess` | 1/73 | 0.014 | 15.425 | 70.000 |
+| `weighted-normalized-excess` (selected) | 15/73 | 0.205 | 14.219 | 70.000 |
 
 ## MVT — N=1024
 
@@ -1963,10 +1950,12 @@ Workgroup: `128`.
 | `A.wave_lane_group.lane8.64B` | hypothesis | 64 | 0 | contiguous groups of 8 lanes |
 | `A.wave_lane_group.lane16.128B` | hypothesis | 128 | 0 | contiguous groups of 16 lanes |
 | `A.wave_lane_group.lane32.256B` | hypothesis | 256 | 0 | contiguous groups of 32 lanes |
-| `A.wave_lane_group.lane64.512B` | hypothesis | 512 | 0.25 | contiguous groups of 64 lanes |
+| `A.wave_lane_group.lane64.512B` | hypothesis | 512 | 0 | contiguous groups of 64 lanes |
 | `row_lane_stream.128B.window16` | hypothesis | 128 | 0 | sixteen consecutive A[i,j] values used by one lane; a row-stream reuse hypothesis |
+| `row_lane_stream.512B.window16` | hypothesis | 512 | 0 | sixteen consecutive A[i,j] values used by one lane in a 512-byte neighborhood; an empirically calibrated row-stream reuse hypothesis |
 | `transpose_lane_stream.128B.window16` | hypothesis | 128 | 0 | sixteen consecutive A[j,i] values used by one lane; a column-stream reuse hypothesis |
-| `wave_neighborhood.512B` | hypothesis | 512 | 0.25 | one row or transpose wave load in a broader locality region |
+| `wave_neighborhood.512B` | hypothesis | 512 | 0 | one row or transpose wave load in a broader locality region |
+| `transpose_wave_neighborhood.512B` | hypothesis | 512 | 0 | one transpose-stream wave load in a 512-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.1024B` | hypothesis | 1024 | 0.0625 | one transpose-stream wave load in a 1024-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.4096B` | hypothesis | 4096 | 0.0625 | one transpose-stream wave load in a 4096-byte cache neighborhood; an empirically calibrated hypothesis |
 | `transpose_wave_neighborhood.8192B` | hypothesis | 8192 | 0.0625 | one transpose-stream wave load in an 8192-byte cache neighborhood; an empirically calibrated hypothesis |
@@ -1980,25 +1969,24 @@ This is the exact non-dominated set over the notes-aligned locality vector plus 
 
 | Layout | Q fine | J peak | J area | Runs | XORs |
 | --- | --- | --- | --- | --- | --- |
-| `tile8x16_canonical_jiiijjj` | 98304 | 7 | 3.6875 | 3 | 0 |
-| `tile8x16_canonical_jjiiijj` | 98304 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_iijjji` | 98304 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_ijjjii` | 98304 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_jiiijj` | 98304 | 7 | 3.6875 | 3 | 0 |
-| `tile8x8_canonical_jjiiij` | 98304 | 7 | 3.6875 | 3 | 0 |
-| `tile8_column_major` | 147456 | 7 | 3.6875 | 2 | 0 |
-| `tile8_row_major` | 147456 | 7 | 3.6875 | 2 | 0 |
-| `tile8x16_column_major` | 147456 | 7 | 3.6875 | 2 | 0 |
-| `tile8x32_column_major` | 147456 | 7 | 3.6875 | 2 | 0 |
+| `tile8x16_canonical_iijjjji` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_ijjjjii` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_jiiijjj` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `tile8x16_canonical_jjiiijj` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_iijjji` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_ijjjii` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_jiiijj` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `tile8x8_canonical_jjiiij` | 98304 | 3 | 0.1875 | 3 | 0 |
+| `row_major` | 147456 | 0 | 0 | 2 | 0 |
 
 ### Fine-locality-gated frontiers
 
 | Delta | Q fine limit | Eligible | Frontier size | Members | Regret |
 | --- | --- | --- | --- | --- | --- |
-| 0% | 98304 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 9.512018% |
-| 1% | 99287 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 9.512018% |
-| 5% | 103219 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 9.512018% |
-| 10% | 108134 | 50 | 6 | `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 9.512018% |
+| 0% | 98304 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 1% | 99287 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 5% | 103219 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
+| 10% | 108134 | 50 | 8 | `tile8x16_canonical_iijjjji`, `tile8x16_canonical_ijjjjii`, `tile8x16_canonical_jiiijjj`, `tile8x16_canonical_jjiiijj`, `tile8x8_canonical_iijjji`, `tile8x8_canonical_ijjjii`, `tile8x8_canonical_jiiijj`, `tile8x8_canonical_jjiiij` | 0.000000% |
 
 ### Runtime spread within score-equivalent groups
 
@@ -2006,97 +1994,97 @@ Score equality is exact across every coordinate. Spread is `max(median runtime) 
 
 | Vector | Groups | Non-singletons | Layouts in non-singletons | Median spread | Mean spread | Max spread |
 | --- | --- | --- | --- | --- | --- | --- |
-| Main five-cost | 26 | 12 | 59 | 22.990662% | 21.835533% | 34.576246% |
-| Gated delta=0% | 11 | 8 | 47 | 24.906583% | 26.008443% | 34.576246% |
-| Gated delta=1% | 11 | 8 | 47 | 24.906583% | 26.008443% | 34.576246% |
-| Gated delta=5% | 11 | 8 | 47 | 24.906583% | 26.008443% | 34.576246% |
-| Gated delta=10% | 11 | 8 | 47 | 24.906583% | 26.008443% | 34.576246% |
+| Main five-cost | 20 | 8 | 61 | 26.351291% | 26.389352% | 57.285587% |
+| Gated delta=0% | 7 | 4 | 47 | 31.450571% | 32.921840% | 42.770382% |
+| Gated delta=1% | 7 | 4 | 47 | 31.450571% | 32.921840% | 42.770382% |
+| Gated delta=5% | 7 | 4 | 47 | 31.450571% | 32.921840% | 42.770382% |
+| Gated delta=10% | 7 | 4 | 47 | 31.450571% | 32.921840% | 42.770382% |
 
 ### Layout ranks
 
 | Score rank | Runtime rank | Layout | Word (low→high) | Score | Runs | XORs | Median ms | Mean ms | SD ms | Observed range ms | GFLOP/s | Rank delta |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 21 | 19 | `tile8_column_major` | `iiijjj` | 3.6875 | 2 | 0 | 0.155308 | 0.155327 | 0.000736 | 0.154095–0.156375 | 27.05 | +2.0 |
-| 21 | 31 | `tile8_row_major` | `jjjiii` | 3.6875 | 2 | 0 | 0.162828 | 0.163025 | 0.000279 | 0.162761–0.163468 | 25.80 | -10.0 |
-| 21 | 26 | `tile8x16_canonical_iijijjj` | `iijijjj` | 3.6875 | 4 | 0 | 0.159614 | 0.159484 | 0.000286 | 0.159054–0.159774 | 26.32 | -5.0 |
-| 21 | 34 | `tile8x16_canonical_iijjijj` | `iijjijj` | 3.6875 | 4 | 0 | 0.164707 | 0.164688 | 0.001007 | 0.163013–0.166160 | 25.50 | -13.0 |
-| 21 | 14 | `tile8x16_canonical_iijjjij` | `iijjjij` | 3.6875 | 4 | 0 | 0.151828 | 0.151881 | 0.000173 | 0.151694–0.152161 | 27.67 | +7.0 |
-| 21 | 36 | `tile8x16_canonical_ijiijjj` | `ijiijjj` | 3.6875 | 4 | 0 | 0.165841 | 0.165811 | 0.000244 | 0.165361–0.166028 | 25.33 | -15.0 |
-| 21 | 52 | `tile8x16_canonical_ijijijj` | `ijijijj` | 3.6875 | 6 | 0 | 0.179813 | 0.179901 | 0.000532 | 0.179200–0.180786 | 23.36 | -31.0 |
-| 21 | 12 | `tile8x16_canonical_ijijjij` | `ijijjij` | 3.6875 | 6 | 0 | 0.151401 | 0.151467 | 0.000240 | 0.151134–0.151814 | 27.74 | +9.0 |
-| 21 | 27 | `tile8x16_canonical_ijjiijj` | `ijjiijj` | 3.6875 | 4 | 0 | 0.159787 | 0.159912 | 0.000374 | 0.159507–0.160400 | 26.29 | -6.0 |
-| 21 | 15 | `tile8x16_canonical_ijjijij` | `ijjijij` | 3.6875 | 6 | 0 | 0.151948 | 0.151950 | 0.000078 | 0.151855–0.152068 | 27.64 | +6.0 |
-| 21 | 54 | `tile8x16_canonical_ijjjiij` | `ijjjiij` | 3.6875 | 4 | 0 | 0.180386 | 0.180328 | 0.000958 | 0.178746–0.181600 | 23.29 | -33.0 |
-| 21 | 58 | `tile8x16_canonical_jiiijjj` | `jiiijjj` | 3.6875 | 3 | 0 | 0.188534 | 0.188502 | 0.000499 | 0.187654–0.189134 | 22.28 | -37.0 |
-| 21 | 25 | `tile8x16_canonical_jiijijj` | `jiijijj` | 3.6875 | 5 | 0 | 0.159560 | 0.159480 | 0.000271 | 0.158987–0.159787 | 26.33 | -4.0 |
-| 21 | 10 | `tile8x16_canonical_jiijjij` | `jiijjij` | 3.6875 | 5 | 0 | 0.150201 | 0.158412 | 0.016843 | 0.149641–0.192095 | 27.97 | +11.0 |
-| 21 | 24 | `tile8x16_canonical_jijiijj` | `jijiijj` | 3.6875 | 5 | 0 | 0.159054 | 0.159030 | 0.000260 | 0.158641–0.159414 | 26.41 | -3.0 |
-| 21 | 50 | `tile8x16_canonical_jijijij` | `jijijij` | 3.6875 | 7 | 0 | 0.177067 | 0.177208 | 0.000336 | 0.176801–0.177720 | 23.72 | -29.0 |
-| 21 | 53 | `tile8x16_canonical_jijjiij` | `jijjiij` | 3.6875 | 5 | 0 | 0.180348 | 0.180281 | 0.000933 | 0.178814–0.181441 | 23.29 | -32.0 |
-| 21 | 29 | `tile8x16_canonical_jjiiijj` | `jjiiijj` | 3.6875 | 3 | 0 | 0.161374 | 0.161443 | 0.000251 | 0.161094–0.161840 | 26.03 | -8.0 |
-| 21 | 7 | `tile8x16_canonical_jjiijij` | `jjiijij` | 3.6875 | 5 | 0 | 0.148054 | 0.147918 | 0.000341 | 0.147414–0.148307 | 28.37 | +14.0 |
-| 21 | 56 | `tile8x16_canonical_jjijiij` | `jjijiij` | 3.6875 | 5 | 0 | 0.182548 | 0.182761 | 0.000701 | 0.182001–0.184028 | 23.01 | -35.0 |
-| 21 | 46 | `tile8x16_canonical_jjjiiij` | `jjjiiij` | 3.6875 | 3 | 0 | 0.175240 | 0.175528 | 0.000804 | 0.174720–0.176867 | 23.97 | -25.0 |
-| 21 | 21 | `tile8x16_column_major` | `iiijjjj` | 3.6875 | 2 | 0 | 0.155761 | 0.155897 | 0.000527 | 0.155055–0.156481 | 26.97 | +0.0 |
-| 21 | 49 | `tile8x32_column_major` | `iiijjjjj` | 3.6875 | 2 | 0 | 0.176948 | 0.177327 | 0.001313 | 0.176108–0.179828 | 23.74 | -28.0 |
-| 21 | 51 | `tile8x8_canonical_iijijj` | `iijijj` | 3.6875 | 4 | 0 | 0.179359 | 0.179514 | 0.000626 | 0.178706–0.180346 | 23.42 | -30.0 |
-| 21 | 8 | `tile8x8_canonical_iijjij` | `iijjij` | 3.6875 | 4 | 0 | 0.148334 | 0.148179 | 0.000583 | 0.147094–0.148734 | 28.32 | +13.0 |
-| 21 | 5 | `tile8x8_canonical_iijjji` | `iijjji` | 3.6875 | 3 | 0 | 0.144615 | 0.144641 | 0.000524 | 0.143881–0.145268 | 29.05 | +16.0 |
-| 21 | 45 | `tile8x8_canonical_ijiijj` | `ijiijj` | 3.6875 | 4 | 0 | 0.175216 | 0.174991 | 0.000676 | 0.173949–0.175829 | 23.97 | -24.0 |
-| 21 | 43 | `tile8x8_canonical_ijijij` | `ijijij` | 3.6875 | 6 | 0 | 0.174547 | 0.174545 | 0.000932 | 0.172881–0.175467 | 24.06 | -22.0 |
-| 21 | 23 | `tile8x8_canonical_ijijji` | `ijijji` | 3.6875 | 5 | 0 | 0.157840 | 0.157814 | 0.000344 | 0.157281–0.158187 | 26.61 | -2.0 |
-| 21 | 17 | `tile8x8_canonical_ijjiij` | `ijjiij` | 3.6875 | 4 | 0 | 0.152787 | 0.158729 | 0.013248 | 0.150348–0.185161 | 27.49 | +4.0 |
-| 21 | 20 | `tile8x8_canonical_ijjiji` | `ijjiji` | 3.6875 | 5 | 0 | 0.155627 | 0.156179 | 0.001001 | 0.155360–0.158107 | 26.99 | +1.0 |
-| 21 | 28 | `tile8x8_canonical_ijjjii` | `ijjjii` | 3.6875 | 3 | 0 | 0.160307 | 0.166633 | 0.012455 | 0.160001–0.191534 | 26.20 | -7.0 |
-| 21 | 16 | `tile8x8_canonical_jiiijj` | `jiiijj` | 3.6875 | 3 | 0 | 0.152201 | 0.152244 | 0.000176 | 0.152054–0.152561 | 27.60 | +5.0 |
-| 21 | 47 | `tile8x8_canonical_jiijij` | `jiijij` | 3.6875 | 5 | 0 | 0.175373 | 0.175470 | 0.000402 | 0.174974–0.176133 | 23.95 | -26.0 |
-| 21 | 11 | `tile8x8_canonical_jiijji` | `jiijji` | 3.6875 | 4 | 0 | 0.151360 | 0.151304 | 0.000398 | 0.150814–0.151827 | 27.75 | +10.0 |
-| 21 | 48 | `tile8x8_canonical_jijiij` | `jijiij` | 3.6875 | 5 | 0 | 0.175655 | 0.175020 | 0.000829 | 0.173908–0.175748 | 23.91 | -27.0 |
-| 21 | 6 | `tile8x8_canonical_jijiji` | `jijiji` | 3.6875 | 6 | 0 | 0.147760 | 0.163936 | 0.032327 | 0.147494–0.228587 | 28.43 | +15.0 |
-| 21 | 32 | `tile8x8_canonical_jijjii` | `jijjii` | 3.6875 | 4 | 0 | 0.163361 | 0.163511 | 0.000733 | 0.162534–0.164775 | 25.71 | -11.0 |
-| 21 | 9 | `tile8x8_canonical_jjiiij` | `jjiiij` | 3.6875 | 3 | 0 | 0.148348 | 0.152353 | 0.009456 | 0.146481–0.171174 | 28.31 | +12.0 |
-| 21 | 3 | `tile8x8_canonical_jjiiji` | `jjiiji` | 3.6875 | 4 | 0 | 0.134040 | 0.133976 | 0.000307 | 0.133534–0.134427 | 31.34 | +18.0 |
-| 21 | 38 | `tile8x8_canonical_jjijii` | `jjijii` | 3.6875 | 4 | 0 | 0.167641 | 0.167591 | 0.000736 | 0.166321–0.168615 | 25.06 | -17.0 |
-| 42 | 30 | `tile16_interleaved` | `jijijiji` | 3.75 | 8 | 0 | 0.161441 | 0.161473 | 0.000288 | 0.161081–0.161908 | 26.02 | +12.0 |
-| 43 | 61 | `tile32_interleaved` | `jijijijiji` | 3.8125 | 10 | 0 | 0.217495 | 0.217055 | 0.000622 | 0.216188–0.217655 | 19.31 | -18.0 |
-| 44 | 35 | `tile16x8_row_major` | `jjjiiii` | 4 | 2 | 0 | 0.165347 | 0.165065 | 0.000605 | 0.163987–0.165707 | 25.40 | +9.0 |
-| 45 | 62 | `tile32x8_row_major` | `jjjiiiii` | 4.1875 | 2 | 0 | 0.233522 | 0.233653 | 0.000537 | 0.232842–0.234402 | 17.99 | -17.0 |
-| 53 | 1 | `tile8x16_canonical_iijjjji` | `iijjjji` | 4.6875 | 3 | 0 | 0.132054 | 0.131958 | 0.000316 | 0.131388–0.132348 | 31.81 | +52.0 |
-| 53 | 22 | `tile8x16_canonical_ijijjji` | `ijijjji` | 4.6875 | 5 | 0 | 0.156427 | 0.156931 | 0.000883 | 0.155880–0.158013 | 26.85 | +31.0 |
-| 53 | 4 | `tile8x16_canonical_ijjijji` | `ijjijji` | 4.6875 | 5 | 0 | 0.144094 | 0.143990 | 0.000292 | 0.143414–0.144187 | 29.15 | +49.0 |
-| 53 | 44 | `tile8x16_canonical_ijjjiji` | `ijjjiji` | 4.6875 | 5 | 0 | 0.174852 | 0.174769 | 0.000622 | 0.173665–0.175492 | 24.02 | +9.0 |
-| 53 | 37 | `tile8x16_canonical_ijjjjii` | `ijjjjii` | 4.6875 | 3 | 0 | 0.167068 | 0.167345 | 0.000618 | 0.166761–0.168441 | 25.14 | +16.0 |
-| 53 | 2 | `tile8x16_canonical_jiijjji` | `jiijjji` | 4.6875 | 4 | 0 | 0.132428 | 0.132233 | 0.000371 | 0.131561–0.132574 | 31.72 | +51.0 |
-| 53 | 13 | `tile8x16_canonical_jijijji` | `jijijji` | 4.6875 | 6 | 0 | 0.151774 | 0.151636 | 0.000218 | 0.151321–0.151868 | 27.68 | +40.0 |
-| 53 | 55 | `tile8x16_canonical_jijjiji` | `jijjiji` | 4.6875 | 6 | 0 | 0.180747 | 0.181654 | 0.001880 | 0.180520–0.185401 | 23.24 | -2.0 |
-| 53 | 40 | `tile8x16_canonical_jijjjii` | `jijjjii` | 4.6875 | 4 | 0 | 0.168961 | 0.169068 | 0.000645 | 0.168134–0.169815 | 24.86 | +13.0 |
-| 53 | 18 | `tile8x16_canonical_jjiijji` | `jjiijji` | 4.6875 | 4 | 0 | 0.154814 | 0.154931 | 0.000528 | 0.154308–0.155907 | 27.13 | +35.0 |
-| 53 | 57 | `tile8x16_canonical_jjijiji` | `jjijiji` | 4.6875 | 6 | 0 | 0.186201 | 0.186505 | 0.000852 | 0.185587–0.187934 | 22.56 | -4.0 |
-| 53 | 33 | `tile8x16_canonical_jjijjii` | `jjijjii` | 4.6875 | 4 | 0 | 0.164587 | 0.165054 | 0.000945 | 0.163988–0.166721 | 25.52 | +20.0 |
-| 53 | 41 | `tile8x16_canonical_jjjiiji` | `jjjiiji` | 4.6875 | 4 | 0 | 0.169015 | 0.169145 | 0.000266 | 0.168854–0.169561 | 24.85 | +12.0 |
-| 53 | 39 | `tile8x16_canonical_jjjijii` | `jjjijii` | 4.6875 | 4 | 0 | 0.168760 | 0.168560 | 0.000653 | 0.167600–0.169507 | 24.89 | +14.0 |
-| 53 | 42 | `tile8x16_row_major` | `jjjjiii` | 4.6875 | 2 | 0 | 0.173455 | 0.177612 | 0.008983 | 0.172148–0.195548 | 24.22 | +11.0 |
-| 61 | 70 | `tile16_row_major` | `jjjjiiii` | 4.75 | 2 | 0 | 0.334522 | 0.333887 | 0.001088 | 0.332415–0.335148 | 12.56 | -9.0 |
-| 62 | 69 | `tile32x16_row_major` | `jjjjiiiii` | 4.9375 | 2 | 0 | 0.329883 | 0.329403 | 0.001063 | 0.327336–0.330309 | 12.73 | -7.0 |
-| 64 | 65 | `tile16_column_major` | `iiiijjjj` | 5 | 2 | 0 | 0.260067 | 0.259686 | 0.002464 | 0.256000–0.262747 | 16.15 | -1.0 |
-| 64 | 59 | `tile16x32_column_major` | `iiiijjjjj` | 5 | 2 | 0 | 0.197294 | 0.197123 | 0.000730 | 0.196014–0.198067 | 21.29 | +5.0 |
-| 64 | 64 | `tile16x8_column_major` | `iiiijjj` | 5 | 2 | 0 | 0.254654 | 0.254636 | 0.002194 | 0.251774–0.258028 | 16.49 | +0.0 |
-| 66 | 60 | `tile8x32_row_major` | `jjjjjiii` | 8.0625 | 2 | 0 | 0.204907 | 0.204561 | 0.000709 | 0.203574–0.205321 | 20.50 | +6.0 |
-| 67 | 71 | `tile16x32_row_major` | `jjjjjiiii` | 8.125 | 2 | 0 | 0.341908 | 0.342337 | 0.000875 | 0.341374–0.343668 | 12.29 | -4.0 |
-| 68 | 68 | `tile32_row_major` | `jjjjjiiiii` | 8.1875 | 2 | 0 | 0.328214 | 0.327619 | 0.001611 | 0.325147–0.329587 | 12.80 | +0.0 |
-| 70 | 63 | `tile32_column_major` | `iiiiijjjjj` | 9.1875 | 2 | 0 | 0.244416 | 0.244776 | 0.000590 | 0.244229–0.245736 | 17.19 | +7.0 |
-| 70 | 67 | `tile32x16_column_major` | `iiiiijjjj` | 9.1875 | 2 | 0 | 0.264109 | 0.264085 | 0.001686 | 0.261456–0.266763 | 15.90 | +3.0 |
-| 70 | 66 | `tile32x8_column_major` | `iiiiijjj` | 9.1875 | 2 | 0 | 0.261442 | 0.262311 | 0.002632 | 0.258695–0.266509 | 16.07 | +4.0 |
-| 72 | 73 | `row_major` | `jjjjjjjjjjiiiiiiiiii` | 15.75 | 2 | 0 | 0.371387 | 0.371339 | 0.000539 | 0.370694–0.372268 | 11.31 | -1.0 |
-| 73 | 72 | `column_major` | `iiiiiiiiiijjjjjjjjjj` | 27.5625 | 2 | 0 | 0.369683 | 0.368742 | 0.001262 | 0.366790–0.369817 | 11.36 | +1.0 |
+| 1 | 73 | `row_major` | `jjjjjjjjjjiiiiiiiiii` | 0 | 2 | 0 | 0.371387 | 0.371339 | 0.000539 | 0.370694–0.372268 | 11.31 | -72.0 |
+| 2 | 60 | `tile8x32_row_major` | `jjjjjiii` | 0.0625 | 2 | 0 | 0.204907 | 0.204561 | 0.000709 | 0.203574–0.205321 | 20.50 | -58.0 |
+| 3 | 71 | `tile16x32_row_major` | `jjjjjiiii` | 0.125 | 2 | 0 | 0.341908 | 0.342337 | 0.000875 | 0.341374–0.343668 | 12.29 | -68.0 |
+| 32 | 68 | `tile32_row_major` | `jjjjjiiiii` | 0.1875 | 2 | 0 | 0.328214 | 0.327619 | 0.001611 | 0.325147–0.329587 | 12.80 | -36.0 |
+| 32 | 19 | `tile8_column_major` | `iiijjj` | 0.1875 | 2 | 0 | 0.155308 | 0.155327 | 0.000736 | 0.154095–0.156375 | 27.05 | +13.0 |
+| 32 | 31 | `tile8_row_major` | `jjjiii` | 0.1875 | 2 | 0 | 0.162828 | 0.163025 | 0.000279 | 0.162761–0.163468 | 25.80 | +1.0 |
+| 32 | 26 | `tile8x16_canonical_iijijjj` | `iijijjj` | 0.1875 | 4 | 0 | 0.159614 | 0.159484 | 0.000286 | 0.159054–0.159774 | 26.32 | +6.0 |
+| 32 | 34 | `tile8x16_canonical_iijjijj` | `iijjijj` | 0.1875 | 4 | 0 | 0.164707 | 0.164688 | 0.001007 | 0.163013–0.166160 | 25.50 | -2.0 |
+| 32 | 14 | `tile8x16_canonical_iijjjij` | `iijjjij` | 0.1875 | 4 | 0 | 0.151828 | 0.151881 | 0.000173 | 0.151694–0.152161 | 27.67 | +18.0 |
+| 32 | 1 | `tile8x16_canonical_iijjjji` | `iijjjji` | 0.1875 | 3 | 0 | 0.132054 | 0.131958 | 0.000316 | 0.131388–0.132348 | 31.81 | +31.0 |
+| 32 | 36 | `tile8x16_canonical_ijiijjj` | `ijiijjj` | 0.1875 | 4 | 0 | 0.165841 | 0.165811 | 0.000244 | 0.165361–0.166028 | 25.33 | -4.0 |
+| 32 | 52 | `tile8x16_canonical_ijijijj` | `ijijijj` | 0.1875 | 6 | 0 | 0.179813 | 0.179901 | 0.000532 | 0.179200–0.180786 | 23.36 | -20.0 |
+| 32 | 12 | `tile8x16_canonical_ijijjij` | `ijijjij` | 0.1875 | 6 | 0 | 0.151401 | 0.151467 | 0.000240 | 0.151134–0.151814 | 27.74 | +20.0 |
+| 32 | 22 | `tile8x16_canonical_ijijjji` | `ijijjji` | 0.1875 | 5 | 0 | 0.156427 | 0.156931 | 0.000883 | 0.155880–0.158013 | 26.85 | +10.0 |
+| 32 | 27 | `tile8x16_canonical_ijjiijj` | `ijjiijj` | 0.1875 | 4 | 0 | 0.159787 | 0.159912 | 0.000374 | 0.159507–0.160400 | 26.29 | +5.0 |
+| 32 | 15 | `tile8x16_canonical_ijjijij` | `ijjijij` | 0.1875 | 6 | 0 | 0.151948 | 0.151950 | 0.000078 | 0.151855–0.152068 | 27.64 | +17.0 |
+| 32 | 4 | `tile8x16_canonical_ijjijji` | `ijjijji` | 0.1875 | 5 | 0 | 0.144094 | 0.143990 | 0.000292 | 0.143414–0.144187 | 29.15 | +28.0 |
+| 32 | 54 | `tile8x16_canonical_ijjjiij` | `ijjjiij` | 0.1875 | 4 | 0 | 0.180386 | 0.180328 | 0.000958 | 0.178746–0.181600 | 23.29 | -22.0 |
+| 32 | 44 | `tile8x16_canonical_ijjjiji` | `ijjjiji` | 0.1875 | 5 | 0 | 0.174852 | 0.174769 | 0.000622 | 0.173665–0.175492 | 24.02 | -12.0 |
+| 32 | 37 | `tile8x16_canonical_ijjjjii` | `ijjjjii` | 0.1875 | 3 | 0 | 0.167068 | 0.167345 | 0.000618 | 0.166761–0.168441 | 25.14 | -5.0 |
+| 32 | 58 | `tile8x16_canonical_jiiijjj` | `jiiijjj` | 0.1875 | 3 | 0 | 0.188534 | 0.188502 | 0.000499 | 0.187654–0.189134 | 22.28 | -26.0 |
+| 32 | 25 | `tile8x16_canonical_jiijijj` | `jiijijj` | 0.1875 | 5 | 0 | 0.159560 | 0.159480 | 0.000271 | 0.158987–0.159787 | 26.33 | +7.0 |
+| 32 | 10 | `tile8x16_canonical_jiijjij` | `jiijjij` | 0.1875 | 5 | 0 | 0.150201 | 0.158412 | 0.016843 | 0.149641–0.192095 | 27.97 | +22.0 |
+| 32 | 2 | `tile8x16_canonical_jiijjji` | `jiijjji` | 0.1875 | 4 | 0 | 0.132428 | 0.132233 | 0.000371 | 0.131561–0.132574 | 31.72 | +30.0 |
+| 32 | 24 | `tile8x16_canonical_jijiijj` | `jijiijj` | 0.1875 | 5 | 0 | 0.159054 | 0.159030 | 0.000260 | 0.158641–0.159414 | 26.41 | +8.0 |
+| 32 | 50 | `tile8x16_canonical_jijijij` | `jijijij` | 0.1875 | 7 | 0 | 0.177067 | 0.177208 | 0.000336 | 0.176801–0.177720 | 23.72 | -18.0 |
+| 32 | 13 | `tile8x16_canonical_jijijji` | `jijijji` | 0.1875 | 6 | 0 | 0.151774 | 0.151636 | 0.000218 | 0.151321–0.151868 | 27.68 | +19.0 |
+| 32 | 53 | `tile8x16_canonical_jijjiij` | `jijjiij` | 0.1875 | 5 | 0 | 0.180348 | 0.180281 | 0.000933 | 0.178814–0.181441 | 23.29 | -21.0 |
+| 32 | 55 | `tile8x16_canonical_jijjiji` | `jijjiji` | 0.1875 | 6 | 0 | 0.180747 | 0.181654 | 0.001880 | 0.180520–0.185401 | 23.24 | -23.0 |
+| 32 | 40 | `tile8x16_canonical_jijjjii` | `jijjjii` | 0.1875 | 4 | 0 | 0.168961 | 0.169068 | 0.000645 | 0.168134–0.169815 | 24.86 | -8.0 |
+| 32 | 29 | `tile8x16_canonical_jjiiijj` | `jjiiijj` | 0.1875 | 3 | 0 | 0.161374 | 0.161443 | 0.000251 | 0.161094–0.161840 | 26.03 | +3.0 |
+| 32 | 7 | `tile8x16_canonical_jjiijij` | `jjiijij` | 0.1875 | 5 | 0 | 0.148054 | 0.147918 | 0.000341 | 0.147414–0.148307 | 28.37 | +25.0 |
+| 32 | 18 | `tile8x16_canonical_jjiijji` | `jjiijji` | 0.1875 | 4 | 0 | 0.154814 | 0.154931 | 0.000528 | 0.154308–0.155907 | 27.13 | +14.0 |
+| 32 | 56 | `tile8x16_canonical_jjijiij` | `jjijiij` | 0.1875 | 5 | 0 | 0.182548 | 0.182761 | 0.000701 | 0.182001–0.184028 | 23.01 | -24.0 |
+| 32 | 57 | `tile8x16_canonical_jjijiji` | `jjijiji` | 0.1875 | 6 | 0 | 0.186201 | 0.186505 | 0.000852 | 0.185587–0.187934 | 22.56 | -25.0 |
+| 32 | 33 | `tile8x16_canonical_jjijjii` | `jjijjii` | 0.1875 | 4 | 0 | 0.164587 | 0.165054 | 0.000945 | 0.163988–0.166721 | 25.52 | -1.0 |
+| 32 | 46 | `tile8x16_canonical_jjjiiij` | `jjjiiij` | 0.1875 | 3 | 0 | 0.175240 | 0.175528 | 0.000804 | 0.174720–0.176867 | 23.97 | -14.0 |
+| 32 | 41 | `tile8x16_canonical_jjjiiji` | `jjjiiji` | 0.1875 | 4 | 0 | 0.169015 | 0.169145 | 0.000266 | 0.168854–0.169561 | 24.85 | -9.0 |
+| 32 | 39 | `tile8x16_canonical_jjjijii` | `jjjijii` | 0.1875 | 4 | 0 | 0.168760 | 0.168560 | 0.000653 | 0.167600–0.169507 | 24.89 | -7.0 |
+| 32 | 21 | `tile8x16_column_major` | `iiijjjj` | 0.1875 | 2 | 0 | 0.155761 | 0.155897 | 0.000527 | 0.155055–0.156481 | 26.97 | +11.0 |
+| 32 | 42 | `tile8x16_row_major` | `jjjjiii` | 0.1875 | 2 | 0 | 0.173455 | 0.177612 | 0.008983 | 0.172148–0.195548 | 24.22 | -10.0 |
+| 32 | 49 | `tile8x32_column_major` | `iiijjjjj` | 0.1875 | 2 | 0 | 0.176948 | 0.177327 | 0.001313 | 0.176108–0.179828 | 23.74 | -17.0 |
+| 32 | 51 | `tile8x8_canonical_iijijj` | `iijijj` | 0.1875 | 4 | 0 | 0.179359 | 0.179514 | 0.000626 | 0.178706–0.180346 | 23.42 | -19.0 |
+| 32 | 8 | `tile8x8_canonical_iijjij` | `iijjij` | 0.1875 | 4 | 0 | 0.148334 | 0.148179 | 0.000583 | 0.147094–0.148734 | 28.32 | +24.0 |
+| 32 | 5 | `tile8x8_canonical_iijjji` | `iijjji` | 0.1875 | 3 | 0 | 0.144615 | 0.144641 | 0.000524 | 0.143881–0.145268 | 29.05 | +27.0 |
+| 32 | 45 | `tile8x8_canonical_ijiijj` | `ijiijj` | 0.1875 | 4 | 0 | 0.175216 | 0.174991 | 0.000676 | 0.173949–0.175829 | 23.97 | -13.0 |
+| 32 | 43 | `tile8x8_canonical_ijijij` | `ijijij` | 0.1875 | 6 | 0 | 0.174547 | 0.174545 | 0.000932 | 0.172881–0.175467 | 24.06 | -11.0 |
+| 32 | 23 | `tile8x8_canonical_ijijji` | `ijijji` | 0.1875 | 5 | 0 | 0.157840 | 0.157814 | 0.000344 | 0.157281–0.158187 | 26.61 | +9.0 |
+| 32 | 17 | `tile8x8_canonical_ijjiij` | `ijjiij` | 0.1875 | 4 | 0 | 0.152787 | 0.158729 | 0.013248 | 0.150348–0.185161 | 27.49 | +15.0 |
+| 32 | 20 | `tile8x8_canonical_ijjiji` | `ijjiji` | 0.1875 | 5 | 0 | 0.155627 | 0.156179 | 0.001001 | 0.155360–0.158107 | 26.99 | +12.0 |
+| 32 | 28 | `tile8x8_canonical_ijjjii` | `ijjjii` | 0.1875 | 3 | 0 | 0.160307 | 0.166633 | 0.012455 | 0.160001–0.191534 | 26.20 | +4.0 |
+| 32 | 16 | `tile8x8_canonical_jiiijj` | `jiiijj` | 0.1875 | 3 | 0 | 0.152201 | 0.152244 | 0.000176 | 0.152054–0.152561 | 27.60 | +16.0 |
+| 32 | 47 | `tile8x8_canonical_jiijij` | `jiijij` | 0.1875 | 5 | 0 | 0.175373 | 0.175470 | 0.000402 | 0.174974–0.176133 | 23.95 | -15.0 |
+| 32 | 11 | `tile8x8_canonical_jiijji` | `jiijji` | 0.1875 | 4 | 0 | 0.151360 | 0.151304 | 0.000398 | 0.150814–0.151827 | 27.75 | +21.0 |
+| 32 | 48 | `tile8x8_canonical_jijiij` | `jijiij` | 0.1875 | 5 | 0 | 0.175655 | 0.175020 | 0.000829 | 0.173908–0.175748 | 23.91 | -16.0 |
+| 32 | 6 | `tile8x8_canonical_jijiji` | `jijiji` | 0.1875 | 6 | 0 | 0.147760 | 0.163936 | 0.032327 | 0.147494–0.228587 | 28.43 | +26.0 |
+| 32 | 32 | `tile8x8_canonical_jijjii` | `jijjii` | 0.1875 | 4 | 0 | 0.163361 | 0.163511 | 0.000733 | 0.162534–0.164775 | 25.71 | +0.0 |
+| 32 | 9 | `tile8x8_canonical_jjiiij` | `jjiiij` | 0.1875 | 3 | 0 | 0.148348 | 0.152353 | 0.009456 | 0.146481–0.171174 | 28.31 | +23.0 |
+| 32 | 3 | `tile8x8_canonical_jjiiji` | `jjiiji` | 0.1875 | 4 | 0 | 0.134040 | 0.133976 | 0.000307 | 0.133534–0.134427 | 31.34 | +29.0 |
+| 32 | 38 | `tile8x8_canonical_jjijii` | `jjijii` | 0.1875 | 4 | 0 | 0.167641 | 0.167591 | 0.000736 | 0.166321–0.168615 | 25.06 | -6.0 |
+| 61.5 | 30 | `tile16_interleaved` | `jijijiji` | 0.25 | 8 | 0 | 0.161441 | 0.161473 | 0.000288 | 0.161081–0.161908 | 26.02 | +31.5 |
+| 61.5 | 70 | `tile16_row_major` | `jjjjiiii` | 0.25 | 2 | 0 | 0.334522 | 0.333887 | 0.001088 | 0.332415–0.335148 | 12.56 | -8.5 |
+| 63 | 61 | `tile32_interleaved` | `jijijijiji` | 0.3125 | 10 | 0 | 0.217495 | 0.217055 | 0.000622 | 0.216188–0.217655 | 19.31 | +2.0 |
+| 64 | 69 | `tile32x16_row_major` | `jjjjiiiii` | 0.4375 | 2 | 0 | 0.329883 | 0.329403 | 0.001063 | 0.327336–0.330309 | 12.73 | -5.0 |
+| 66.5 | 65 | `tile16_column_major` | `iiiijjjj` | 0.5 | 2 | 0 | 0.260067 | 0.259686 | 0.002464 | 0.256000–0.262747 | 16.15 | +1.5 |
+| 66.5 | 59 | `tile16x32_column_major` | `iiiijjjjj` | 0.5 | 2 | 0 | 0.197294 | 0.197123 | 0.000730 | 0.196014–0.198067 | 21.29 | +7.5 |
+| 66.5 | 64 | `tile16x8_column_major` | `iiiijjj` | 0.5 | 2 | 0 | 0.254654 | 0.254636 | 0.002194 | 0.251774–0.258028 | 16.49 | +2.5 |
+| 66.5 | 35 | `tile16x8_row_major` | `jjjiiii` | 0.5 | 2 | 0 | 0.165347 | 0.165065 | 0.000605 | 0.163987–0.165707 | 25.40 | +31.5 |
+| 69 | 62 | `tile32x8_row_major` | `jjjiiiii` | 0.6875 | 2 | 0 | 0.233522 | 0.233653 | 0.000537 | 0.232842–0.234402 | 17.99 | +7.0 |
+| 71 | 63 | `tile32_column_major` | `iiiiijjjjj` | 1.1875 | 2 | 0 | 0.244416 | 0.244776 | 0.000590 | 0.244229–0.245736 | 17.19 | +8.0 |
+| 71 | 67 | `tile32x16_column_major` | `iiiiijjjj` | 1.1875 | 2 | 0 | 0.264109 | 0.264085 | 0.001686 | 0.261456–0.266763 | 15.90 | +4.0 |
+| 71 | 66 | `tile32x8_column_major` | `iiiiijjj` | 1.1875 | 2 | 0 | 0.261442 | 0.262311 | 0.002632 | 0.258695–0.266509 | 16.07 | +5.0 |
+| 73 | 72 | `column_major` | `iiiiiiiiiijjjjjjjjjj` | 11.8125 | 2 | 0 | 0.369683 | 0.368742 | 0.001262 | 0.366790–0.369817 | 11.36 | +1.0 |
 
 ### Variation-aware metrics
 
 | Score mode | Ranks within variation | Accuracy | Mean rank error | Max rank error |
 | --- | --- | --- | --- | --- |
-| `weighted-region-count` | 18/73 | 0.247 | 11.247 | 51.000 |
-| `peak-normalized-excess` | 15/73 | 0.205 | 12.068 | 53.500 |
-| `weighted-normalized-excess` (selected) | 18/73 | 0.247 | 11.247 | 51.000 |
+| `weighted-region-count` | 15/73 | 0.205 | 12.295 | 72.000 |
+| `peak-normalized-excess` | 15/73 | 0.205 | 13.630 | 72.000 |
+| `weighted-normalized-excess` (selected) | 15/73 | 0.205 | 12.295 | 72.000 |
 
 ## SYRK — N=256
 

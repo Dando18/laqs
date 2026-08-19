@@ -283,6 +283,19 @@ def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
             ),
         ),
         PerLaneTemporalRegions(
+            "row_lane_stream.512B",
+            512,
+            windows=(16,),
+            stride=16,
+            event_filter=row_reads,
+            provenance="hypothesis",
+            description=(
+                "sixteen consecutive A[i,j] values used by one lane in a "
+                "512-byte neighborhood; an empirically calibrated row-stream "
+                "reuse hypothesis"
+            ),
+        ),
+        PerLaneTemporalRegions(
             "transpose_lane_stream.128B",
             128,
             windows=(16,),
@@ -301,6 +314,16 @@ def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
             provenance="hypothesis",
             description=(
                 "one row or transpose wave load in a broader locality region"
+            ),
+        ),
+        SimultaneousRegions(
+            "transpose_wave_neighborhood.512B",
+            512,
+            event_filter=transpose_reads,
+            provenance="hypothesis",
+            description=(
+                "one transpose-stream wave load in a 512-byte cache "
+                "neighborhood; an empirically calibrated hypothesis"
             ),
         ),
         SimultaneousRegions(
@@ -372,10 +395,13 @@ def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
 def get_component_weights(config: Config) -> dict[str, float]:
     """Return MI300A-calibrated ``tau`` weights for score aggregation.
 
-    The N=256, 22-layout calibration selected a symmetric 512-byte wave scope
-    plus three weak transpose-stream cache scales. The directional asymmetry is
-    explicitly a machine-specific hypothesis. Unsupported temporal/workgroup
-    scopes remain visible at weight zero.
+    The original N=256 calibration selected two identical full-wave 512-byte
+    edge families. The expanded three-size analysis disables both copies:
+    their symmetric locality preference incorrectly dominated the N=1024
+    winner. Separate row-lane and transpose-wave 512-byte scopes remain
+    visible as hypotheses, but stay at weight zero because activating them
+    degraded total-score ranks. The remaining directional asymmetry is an
+    in-sample, machine-specific hypothesis.
     """
 
     del config
@@ -385,10 +411,12 @@ def get_component_weights(config: Config) -> dict[str, float]:
         "A.wave_lane_group.lane8.64B": 0.0,
         "A.wave_lane_group.lane16.128B": 0.0,
         "A.wave_lane_group.lane32.256B": 0.0,
-        "A.wave_lane_group.lane64.512B": 0.25,
+        "A.wave_lane_group.lane64.512B": 0.0,
         "row_lane_stream.128B.window16": 0.0,
+        "row_lane_stream.512B.window16": 0.0,
         "transpose_lane_stream.128B.window16": 0.0,
-        "wave_neighborhood.512B": 0.25,
+        "wave_neighborhood.512B": 0.0,
+        "transpose_wave_neighborhood.512B": 0.0,
         "transpose_wave_neighborhood.1024B": 0.0625,
         "transpose_wave_neighborhood.4096B": 0.0625,
         "transpose_wave_neighborhood.8192B": 0.0625,

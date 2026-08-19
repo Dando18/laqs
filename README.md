@@ -148,18 +148,20 @@ including complete 8x8 and 8x16 canonical inner-word sweeps, for 1,095
 correctness-checked benchmark cases in total. Its
 adjacent JSON retains every raw sample, score component, rank, Pareto member,
 frontier-information signature, Pareto depth, and evaluator command.
-The current information ladder reaches 8/15, 11/15, 9/15, 11/15, and 14/15
+The current information ladder reaches 9/15, 12/15, 10/15, 11/15, and 14/15
 exact-winner coverage from `F_agg` through `F_dense-d`; the dense frontier is
 within 1% on all 15 instances but retains 68.8% of the tested candidates. See
 the report for the full regret/aliasing tradeoff and dominance certificates.
 The experiment documentation also records a compiler-only gfx942 ISA/resource
 audit of the four MVT N=1024 words highlighted by that analysis.
 
-The revised weights were selected by inspecting the same 22-layout, `N=256`
-measurements shown in the final report. The baseline-to-final improvement is
-therefore exploratory and in-sample, not holdout evidence that the model will
-generalize. The fresh multi-size sweep exposes substantial size sensitivity,
-which is preserved rather than folded back into another calibration round.
+The original revised weights were selected by inspecting the same 22-layout,
+`N=256` measurements shown in the historical final report. MVT received a
+second, explicitly in-sample adjustment after inspecting the three-size sweep:
+its duplicated symmetric 512-byte wave terms are now disabled, and two new
+stream-specific 512-byte hypotheses remain visible at weight zero. These
+changes are not holdout evidence that the model will generalize. The fresh
+multi-size sweep continues to expose substantial size sensitivity.
 The experiment documentation records both sets of results and a
 `--reuse-timings` workflow for reproducibly combining exact timing reports.
 

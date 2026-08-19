@@ -65,7 +65,7 @@ class MvtProblemTests(unittest.TestCase):
         )
         by_name = {component.name: component for component in components}
 
-        self.assertEqual(len(components), 15)
+        self.assertEqual(len(components), 17)
         self.assertEqual(
             {
                 component.name
@@ -77,6 +77,10 @@ class MvtProblemTests(unittest.TestCase):
         self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["A"]), 32)
         self.assertEqual(
             len(by_name["row_lane_stream.128B.window16"].edges_by_array["A"]),
+            16,
+        )
+        self.assertEqual(
+            len(by_name["row_lane_stream.512B.window16"].edges_by_array["A"]),
             16,
         )
         self.assertEqual(
@@ -92,7 +96,7 @@ class MvtProblemTests(unittest.TestCase):
         self.assertEqual(len(cross_points), 31)
         self.assertIn((0, 15), cross_points)
         self.assertIn((15, 0), cross_points)
-        for region_bytes in (1024, 4096, 8192):
+        for region_bytes in (512, 1024, 4096, 8192):
             component = by_name[
                 f"transpose_wave_neighborhood.{region_bytes}B"
             ]
@@ -104,6 +108,28 @@ class MvtProblemTests(unittest.TestCase):
                 "transpose_wave_neighborhood.4096B"
             ],
             0.0625,
+        )
+        self.assertEqual(
+            problem.get_component_weights(config)[
+                "row_lane_stream.512B.window16"
+            ],
+            0.0,
+        )
+        self.assertEqual(
+            problem.get_component_weights(config)[
+                "transpose_wave_neighborhood.512B"
+            ],
+            0.0,
+        )
+        self.assertEqual(
+            problem.get_component_weights(config)[
+                "A.wave_lane_group.lane64.512B"
+            ],
+            0.0,
+        )
+        self.assertEqual(
+            problem.get_component_weights(config)["wave_neighborhood.512B"],
+            0.0,
         )
 
 
