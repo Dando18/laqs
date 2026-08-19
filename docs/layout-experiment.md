@@ -225,6 +225,48 @@ quotient/locality/codegen vector; small spread means the vector successfully
 collapses layouts that behave similarly. Singleton groups are retained in the
 JSON but excluded from the mean, median, and maximum spread summaries.
 
+## Frontier information ladder
+
+The five-cost frontier deliberately compresses every component excess into
+`J_peak` and `J_area`. A completed report now tests that compression against a
+sequence of increasingly informative, runtime-independent frontiers:
+
+```text
+F_agg     = (Q_fine, J_peak, J_area, runs, XORs)
+F_active  = (Q_fine, every e_k with tau_k > 0, runs, XORs)
+F_all     = (Q_fine, every existing e_k, runs, XORs)
+F_split   = F_all plus source-separated component excesses
+F_dense-d = (every Q_s(V_d) at every feasible d, runs, XORs)
+```
+
+`F_split` retains the existing joint component and adds separate array, ATAX
+stage, MVT row/transpose, or SYRK row-i/row-j quantities when hyperedge source
+provenance exposes those partitions. These are diagnostic coordinates only:
+they receive no fitted tau and do not modify the kernel problem definitions.
+`F_dense-d` evaluates each existing target-array edge family for element-region
+dimensions from zero through the full target address width. It therefore tests
+whether the original sparse choice of byte scales discarded useful quotient
+information.
+
+For every representation and kernel/size instance, the JSON records frontier
+regret, retained fraction, exact and 1%-winner coverage, exact-vector
+equivalence groups and runtime spreads, and score-dominance/runtime-order
+violations. A violation is marked confirmed only when the dominated layout's
+maximum observed sample is smaller than the dominator's minimum observed
+sample.
+
+If a representation misses an exact measured winner, its dominance
+certificate lists every analytical dominator and `e_dominator - e_winner` for
+every existing component. This distinguishes aggregate compression from a
+zero-weight scope, sparse scale sampling, or a limitation that remains even in
+the dense quotient representation.
+
+The experiment also repeatedly removes each nondominated set to form Pareto
+layers `F_1, F_2, ...`. For every cumulative candidate set
+`C_L = union(F_1, ..., F_L)`, it reports regret and retained fraction. The
+Pareto-depth plot shows how conservatively retaining additional layers trades
+screening power for empirical winner recovery.
+
 The tau-weight robustness ablation independently multiplies each nonzero tau
 by a uniformly selected value from `{0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5}`. It
 recomputes `J_area`, rebuilds the five-cost frontier, and reports oracle regret
@@ -233,13 +275,14 @@ not depend on tau and therefore remain unchanged. The defaults are 128 trials
 per kernel/size with seed 0; use `--tau-perturbation-trials` and
 `--tau-perturbation-seed` to change them reproducibly.
 
-The five plots are written to `<output stem>_plots/` by default:
+The six plots are written to `<output stem>_plots/` by default:
 
 - `epsilon_optimal_coverage.png`;
 - `retained_fraction_vs_regret.png`;
 - `purity_and_enrichment.png`; and
 - `top_k_regret.png`; and
-- `tau_weight_robustness.png`.
+- `tau_weight_robustness.png`; and
+- `pareto_depth_regret.png`.
 
 Use `--plots-dir DIRECTORY` to select another location. Plotting requires the
 `experiments` optional dependencies from `pyproject.toml`. Score-only and
@@ -500,6 +543,71 @@ median 0%, mean 0.9944%, and maximum 9.5120%; retained fraction has median
 change the headline frontier regret, although the per-instance JSON and plot
 retain the full trial distributions.
 
+The frontier-information refresh reused these exact 1,095 timing records; no
+GPU kernels were rerun. Its aggregate results are:
+
+| Representation | Exact winners | Within 1% | Mean regret | Max regret | Mean retained | Max exact-alias spread |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `F_agg` | 8/15 | 12/15 | 1.0054% | 9.5120% | 10.411% | 50.926% |
+| `F_active` | 11/15 | 12/15 | 0.8899% | 9.5120% | 19.178% | 50.926% |
+| `F_all` | 9/15 | 12/15 | 0.9604% | 9.5120% | 24.932% | 50.926% |
+| `F_split` | 11/15 | 13/15 | 0.2681% | 2.4318% | 37.626% | 50.926% |
+| `F_dense-d` | 14/15 | 15/15 | 0.0582% | 0.8736% | 68.767% | 31.817% |
+
+The active-component representation fixes three exact-winner misses, showing
+that max/sum aggregation does discard useful dominance information, but it does
+not fix MVT at N=1024. Source splitting does recover that MVT winner, supporting
+the notes' concern about combining its row and transpose streams. Dense scale
+curves recover every winner within 1%, but retain more than two thirds of the
+tested layouts. They also leave exact-vector runtime spreads as large as
+31.817%. Thus the denser quotient representation is a safer screen on this
+sample, but region counts alone still omit a material runtime discriminator.
+
+Adding coordinates can break a tie in a coarser projection, so the identities
+of Pareto members need not be nested even though a richer representation
+contains more information. This is why `F_all` can have lower exact-winner
+coverage than `F_active`: zero-weight diagnostic coordinates distinguish an
+active-vector tie in the empirically wrong direction for some instances.
+
+Pareto depth provides a cheaper conservative alternative to the very large
+dense frontier. The first three aggregate layers retain 51.598% of layouts on
+average and reduce maximum regret to 0.9117%, reaching 15/15 instances within
+1%. Two dense layers retain 87.671% and contain every exact winner. The checked-
+in Markdown report includes every missed-winner dominator and component delta;
+the JSON retains all layer memberships and complete score vectors.
+
+### Static MVT code-generation audit
+
+The four MVT N=1024 words proposed in the analysis notes were also compiled
+with ROCm 7.0.2 clang for `gfx942`. This was a compiler-only audit: generated
+executables were not launched and no GPU timings were recollected. The loop
+instruction count spans the backward-branch body. "Integer/address" excludes
+loads, stores, waits, floating-point operations, comparisons, and the branch;
+it includes address formation and loop/pointer updates. Address depth is the
+longest dependent integer-ALU chain feeding either matrix global load.
+
+| Word | Audit role | Stored median ms | Kernel instructions | Loop instructions | Loop integer/address | VGPR / SGPR | Spills / private B | Matrix load form | Address depth |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| `iijjjji` | empirical winner | 0.132054 | 77 | 33 | 22 | 22 / 30 | 0 / 0 | 2x `global_load_dwordx2` | 5 |
+| `iijjji` | best aggregate-frontier layout | 0.144615 | 75 | 32 | 21 | 22 / 30 | 0 / 0 | 2x `global_load_dwordx2` | 5 |
+| `jiiijjj` | low-score three-run layout | 0.188534 | 78 | 34 | 23 | 19 / 30 | 0 / 0 | 2x `global_load_dwordx2` | 5 |
+| `jjjiiij` | additional slow three-run layout | 0.175240 | 74 | 32 | 21 | 19 / 30 | 0 / 0 | 2x `global_load_dwordx2` | 5 |
+
+All four use zero LDS, have zero scalar/vector spills, issue the same matrix
+load form, and have the same apparent address dependency depth. The slow
+layouts actually use fewer VGPRs, while total and loop instruction counts do
+not order the measured runtimes. The code object does not record achieved
+occupancy, and this static audit did not launch a kernel, so it makes no claim
+about dynamic occupancy. It does rule out an obvious spill, load-form, or long
+address-chain explanation for the MVT gap and strengthens the case for a
+locality or unmodeled microarchitectural discriminator.
+
+The audit can be reproduced without a GPU by emitting each source with
+`kernels/mvt/evaluate.py --n 1024 --emit-only`, compiling it with
+`hipcc -O3 -std=c++17 --offload-arch=gfx942 --genco`, extracting the gfx942
+bundle with `clang-offload-bundler`, and inspecting metadata/disassembly with
+`llvm-readelf --notes` and `llvm-objdump -d --mcpu=gfx942`.
+
 ## Raw ranks and variation-aware metrics
 
 The tables always show raw values:
@@ -556,6 +664,8 @@ The JSON report contains:
   runtime scorecards;
 - exact score-equivalence groups and runtime spreads for the main and gated
   vectors;
+- the five-level frontier-information ladder, complete diagnostic signatures,
+  dominance violations and certificates, and cumulative Pareto layers;
 - tau-perturbation factors, seeds, every trial result, and aggregate regret and
   retained-fraction summaries;
 - per-layout canonical words, component scores, aggregate scores, per-array and

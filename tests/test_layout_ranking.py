@@ -378,6 +378,30 @@ class CombinedExperimentTests(unittest.TestCase):
             self.assertIn("epsilon_optimal", frontier_analysis)
             self.assertIn("top_k", frontier_analysis)
             self.assertIn("frontier_runtime_analysis", group)
+            information = report["frontier_information"]
+            self.assertEqual(information["instance_count"], 1)
+            self.assertEqual(
+                [item["name"] for item in information["representations"]],
+                [
+                    "aggregate",
+                    "active-components",
+                    "all-components",
+                    "stream-split",
+                    "dense-scales",
+                ],
+            )
+            aggregate = information["representations"][0]["instances"][0]
+            self.assertEqual(
+                aggregate["frontier_size"],
+                frontier_analysis["instances"][0]["frontier_size"],
+            )
+            self.assertEqual(
+                aggregate["oracle_regret"],
+                frontier_analysis["instances"][0]["oracle_regret"],
+            )
+            self.assertTrue(
+                all("diagnostic_signatures" in record for record in records)
+            )
             self.assertEqual(
                 set(frontier_analysis["plots"]),
                 {
@@ -386,6 +410,7 @@ class CombinedExperimentTests(unittest.TestCase):
                     "purity_and_enrichment",
                     "top_k_regret",
                     "tau_weight_robustness",
+                    "pareto_depth_regret",
                 },
             )
             self.assertTrue(
@@ -404,6 +429,9 @@ class CombinedExperimentTests(unittest.TestCase):
             self.assertIn("### Epsilon-optimal coverage", markdown)
             self.assertIn("### Top-k scalar-score regret", markdown)
             self.assertIn("![Top-k scalar-score regret]", markdown)
+            self.assertIn("## Frontier information ladder", markdown)
+            self.assertIn("### Cumulative Pareto depth", markdown)
+            self.assertIn("### Missed-winner dominance certificates", markdown)
 
     def test_benchmark_checkpoint_resumes_without_rescoring(self) -> None:
         def benchmark(spec, n, case, args):

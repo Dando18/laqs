@@ -345,6 +345,7 @@ def score_layouts(
     layouts: Mapping[str, Layout],
     *,
     component_weights: Mapping[str, float] | None = None,
+    offset_cache_by_array: Mapping[str, dict[Coord, int]] | None = None,
 ) -> LayoutScore:
     """Score one layout for every participating array.
 
@@ -354,6 +355,8 @@ def score_layouts(
     Unspecified components have weight 1; weight 0 disables a component from
     all three scalar aggregates while retaining it in the detailed report.
     Address-code runs and XORs are computed independently of those aggregates.
+    ``offset_cache_by_array`` lets callers reuse realized offsets in additional
+    diagnostics for the same layouts.
     """
 
     weights = dict(component_weights or {})
@@ -368,9 +371,11 @@ def score_layouts(
         raise ValueError("component weights must be nonnegative")
 
     results: list[ComponentScore] = []
-    offset_caches: dict[str, dict[Coord, int]] = {
-        name: {} for name in layouts
-    }
+    offset_caches = (
+        {name: offset_cache_by_array[name] for name in layouts}
+        if offset_cache_by_array is not None
+        else {name: {} for name in layouts}
+    )
     for component in components:
         per_array: list[ArrayComponentScore] = []
         for array_name, edges in component.edges_by_array.items():

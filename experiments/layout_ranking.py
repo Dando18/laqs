@@ -58,6 +58,10 @@ from experiments.frontier_analysis import (
     analyze_tau_weight_robustness,
     render_frontier_plots,
 )
+from experiments.frontier_information import (
+    analyze_frontier_information,
+    diagnostic_layout_signature,
+)
 from relay import (
     SCORE_MODES,
     CanonicalLayout,
@@ -912,11 +916,19 @@ def score_group(
     print(f"Scoring {len(cases)} layout controls...", flush=True)
     for case in cases:
         layouts = layouts_for_case(case, matrices)
+        offset_caches = {name: {} for name in layouts}
         score = score_layouts(
             matrices,
             components,
             layouts,
             component_weights=applied_weights,
+            offset_cache_by_array=offset_caches,
+        )
+        diagnostic_signatures = diagnostic_layout_signature(
+            matrices,
+            components,
+            layouts,
+            offset_cache_by_array=offset_caches,
         )
         scores_by_name[case.name] = score
         records.append(
@@ -930,6 +942,8 @@ def score_group(
                     for aggregate_mode in SCORE_MODES
                 },
                 "score": score_to_dict(score),
+                "diagnostic_signatures": diagnostic_signatures,
+                "frontier_representations": {},
                 "score_rank": None,
                 "pareto_frontier_member": None,
                 "fine_locality_gated_frontier_deltas": [],
@@ -1370,6 +1384,198 @@ def _frontier_scorecard_markdown(
     return lines
 
 
+def _frontier_information_markdown(
+    information: Mapping[str, object],
+) -> list[str]:
+    """Render the component-information ladder and dominance certificates."""
+
+    representations = information["representations"]
+    assert isinstance(representations, list)
+    summary_rows = []
+    for representation in representations:
+        regret = representation["oracle_regret"]
+        retained = representation["retained_fraction"]
+        equivalence = representation["equivalence"][
+            "non_singleton_runtime_spread"
+        ]
+        dominance = representation["dominance_violations"]
+        summary_rows.append(
+            (
+                f"`{representation['label']}`",
+                f"{representation['exact_winner_covered_instances']}/"
+                f"{information['instance_count']}",
+                f"{representation['one_percent_covered_instances']}/"
+                f"{information['instance_count']}",
+                f"{100.0 * float(regret['median']):.6f}%",
+                f"{100.0 * float(regret['mean']):.6f}%",
+                f"{100.0 * float(regret['maximum']):.6f}%",
+                f"{100.0 * float(retained['mean']):.3f}%",
+                "—"
+                if equivalence is None
+                else f"{100.0 * float(equivalence['median']):.3f}%",
+                "—"
+                if equivalence is None
+                else f"{100.0 * float(equivalence['mean']):.3f}%",
+                "—"
+                if equivalence is None
+                else f"{100.0 * float(equivalence['maximum']):.3f}%",
+                f"{dominance['median_runtime_violation_count']}/"
+                f"{dominance['dominance_pair_count']} "
+                f"({100.0 * float(dominance['median_runtime_violation_fraction']):.1f}%)",
+                f"{dominance['confirmed_nonoverlap_violation_count']}/"
+                f"{dominance['dominance_pair_count']} "
+                f"({100.0 * float(dominance['confirmed_nonoverlap_violation_fraction']):.1f}%)",
+            )
+        )
+
+    lines = [
+        "## Frontier information ladder",
+        "",
+        "This ladder tests where candidate information is lost. `F_agg` is "
+        "the five-coordinate frontier; `F_active` retains every nonzero-tau "
+        "component; `F_all` also retains zero-weight diagnostic components; "
+        "`F_split` additionally separates arrays, stages, row streams, and "
+        "transpose streams where edge provenance permits; `F_dense-d` uses "
+        "every existing target edge family at every feasible quotient "
+        "dimension. Runtime is not used to construct any frontier.",
+        "",
+        _markdown_table(
+            (
+                "Representation",
+                "Exact winners",
+                "Within 1%",
+                "Median regret",
+                "Mean regret",
+                "Max regret",
+                "Mean retained",
+                "Median alias spread",
+                "Mean alias spread",
+                "Max alias spread",
+                "Median-order violations / dominance pairs",
+                "Confirmed violations / dominance pairs",
+            ),
+            summary_rows,
+        ),
+        "",
+        "A confirmed dominance violation means a score-dominated layout's "
+        "maximum observed timing sample is below its analytical dominator's "
+        "minimum sample. Alias spread groups layouts by exact equality of the "
+        "representation's complete vector.",
+        "",
+        "### Cumulative Pareto depth",
+        "",
+        "Depth one is the ordinary frontier. Each subsequent depth removes "
+        "the preceding nondominated layer and recomputes the frontier. The "
+        "candidate set at depth `L` is the union of layers one through `L`.",
+        "",
+    ]
+    depth_rows = []
+    for representation in representations:
+        depths = representation["cumulative_pareto_depth"]
+        maximum = int(depths[-1]["depth"])
+        checkpoints = sorted({1, 2, 3, maximum})
+        for depth in checkpoints:
+            if depth > maximum:
+                continue
+            item = depths[depth - 1]
+            regret = item["oracle_regret"]
+            retained = item["retained_fraction"]
+            depth_rows.append(
+                (
+                    f"`{representation['label']}`",
+                    str(depth),
+                    f"{100.0 * float(retained['mean']):.3f}%",
+                    f"{100.0 * float(regret['mean']):.6f}%",
+                    f"{100.0 * float(regret['maximum']):.6f}%",
+                    f"{item['one_percent_covered_instances']}/"
+                    f"{information['instance_count']}",
+                )
+            )
+    lines.extend(
+        (
+            _markdown_table(
+                (
+                    "Representation",
+                    "Depth L",
+                    "Mean retained",
+                    "Mean regret",
+                    "Max regret",
+                    "Within 1%",
+                ),
+                depth_rows,
+            ),
+            "",
+        )
+    )
+
+    plots = information.get("plots")
+    if isinstance(plots, dict):
+        plot = plots.get("pareto_depth_regret")
+        if isinstance(plot, dict):
+            lines.extend(
+                (
+                    f"![Cumulative Pareto-depth regret]"
+                    f"({plot['markdown_path']})",
+                    "",
+                )
+            )
+
+    lines.extend(
+        (
+            "### Missed-winner dominance certificates",
+            "",
+            "For every missed empirical winner, each row lists one layout "
+            "that dominates it in the selected representation. Component "
+            "entries are `e_dominator - e_winner`; `*` marks a nonzero-tau "
+            "component. Negative entries show where the dominator is better.",
+            "",
+        )
+    )
+    certificate_rows = []
+    for representation in representations:
+        for instance in representation["instances"]:
+            for certificate in instance["missed_winner_certificates"]:
+                for dominator in certificate["dominators"]:
+                    deltas = dominator["component_excess_deltas"]
+                    rendered_deltas = "; ".join(
+                        f"{name}{'*' if float(value['weight']) > 0 else ''}="
+                        f"{float(value['delta']):+.6g}"
+                        for name, value in deltas.items()
+                    )
+                    certificate_rows.append(
+                        (
+                            f"`{representation['label']}`",
+                            str(instance["display_name"]),
+                            str(instance["matrix_size"]),
+                            f"`{certificate['winner']}`",
+                            f"`{dominator['name']}`",
+                            f"{100.0 * float(dominator['runtime_penalty']):.6f}%",
+                            rendered_deltas,
+                        )
+                    )
+    if certificate_rows:
+        lines.extend(
+            (
+                _markdown_table(
+                    (
+                        "Representation",
+                        "Kernel",
+                        "N",
+                        "Measured winner",
+                        "Analytical dominator",
+                        "Dominator runtime penalty",
+                        "All component excess deltas",
+                    ),
+                    certificate_rows,
+                ),
+                "",
+            )
+        )
+    else:
+        lines.extend(("No representation misses an empirical winner.", ""))
+    return lines
+
+
 def markdown_report(report: Mapping[str, object]) -> str:
     """Render the combined human-readable report."""
 
@@ -1513,6 +1719,10 @@ def markdown_report(report: Mapping[str, object]) -> str:
                 "",
             )
         )
+
+    frontier_information = report.get("frontier_information")
+    if isinstance(frontier_information, dict):
+        lines.extend(_frontier_information_markdown(frontier_information))
 
     for group in groups:
         assert isinstance(group, dict)
@@ -1967,9 +2177,12 @@ def update_frontier_analysis(report: dict[str, object]) -> None:
     if not all_complete:
         report["frontier_analysis"] = None
         report["fine_locality_gated_analysis"] = None
+        report["frontier_information"] = None
         return
 
     analysis = analyze_frontier_report(groups)
+    information = analyze_frontier_information(groups)
+    report["frontier_information"] = information
     configuration = report.get("configuration")
     assert isinstance(configuration, dict)
     robustness = analyze_tau_weight_robustness(
@@ -2016,7 +2229,11 @@ def write_reports(
     update_frontier_analysis(report)
     analysis = report["frontier_analysis"]
     if isinstance(analysis, dict) and report.get("complete") is True:
-        paths = render_frontier_plots(analysis, plots_directory)
+        plot_analysis = dict(analysis)
+        plot_analysis["frontier_information"] = report.get(
+            "frontier_information"
+        )
+        paths = render_frontier_plots(plot_analysis, plots_directory)
         analysis["plots"] = {
             name: {
                 "path": str(path.resolve()),
@@ -2026,6 +2243,13 @@ def write_reports(
             }
             for name, path in paths.items()
         }
+        information = report.get("frontier_information")
+        if isinstance(information, dict):
+            information["plots"] = {
+                name: details
+                for name, details in analysis["plots"].items()
+                if name == "pareto_depth_regret"
+            }
     _write_text_atomic(
         output_path, json.dumps(report, indent=2, sort_keys=True) + "\n"
     )
@@ -2340,6 +2564,7 @@ def run(argv: list[str] | None = None) -> int:
             "complete": bool(args.score_only),
             "frontier_analysis": None,
             "fine_locality_gated_analysis": None,
+            "frontier_information": None,
             "runs": [group for _, _, group, _ in prepared],
         }
         if args.reuse_timings is not None:

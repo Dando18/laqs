@@ -634,6 +634,7 @@ def render_frontier_plots(
         "top_k_regret": output_directory / "top_k_regret.png",
         "tau_weight_robustness": output_directory
         / "tau_weight_robustness.png",
+        "pareto_depth_regret": output_directory / "pareto_depth_regret.png",
     }
 
     epsilon = analysis["epsilon_optimal"]
@@ -739,58 +740,106 @@ def render_frontier_plots(
     robustness = analysis.get("tau_weight_robustness")
     if not isinstance(robustness, dict):
         paths.pop("tau_weight_robustness")
-        return paths
-    robustness_instances = robustness["instances"]
-    assert isinstance(robustness_instances, list)
-    labels = []
-    regret_labels = []
-    regrets = []
-    retained_labels = []
-    retained = []
-    baseline_regret = []
-    baseline_retained = []
-    for instance in robustness_instances:
-        assert isinstance(instance, dict)
-        label = f"{instance['display_name']}\nN={instance['matrix_size']}"
-        labels.append(label)
-        trials = instance["trials"]
-        baseline = instance["baseline"]
-        assert isinstance(trials, list) and isinstance(baseline, dict)
-        for trial in trials:
-            assert isinstance(trial, dict)
-            regret_labels.append(label)
-            regrets.append(100.0 * float(trial["oracle_regret"]))
-            retained_labels.append(label)
-            retained.append(100.0 * float(trial["retained_fraction"]))
-        baseline_regret.append(100.0 * float(baseline["oracle_regret"]))
-        baseline_retained.append(100.0 * float(baseline["retained_fraction"]))
+    else:
+        robustness_instances = robustness["instances"]
+        assert isinstance(robustness_instances, list)
+        labels = []
+        regret_labels = []
+        regrets = []
+        retained_labels = []
+        retained = []
+        baseline_regret = []
+        baseline_retained = []
+        for instance in robustness_instances:
+            assert isinstance(instance, dict)
+            label = f"{instance['display_name']}\nN={instance['matrix_size']}"
+            labels.append(label)
+            trials = instance["trials"]
+            baseline = instance["baseline"]
+            assert isinstance(trials, list) and isinstance(baseline, dict)
+            for trial in trials:
+                assert isinstance(trial, dict)
+                regret_labels.append(label)
+                regrets.append(100.0 * float(trial["oracle_regret"]))
+                retained_labels.append(label)
+                retained.append(100.0 * float(trial["retained_fraction"]))
+            baseline_regret.append(100.0 * float(baseline["oracle_regret"]))
+            baseline_retained.append(100.0 * float(baseline["retained_fraction"]))
 
-    figure, axes = plt.subplots(2, 1, figsize=(12.0, 8.0), sharex=True)
-    sns.boxplot(x=regret_labels, y=regrets, order=labels, ax=axes[0])
-    sns.scatterplot(
-        x=labels,
-        y=baseline_regret,
-        marker="D",
-        color="black",
-        label="Unperturbed tau",
-        ax=axes[0],
-    )
-    axes[0].set(xlabel="", ylabel="Oracle regret (%)")
-    axes[0].legend()
-    sns.boxplot(x=retained_labels, y=retained, order=labels, ax=axes[1])
-    sns.scatterplot(
-        x=labels,
-        y=baseline_retained,
-        marker="D",
-        color="black",
-        label="Unperturbed tau",
-        ax=axes[1],
-    )
-    axes[1].set(xlabel="Kernel / matrix size", ylabel="Retained fraction (%)")
-    axes[1].tick_params(axis="x", rotation=45)
-    axes[1].legend()
-    figure.tight_layout()
-    figure.savefig(paths["tau_weight_robustness"], dpi=180)
-    plt.close(figure)
+        figure, axes = plt.subplots(2, 1, figsize=(12.0, 8.0), sharex=True)
+        sns.boxplot(x=regret_labels, y=regrets, order=labels, ax=axes[0])
+        sns.scatterplot(
+            x=labels,
+            y=baseline_regret,
+            marker="D",
+            color="black",
+            label="Unperturbed tau",
+            ax=axes[0],
+        )
+        axes[0].set(xlabel="", ylabel="Oracle regret (%)")
+        axes[0].legend()
+        sns.boxplot(x=retained_labels, y=retained, order=labels, ax=axes[1])
+        sns.scatterplot(
+            x=labels,
+            y=baseline_retained,
+            marker="D",
+            color="black",
+            label="Unperturbed tau",
+            ax=axes[1],
+        )
+        axes[1].set(
+            xlabel="Kernel / matrix size", ylabel="Retained fraction (%)"
+        )
+        axes[1].tick_params(axis="x", rotation=45)
+        axes[1].legend()
+        figure.tight_layout()
+        figure.savefig(paths["tau_weight_robustness"], dpi=180)
+        plt.close(figure)
+
+    information = analysis.get("frontier_information")
+    if not isinstance(information, dict):
+        paths.pop("pareto_depth_regret")
+    else:
+        representations = information["representations"]
+        assert isinstance(representations, list)
+        figure, axes = plt.subplots(1, 2, figsize=(12.0, 4.8))
+        for representation in representations:
+            depth = representation["cumulative_pareto_depth"]
+            label = str(representation["label"])
+            x_values = [
+                100.0 * float(item["retained_fraction"]["mean"])
+                for item in depth
+            ]
+            axes[0].plot(
+                x_values,
+                [
+                    100.0 * float(item["oracle_regret"]["mean"])
+                    for item in depth
+                ],
+                marker="o",
+                label=label,
+            )
+            axes[1].plot(
+                x_values,
+                [
+                    100.0 * float(item["oracle_regret"]["maximum"])
+                    for item in depth
+                ],
+                marker="o",
+                label=label,
+            )
+        axes[0].set(
+            xlabel="Mean cumulative retained fraction (%)",
+            ylabel="Mean oracle regret (%)",
+        )
+        axes[1].set(
+            xlabel="Mean cumulative retained fraction (%)",
+            ylabel="Maximum oracle regret (%)",
+        )
+        axes[0].legend()
+        axes[1].legend()
+        figure.tight_layout()
+        figure.savefig(paths["pareto_depth_regret"], dpi=180)
+        plt.close(figure)
 
     return paths

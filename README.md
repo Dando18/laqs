@@ -89,7 +89,10 @@ using best-in-frontier regret, epsilon-optimal coverage, retained fraction,
 purity, enrichment, a size-matched random baseline, and top-k scalar-score
 regret. Exact-score equivalence groups expose otherwise hidden runtime spread,
 and a discrete random tau-weight ablation reports regret/retention robustness.
-Five PNG plots are written beside the JSON report.
+An information ladder compares the aggregate frontier with active-component,
+all-component, source-split, and dense quotient-scale frontiers; it also emits
+missed-winner dominance certificates and cumulative Pareto-depth screening
+curves. Six PNG plots are written beside the JSON report.
 
 Validate scoring without a GPU:
 
@@ -144,7 +147,13 @@ post-calibration MI300A measurements for all five kernels at N=256, 512, and
 including complete 8x8 and 8x16 canonical inner-word sweeps, for 1,095
 correctness-checked benchmark cases in total. Its
 adjacent JSON retains every raw sample, score component, rank, Pareto member,
-and evaluator command.
+frontier-information signature, Pareto depth, and evaluator command.
+The current information ladder reaches 8/15, 11/15, 9/15, 11/15, and 14/15
+exact-winner coverage from `F_agg` through `F_dense-d`; the dense frontier is
+within 1% on all 15 instances but retains 68.8% of the tested candidates. See
+the report for the full regret/aliasing tradeoff and dominance certificates.
+The experiment documentation also records a compiler-only gfx942 ISA/resource
+audit of the four MVT N=1024 words highlighted by that analysis.
 
 The revised weights were selected by inspecting the same 22-layout, `N=256`
 measurements shown in the final report. The baseline-to-final improvement is
