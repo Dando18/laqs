@@ -76,11 +76,13 @@ layout-word convention, CLI contract, and JSON fields.
 ## Benchmark solver frontiers
 
 The solver-frontier experiment runs the `G_S` exhaustive solver, the `G_C`
-canonical dynamic program, and the affine-access `G_A` dynamic program for all
-five kernels. It benchmarks every retained layout in their ordinary five-cost
-Pareto frontiers, selects the fastest measured member, and plots speedup over
-full row-major layouts. `G_A` is reported as not applicable when the access
-lattice is not distributive, as happens for the current SYRK model:
+canonical dynamic program, the bounded `G_OC` exact search, and the
+affine-access `G_A` dynamic program for all five kernels. It benchmarks every
+retained layout in their ordinary five-cost Pareto frontiers, selects the
+fastest measured member, and plots speedup over full row-major layouts. The
+`G_OC` bound is controlled by `--goc-max-inner-bits` and defaults to four.
+`G_A` is reported as not applicable when the access lattice is not
+distributive, as happens for the current SYRK model:
 
 ```bash
 .venv/bin/python experiments/solver_frontier.py \

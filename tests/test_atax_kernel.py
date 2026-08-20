@@ -107,6 +107,25 @@ class AtaxProblemTests(unittest.TestCase):
 
 
 class AtaxEvaluatorTests(unittest.TestCase):
+    def test_linear_layout_descriptor_supports_a_canonical_outer_word(self) -> None:
+        layout = evaluate.canonical_layout(
+            "linear:1,1:2,3:ij", "a_word"
+        )
+        source = evaluate.generate_source(
+            layout,
+            n=4,
+            samples=1,
+            iterations=1,
+            warmup=0,
+            device=0,
+            block_size=4,
+        )
+
+        self.assertEqual(layout.a_rows, (0x2, 0x3))
+        self.assertEqual(layout.outer_word, "ij")
+        self.assertIn("first) >> 1", source)
+        self.assertIn("second) >> 1", source)
+
     def test_linear_layout_descriptor_emits_xor_address_code(self) -> None:
         layout = evaluate.canonical_layout(
             "linear:2,2:5,2,8,4", "a_word"

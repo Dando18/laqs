@@ -223,6 +223,7 @@ class LinearInnerLayout:
     outer_order: tuple[int, ...]
     basis_columns: tuple[int, ...] = ()
     active_rank: int = 0
+    outer_word: tuple[int, ...] | None = None
 
     def validate(self, matrix: MatrixSpec) -> None:
         _validate_common(matrix, self.tile_exponents, self.outer_order)
@@ -234,6 +235,23 @@ class LinearInnerLayout:
         mask = (1 << width) - 1
         if any(row <= 0 or row & ~mask for row in self.a_rows):
             raise ValueError("A_in contains an invalid row mask")
+        if self.outer_word is not None:
+            remaining = tuple(
+                bits - exponent
+                for bits, exponent in zip(
+                    matrix.mode_bits, self.tile_exponents
+                )
+            )
+            counts = [0] * matrix.rank
+            for mode in self.outer_word:
+                if mode < 0 or mode >= matrix.rank:
+                    raise ValueError("outer word contains an invalid mode")
+                counts[mode] += 1
+            if tuple(counts) != remaining:
+                raise ValueError(
+                    f"outer word counts {tuple(counts)} do not match "
+                    f"remaining mode bits {remaining}"
+                )
 
     @property
     def grammar(self) -> str:
@@ -241,8 +259,17 @@ class LinearInnerLayout:
 
     @property
     def runs(self) -> int:
-        # There is no unique run decomposition for a general linear circuit.
-        return sum(1 for row in self.a_rows if row)
+        inner = linear_codegen_runs(self.a_rows, self.tile_exponents)
+        outer_word = self.outer_word or ()
+        if not outer_word:
+            return inner
+        outer = 1 + sum(
+            left != right
+            for left, right in zip(outer_word, outer_word[1:])
+        )
+        if self.a_rows and self._merge_mode() == outer_word[0]:
+            outer -= 1
+        return inner + outer
 
     @property
     def xor_count(self) -> int:
@@ -264,8 +291,44 @@ class LinearInnerLayout:
     def offset(self, matrix: MatrixSpec, coord: Coord) -> int:
         matrix.validate_coord(coord)
         inner = self.inner_offset(matrix, coord)
-        outer = _outer_rank(matrix, coord, self.tile_exponents, self.outer_order)
+        if self.outer_word is None:
+            outer = _outer_rank(
+                matrix, coord, self.tile_exponents, self.outer_order
+            )
+        else:
+            outer_coord = matrix.outer_coord(coord, self.tile_exponents)
+            used = [0] * matrix.rank
+            outer = 0
+            for physical_bit, mode in enumerate(self.outer_word):
+                outer |= (
+                    (outer_coord[mode] >> used[mode]) & 1
+                ) << physical_bit
+                used[mode] += 1
         return (outer << self.inner_bits) | inner
+
+    def _resolved_outer_word(self, matrix: MatrixSpec) -> tuple[int, ...]:
+        if self.outer_word is not None:
+            return self.outer_word
+        return tuple(
+            mode
+            for mode in self.outer_order
+            for _ in range(
+                matrix.mode_bits[mode] - self.tile_exponents[mode]
+            )
+        )
+
+    def _merge_mode(self) -> int | None:
+        if not self.a_rows:
+            return None
+        row = self.a_rows[-1]
+        if row.bit_count() != 1:
+            return None
+        source_bit = row.bit_length() - 1
+        mode = _flat_bit_mode(self.tile_exponents, source_bit)
+        mode_offset = sum(self.tile_exponents[:mode])
+        if source_bit - mode_offset != self.tile_exponents[mode] - 1:
+            return None
+        return mode
 
     def physical_bit_labels(self, matrix: MatrixSpec) -> tuple[str, ...]:
         width = len(self.a_rows)
@@ -278,8 +341,43 @@ class LinearInnerLayout:
     def encode_plan(self, matrix: MatrixSpec) -> tuple[str, ...]:
         return tuple(f"y{index} = {expr}" for index, expr in enumerate(self.physical_bit_labels(matrix)))
 
+    def descriptor(self, matrix: MatrixSpec) -> str:
+        exponents = ",".join(str(value) for value in self.tile_exponents)
+        rows = ",".join(f"{row:x}" for row in self.a_rows)
+        outer = "".join(
+            matrix.mode_names[mode]
+            for mode in self._resolved_outer_word(matrix)
+        )
+        return f"linear:{exponents}:{rows}:{outer}"
+
+    def evaluator_descriptor(self, matrix: MatrixSpec) -> str:
+        used = [0] * matrix.rank
+        symbols: list[str] = []
+        offsets = matrix.bit_offsets(self.tile_exponents)
+        for row in self.a_rows:
+            if row.bit_count() != 1:
+                return self.descriptor(matrix)
+            flat_bit = row.bit_length() - 1
+            mode = _flat_bit_mode(self.tile_exponents, flat_bit)
+            logical_bit = flat_bit - offsets[mode]
+            if logical_bit != used[mode]:
+                return self.descriptor(matrix)
+            used[mode] += 1
+            symbols.append(matrix.mode_names[mode])
+        symbols.extend(
+            matrix.mode_names[mode]
+            for mode in self._resolved_outer_word(matrix)
+        )
+        return "".join(symbols)
+
     def signature(self) -> tuple[object, ...]:
-        return (self.grammar, self.tile_exponents, self.a_rows, self.outer_order)
+        return (
+            self.grammar,
+            self.tile_exponents,
+            self.a_rows,
+            self.outer_order,
+            self.outer_word,
+        )
 
 
 @dataclass(frozen=True)

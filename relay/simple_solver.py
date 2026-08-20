@@ -1,10 +1,11 @@
 r"""Exact frontier solvers for RELAY's structured layout grammars.
 
 The notation follows :mod:`notes/relay.tex`: ``standard`` is
-``\mathcal{G}_S`` and ``canonical`` is ``\mathcal{G}_C``. ``affine`` is the
-access-induced grammar derived from affine event direction spaces. The first
-grammar is small enough to enumerate; the latter two use exact count-grid
-dynamic programs.
+``\mathcal{G}_S``, ``canonical`` is ``\mathcal{G}_C``, and
+``outer_canonical`` is a bounded ``\mathcal{G}_{OC}`` language.
+``affine`` is the access-induced grammar derived from affine event direction
+spaces. The implementations combine exhaustive inner enumeration with exact
+count-grid dynamic programs where each grammar permits it.
 
 All costs are minimized. Search and multi-array joins retain a raw component
 vector until every target array has been selected. This is important because
@@ -15,7 +16,8 @@ across separate allocations.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from math import factorial, isfinite
+from itertools import permutations, product
+from math import factorial, isfinite, prod
 from time import perf_counter
 from typing import Literal, Mapping, Sequence, TypeVar
 
@@ -25,12 +27,14 @@ from .gf2 import (
     intersection_basis,
     invert_matrix_from_columns,
     is_subspace,
+    reduce_vector,
     rref_basis,
 )
 from .layouts import (
     AffineAccessLayout,
     CanonicalLayout,
     Layout,
+    LinearInnerLayout,
     linear_codegen_runs,
     row_major_layout,
 )
@@ -45,7 +49,9 @@ from .scoring import (
 from .search import LayoutSeed, ScorePolicy, SearchStats, search_canonical
 
 
-Grammar = Literal["standard", "canonical", "affine"]
+Grammar = Literal[
+    "standard", "canonical", "outer_canonical", "affine"
+]
 FrontierType = Literal["pareto", "fine-gated"]
 FRONTIER_OBJECTIVES = (
     "fine-region-count",
@@ -69,6 +75,7 @@ class SimpleRelayProblem:
     frontier_type: FrontierType = "pareto"
     fine_component: str = "wave_load.64B"
     fine_tolerance: float = 0.05
+    outer_canonical_max_inner_bits: int = 4
     name: str = "simple_relay_problem"
 
 
@@ -129,6 +136,8 @@ class ArraySearchResult:
     active_rank: int | None = None
     inactive_rank: int | None = None
     score_ties_collapsed: bool = False
+    tile_hypotheses: int | None = None
+    max_inner_bits: int | None = None
 
 
 @dataclass(frozen=True)
@@ -205,22 +214,27 @@ def _pareto(
 ) -> list[_T]:
     """Return a deterministic strict-dominance frontier."""
 
-    frontier: list[_T] = []
-    seen: set[tuple[float, ...]] = set()
+    groups: dict[tuple[float, ...], list[_T]] = {}
     for item in sorted(items, key=key):
         values = tuple(key(item))
-        if not retain_ties and values in seen:
+        groups.setdefault(values, []).append(item)
+    frontier_values: list[tuple[float, ...]] = []
+    for values in groups:
+        if any(_dominates(other, values) for other in frontier_values):
             continue
-        seen.add(values)
-        if any(_dominates(key(other), values) for other in frontier):
-            continue
-        frontier = [
+        frontier_values = [
             other
-            for other in frontier
-            if not _dominates(values, key(other))
+            for other in frontier_values
+            if not _dominates(values, other)
         ]
-        frontier.append(item)
-    return frontier
+        frontier_values.append(values)
+    return [
+        item
+        for values in frontier_values
+        for item in (
+            groups[values] if retain_ties else groups[values][:1]
+        )
+    ]
 
 
 def _validate_problem(
@@ -236,12 +250,21 @@ def _validate_problem(
         raise ValueError("event ids must be unique")
     if not any(matrix.target for matrix in problem.matrices):
         raise ValueError("the problem contains no target matrices")
-    if problem.grammar not in ("standard", "canonical", "affine"):
+    if problem.grammar not in (
+        "standard",
+        "canonical",
+        "outer_canonical",
+        "affine",
+    ):
         raise ValueError(f"unknown grammar {problem.grammar!r}")
     if problem.frontier_type not in ("pareto", "fine-gated"):
         raise ValueError(f"unknown frontier type {problem.frontier_type!r}")
     if not isfinite(problem.fine_tolerance) or problem.fine_tolerance < 0:
         raise ValueError("fine_tolerance must be finite and nonnegative")
+    if not 0 <= problem.outer_canonical_max_inner_bits <= 4:
+        raise ValueError(
+            "outer_canonical_max_inner_bits must be between zero and four"
+        )
     for event in problem.events:
         for access in event.accesses:
             if access.array not in matrices:
@@ -458,6 +481,469 @@ def _canonical_array_frontier(
         grammar_layout_count,
         len(frontier),
         stats[0],
+    )
+
+
+@dataclass(frozen=True)
+class _DifferencePattern:
+    differences: tuple[int, ...]
+    weight: float
+
+
+@dataclass(frozen=True)
+class _OuterCanonicalPath:
+    counts: tuple[int, ...]
+    first_mode: int | None
+    last_mode: int | None
+    word: tuple[int, ...]
+    raw_scores: Mapping[str, float]
+
+
+@dataclass(frozen=True)
+class _OuterCanonicalCandidate:
+    word: tuple[int, ...]
+    first_mode: int | None
+    raw_scores: Mapping[str, float]
+
+
+@dataclass(frozen=True)
+class _LinearInnerCandidate:
+    a_rows: tuple[int, ...]
+    columns: tuple[int, ...]
+    merge_mode: int | None
+    raw_scores: Mapping[str, float]
+
+
+def _component_difference_patterns(
+    matrix: MatrixSpec,
+    components: Sequence[ObjectiveComponent],
+    raw_component_names: set[str],
+) -> tuple[
+    dict[str, tuple[_DifferencePattern, ...]],
+    dict[int, tuple[str, ...]],
+]:
+    """Aggregate translation-equivalent edges for quotient scoring."""
+
+    patterns: dict[str, tuple[_DifferencePattern, ...]] = {}
+    by_dimension: dict[int, list[str]] = {}
+    for component in components:
+        edges = component.edges_by_array.get(matrix.name, ())
+        if component.name not in raw_component_names or not edges:
+            continue
+        aggregated: dict[tuple[int, ...], float] = {}
+        for edge in edges:
+            anchor = matrix.coord_to_bits(edge.points[0])
+            differences = tuple(
+                sorted(
+                    matrix.coord_to_bits(point) ^ anchor
+                    for point in edge.points
+                )
+            )
+            aggregated[differences] = (
+                aggregated.get(differences, 0.0) + edge.weight
+            )
+        patterns[component.name] = tuple(
+            _DifferencePattern(differences, weight)
+            for differences, weight in sorted(aggregated.items())
+        )
+        by_dimension.setdefault(component.dimension(matrix), []).append(
+            component.name
+        )
+    return patterns, {
+        dimension: tuple(sorted(names))
+        for dimension, names in by_dimension.items()
+    }
+
+
+def _quotient_pattern_score(
+    patterns: Sequence[_DifferencePattern], subspace: Sequence[int]
+) -> float:
+    return sum(
+        pattern.weight
+        * len(
+            {
+                reduce_vector(difference, subspace)
+                for difference in pattern.differences
+            }
+        )
+        for pattern in patterns
+    )
+
+
+def _embed_inner_vector(
+    matrix: MatrixSpec,
+    tile_exponents: Sequence[int],
+    vector: int,
+) -> int:
+    compact_offsets = matrix.bit_offsets(tile_exponents)
+    global_offsets = matrix.bit_offsets()
+    result = 0
+    for mode, width in enumerate(tile_exponents):
+        for bit in range(width):
+            compact = compact_offsets[mode] + bit
+            if (vector >> compact) & 1:
+                result |= 1 << (global_offsets[mode] + bit)
+    return result
+
+
+def _inner_coordinate_basis(
+    matrix: MatrixSpec, tile_exponents: Sequence[int]
+) -> tuple[int, ...]:
+    offsets = matrix.bit_offsets()
+    return tuple(
+        1 << (offsets[mode] + bit)
+        for mode, width in enumerate(tile_exponents)
+        for bit in range(width)
+    )
+
+
+def _outer_node_basis(
+    matrix: MatrixSpec,
+    tile_exponents: Sequence[int],
+    counts: Sequence[int],
+) -> tuple[int, ...]:
+    offsets = matrix.bit_offsets()
+    return (
+        *_inner_coordinate_basis(matrix, tile_exponents),
+        *(
+            1 << (offsets[mode] + tile_exponents[mode] + bit)
+            for mode, count in enumerate(counts)
+            for bit in range(count)
+        ),
+    )
+
+
+def _outer_canonical_paths(
+    matrix: MatrixSpec,
+    tile_exponents: tuple[int, ...],
+    patterns: Mapping[str, Sequence[_DifferencePattern]],
+    by_dimension: Mapping[int, Sequence[str]],
+    raw_order: Sequence[str],
+    stats: SearchStats,
+) -> list[_OuterCanonicalCandidate]:
+    remaining = tuple(
+        bits - exponent
+        for bits, exponent in zip(matrix.mode_bits, tile_exponents)
+    )
+    zero = tuple(0 for _ in remaining)
+    initial = _OuterCanonicalPath(zero, None, None, (), {"runs": 0.0})
+    layer: dict[
+        tuple[tuple[int, ...], int | None, int | None],
+        list[_OuterCanonicalPath],
+    ] = {(zero, None, None): [initial]}
+    stats.states += 1
+    node_cache: dict[tuple[int, ...], dict[str, float]] = {}
+
+    def node_score(counts: tuple[int, ...]) -> dict[str, float]:
+        if counts not in node_cache:
+            dimension = sum(tile_exponents) + sum(counts)
+            basis = _outer_node_basis(matrix, tile_exponents, counts)
+            node_cache[counts] = {
+                name: _quotient_pattern_score(patterns[name], basis)
+                for name in by_dimension.get(dimension, ())
+            }
+        return node_cache[counts]
+
+    for _ in range(sum(remaining)):
+        pending: dict[
+            tuple[tuple[int, ...], int, int],
+            list[_OuterCanonicalPath],
+        ] = {}
+        for paths in layer.values():
+            for path in paths:
+                for mode, limit in enumerate(remaining):
+                    if path.counts[mode] >= limit:
+                        continue
+                    counts = list(path.counts)
+                    counts[mode] += 1
+                    next_counts = tuple(counts)
+                    scores = _add_scores(
+                        path.raw_scores, node_score(next_counts)
+                    )
+                    if path.last_mode is None or path.last_mode != mode:
+                        scores["runs"] = scores.get("runs", 0.0) + 1.0
+                    first_mode = (
+                        mode if path.first_mode is None else path.first_mode
+                    )
+                    candidate = _OuterCanonicalPath(
+                        next_counts,
+                        first_mode,
+                        mode,
+                        (*path.word, mode),
+                        scores,
+                    )
+                    pending.setdefault(
+                        (next_counts, first_mode, mode), []
+                    ).append(candidate)
+                    stats.transitions += 1
+                    stats.paths_considered += 1
+        layer = {}
+        for state, candidates in pending.items():
+            retained = _pareto(
+                candidates,
+                lambda candidate: _raw_key(
+                    candidate.raw_scores, raw_order
+                ),
+                retain_ties=False,
+            )
+            layer[state] = retained
+            stats.paths_retained += len(retained)
+        stats.states += len(layer)
+
+    terminal = [path for paths in layer.values() for path in paths]
+    if not terminal:
+        terminal = [initial]
+    constants = {
+        name: sum(pattern.weight for pattern in component_patterns)
+        for name, component_patterns in patterns.items()
+        if any(
+            name in names and dimension > matrix.total_bits
+            for dimension, names in by_dimension.items()
+        )
+    }
+    result = [
+        _OuterCanonicalCandidate(
+            path.word,
+            path.first_mode,
+            _add_scores(path.raw_scores, constants),
+        )
+        for path in terminal
+    ]
+    grouped: list[_OuterCanonicalCandidate] = []
+    for first_mode in {candidate.first_mode for candidate in result}:
+        grouped.extend(
+            _pareto(
+                [
+                    candidate
+                    for candidate in result
+                    if candidate.first_mode == first_mode
+                ],
+                lambda candidate: _raw_key(
+                    candidate.raw_scores, raw_order
+                ),
+                retain_ties=False,
+            )
+        )
+    return grouped
+
+
+def _linear_inner_candidates(
+    matrix: MatrixSpec,
+    tile_exponents: tuple[int, ...],
+    patterns: Mapping[str, Sequence[_DifferencePattern]],
+    by_dimension: Mapping[int, Sequence[str]],
+    raw_order: Sequence[str],
+    stats: SearchStats,
+) -> list[_LinearInnerCandidate]:
+    width = sum(tile_exponents)
+    if width == 0:
+        return [
+            _LinearInnerCandidate((), (), None, {"runs": 0.0, "xors": 0.0})
+        ]
+    candidates: list[_LinearInnerCandidate] = []
+    for columns in permutations(range(1, 1 << width), width):
+        if len(rref_basis(columns)) != width:
+            continue
+        rows = invert_matrix_from_columns(columns, width)
+        scores: dict[str, float] = {}
+        for dimension, names in by_dimension.items():
+            if dimension > width:
+                continue
+            basis = rref_basis(
+                _embed_inner_vector(
+                    matrix, tile_exponents, vector
+                )
+                for vector in columns[:dimension]
+            )
+            for name in names:
+                scores[name] = _quotient_pattern_score(
+                    patterns[name], basis
+                )
+        scores["runs"] = float(
+            linear_codegen_runs(rows, tile_exponents)
+        )
+        scores["xors"] = float(
+            sum(max(0, row.bit_count() - 1) for row in rows)
+        )
+        last_row = rows[-1]
+        merge_mode: int | None = None
+        if last_row.bit_count() == 1:
+            source_bit = last_row.bit_length() - 1
+            cursor = 0
+            for mode, mode_width in enumerate(tile_exponents):
+                if cursor <= source_bit < cursor + mode_width:
+                    if source_bit - cursor == mode_width - 1:
+                        merge_mode = mode
+                    break
+                cursor += mode_width
+        candidates.append(
+            _LinearInnerCandidate(
+                rows, tuple(columns), merge_mode, scores
+            )
+        )
+        stats.paths_considered += 1
+    retained: list[_LinearInnerCandidate] = []
+    for merge_mode in {candidate.merge_mode for candidate in candidates}:
+        retained.extend(
+            _pareto(
+                [
+                    candidate
+                    for candidate in candidates
+                    if candidate.merge_mode == merge_mode
+                ],
+                lambda candidate: _raw_key(
+                    candidate.raw_scores, raw_order
+                ),
+                retain_ties=False,
+            )
+        )
+    stats.paths_retained += len(retained)
+    return retained
+
+
+def _general_linear_count(width: int) -> int:
+    return prod(
+        (1 << width) - (1 << rank) for rank in range(width)
+    )
+
+
+def _outer_word_count(remaining: Sequence[int]) -> int:
+    count = factorial(sum(remaining))
+    for width in remaining:
+        count //= factorial(width)
+    return count
+
+
+def _outer_canonical_array_frontier(
+    matrix: MatrixSpec,
+    components: Sequence[ObjectiveComponent],
+    raw_component_names: set[str],
+    raw_order: Sequence[str],
+    max_inner_bits: int,
+) -> tuple[list[_ArrayCandidate], ArraySearchResult]:
+    """Search the exact bounded ``G_OC`` language used by the experiment."""
+
+    patterns, by_dimension = _component_difference_patterns(
+        matrix, components, raw_component_names
+    )
+    tile_hypotheses = tuple(
+        exponents
+        for exponents in product(
+            *(range(bits + 1) for bits in matrix.mode_bits)
+        )
+        if sum(exponents) <= max_inner_bits
+    )
+    grammar_layout_count = sum(
+        _general_linear_count(sum(tile))
+        * _outer_word_count(
+            tuple(
+                bits - exponent
+                for bits, exponent in zip(matrix.mode_bits, tile)
+            )
+        )
+        for tile in tile_hypotheses
+    )
+    stats = SearchStats(
+        "outer_canonical",
+        matrix.mode_bits,
+        note=(
+            "exact bounded G_OC search over every invertible inner map and "
+            "canonical outer word; equal-score layouts collapsed"
+        ),
+    )
+    candidates: list[_ArrayCandidate] = []
+    for tile in tile_hypotheses:
+        inner_candidates = _linear_inner_candidates(
+            matrix,
+            tile,
+            patterns,
+            by_dimension,
+            raw_order,
+            stats,
+        )
+        outer_candidates = _outer_canonical_paths(
+            matrix,
+            tile,
+            patterns,
+            by_dimension,
+            raw_order,
+            stats,
+        )
+        for inner in inner_candidates:
+            for outer in outer_candidates:
+                scores = _add_scores(
+                    inner.raw_scores, outer.raw_scores
+                )
+                if (
+                    inner.merge_mode is not None
+                    and inner.merge_mode == outer.first_mode
+                ):
+                    scores["runs"] -= 1.0
+                if not inner.a_rows:
+                    word_text = "".join(
+                        matrix.mode_names[mode] for mode in outer.word
+                    )
+                    layout: Layout = CanonicalLayout(
+                        f"G_OC_canonical_{word_text}",
+                        matrix.name,
+                        matrix.mode_bits,
+                        outer.word,
+                        tuple(reversed(range(matrix.rank))),
+                    )
+                else:
+                    layout = LinearInnerLayout(
+                        "G_OC_"
+                        + "x".join(str(1 << exponent) for exponent in tile)
+                        + "_"
+                        + str(len(candidates)),
+                        matrix.name,
+                        tile,
+                        inner.a_rows,
+                        tuple(reversed(range(matrix.rank))),
+                        inner.columns,
+                        sum(tile),
+                        outer.word,
+                    )
+                layout.validate(matrix)  # type: ignore[attr-defined]
+                scores["runs"] = float(layout.runs)
+                scores["xors"] = float(layout.xor_count)
+                candidates.append(_ArrayCandidate(layout, scores))
+    deduplicated: dict[tuple[object, ...], _ArrayCandidate] = {}
+    for candidate in candidates:
+        signature = candidate.layout.signature()
+        incumbent = deduplicated.get(signature)
+        if incumbent is None or _raw_key(
+            candidate.raw_scores, raw_order
+        ) < _raw_key(incumbent.raw_scores, raw_order):
+            deduplicated[signature] = candidate
+    representatives = _pareto(
+        list(deduplicated.values()),
+        lambda candidate: _raw_key(candidate.raw_scores, raw_order),
+        retain_ties=False,
+    )
+    canonical, _ = _canonical_array_frontier(
+        matrix,
+        components,
+        raw_component_names,
+        raw_order,
+    )
+    combined: dict[tuple[object, ...], _ArrayCandidate] = {
+        candidate.layout.signature(): candidate
+        for candidate in (*representatives, *canonical)
+    }
+    frontier = _pareto(
+        list(combined.values()),
+        lambda candidate: _raw_key(candidate.raw_scores, raw_order),
+    )
+    stats.exact = True
+    return frontier, ArraySearchResult(
+        matrix.name,
+        grammar_layout_count,
+        len(frontier),
+        stats,
+        score_ties_collapsed=True,
+        tile_hypotheses=len(tile_hypotheses),
+        max_inner_bits=max_inner_bits,
     )
 
 
@@ -1027,10 +1513,11 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
     ``frontier_type='fine-gated'`` first restricts layouts to
     ``Q_fine <= (1 + fine_tolerance) Q_fine*`` and then Pareto-filters over
     ``(J_peak, J_area, runs, xors)``. Exact score ties remain as distinct
-    layouts because hardware performance may distinguish them. The affine
-    grammar collapses analytically equivalent DP paths to one deterministic
-    representative so its exponentially larger word language remains
-    enumerable by score point.
+    layouts because hardware performance may distinguish them. The
+    outer-canonical grammar preserves the complete canonical tie family but
+    collapses equivalent noncanonical inner realizations. The affine grammar
+    likewise keeps one deterministic representative per equivalent path so
+    these exponentially larger languages remain enumerable.
     """
 
     start = perf_counter()
@@ -1089,6 +1576,14 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
                 raw_names,
                 raw_order,
             )
+        elif problem.grammar == "outer_canonical":
+            candidates, search_result = _outer_canonical_array_frontier(
+                matrix,
+                components,
+                raw_names,
+                raw_order,
+                problem.outer_canonical_max_inner_bits,
+            )
         else:
             candidates, search_result = _affine_array_frontier(
                 matrix,
@@ -1136,6 +1631,9 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
         retain_ties=problem.grammar != "affine",
     )
     members: list[FrontierMember] = []
+    array_component_cache: dict[
+        tuple[str, tuple[object, ...], str], tuple[float, float]
+    ] = {}
     for item in selected:
         candidate = item.candidate
         layouts: dict[str, Layout] = {
@@ -1147,6 +1645,7 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
             components,
             layouts,
             component_weights=weights,
+            array_component_cache=array_component_cache,
         )
         realized_cost = _member_cost(score, problem.fine_component)
         if any(

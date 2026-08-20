@@ -23,6 +23,7 @@ from relay import (
     AffineAccessLayout,
     ExplicitRegions,
     Hyperedge,
+    LinearInnerLayout,
     MatrixSpec,
     NonDistributiveAccessError,
     ObjectiveComponent,
@@ -176,6 +177,91 @@ def exhaustive_frontier(
 
 
 class GrammarFrontierTests(unittest.TestCase):
+    def test_outer_canonical_search_finds_mixed_inner_direction(self) -> None:
+        matrix = MatrixSpec("A", (4, 4), 4, ("i", "j"))
+        edges = {
+            "A": (Hyperedge.make(((0, 0), (1, 1))),)
+        }
+        problem = SimpleRelayProblem(
+            matrices=(matrix,),
+            events=(),
+            sequences=(),
+            objectives=(
+                ExplicitRegions("fine", 8, edges),
+                ExplicitRegions("coarse", 16, edges),
+            ),
+            grammar="outer_canonical",
+            fine_component="fine",
+            outer_canonical_max_inner_bits=2,
+        )
+
+        result = simple_solve(problem)
+
+        search = result.array_searches[0]
+        self.assertTrue(result.exact)
+        self.assertTrue(search.search_stats.exact)
+        self.assertEqual(search.tile_hypotheses, 6)
+        self.assertEqual(search.grammar_layout_count, 36)
+        self.assertTrue(search.score_ties_collapsed)
+        mixed = [
+            member
+            for member in result.frontier
+            if isinstance(member.layouts["A"], LinearInnerLayout)
+        ]
+        self.assertTrue(mixed)
+        self.assertEqual(mixed[0].cost.fine_region_count, 1.0)
+        self.assertEqual(mixed[0].cost.codegen_xors, 1)
+        self.assertEqual(
+            mixed[0].word_signature({"A": matrix}),
+            (("A", "linear:1,1:2,3:ij"),),
+        )
+
+    def test_outer_canonical_exact_width_is_explicitly_bounded(self) -> None:
+        matrix = MatrixSpec("A", (2, 2), 4, ("i", "j"))
+        problem = SimpleRelayProblem(
+            matrices=(matrix,),
+            events=(),
+            sequences=(),
+            objectives=(
+                ExplicitRegions(
+                    "fine",
+                    8,
+                    {"A": (Hyperedge.make(((0, 0), (0, 1))),)},
+                ),
+            ),
+            grammar="outer_canonical",
+            fine_component="fine",
+            outer_canonical_max_inner_bits=5,
+        )
+
+        with self.assertRaisesRegex(ValueError, "between zero and four"):
+            simple_solve(problem)
+
+    def test_outer_canonical_preserves_the_complete_canonical_tie_family(self) -> None:
+        canonical_problem = alternating_problem("canonical")
+        outer_problem = replace(
+            canonical_problem,
+            grammar="outer_canonical",
+            outer_canonical_max_inner_bits=0,
+        )
+
+        canonical = simple_solve(canonical_problem)
+        outer = simple_solve(outer_problem)
+        matrices = {
+            matrix.name: matrix for matrix in canonical_problem.matrices
+        }
+
+        self.assertEqual(
+            {
+                member.word_signature(matrices): member.cost.values
+                for member in outer.frontier
+            },
+            {
+                member.word_signature(matrices): member.cost.values
+                for member in canonical.frontier
+            },
+        )
+
     def test_affine_access_dp_finds_mixed_shared_direction(self) -> None:
         matrix = MatrixSpec("A", (4, 4), 4, ("i", "j"))
 

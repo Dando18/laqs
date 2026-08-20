@@ -15,6 +15,7 @@ class EvaluatorLayout:
     first_bits: int
     second_bits: int
     a_rows: tuple[int, ...] | None = None
+    outer_word: str | None = None
 
     @property
     def tile_rows(self) -> int:
@@ -33,7 +34,7 @@ CanonicalLayout = EvaluatorLayout
 
 
 def parse_layout(value: str, option: str) -> EvaluatorLayout:
-    """Parse an ``i/j`` word or ``linear:i_bits,j_bits:hex_rows``."""
+    """Parse an ``i/j`` word or a bit-linear layout descriptor."""
 
     normalized = value.lower()
     if not normalized:
@@ -52,9 +53,10 @@ def parse_layout(value: str, option: str) -> EvaluatorLayout:
         return EvaluatorLayout(normalized, first_bits, second_bits)
 
     fields = normalized.split(":")
-    if len(fields) != 3:
+    if len(fields) not in (3, 4):
         raise ValueError(
-            f"{option} linear descriptor must be linear:i_bits,j_bits:hex_rows"
+            f"{option} linear descriptor must be "
+            "linear:i_bits,j_bits:hex_rows[:outer_word]"
         )
     try:
         exponent_fields = fields[1].split(",")
@@ -78,7 +80,12 @@ def parse_layout(value: str, option: str) -> EvaluatorLayout:
         raise ValueError(f"{option} must contain exactly {width} valid matrix rows")
     if rank(rows) != width:
         raise ValueError(f"{option} linear matrix is singular")
-    return EvaluatorLayout(normalized, first_bits, second_bits, rows)
+    outer_word = fields[3] if len(fields) == 4 else None
+    if outer_word is not None and set(outer_word) - {"i", "j"}:
+        raise ValueError(f"{option} outer word must contain only i and j")
+    return EvaluatorLayout(
+        normalized, first_bits, second_bits, rows, outer_word
+    )
 
 
 canonical_layout = parse_layout
@@ -171,6 +178,42 @@ def layout_function(name: str, layout: EvaluatorLayout) -> str:
     else:
         inner_terms = _linear_inner_terms(layout)
     inner = " |\n        ".join(inner_terms) if inner_terms else "0ull"
+    if layout.outer_word is None:
+        outer = (
+            f"static_cast<uint64_t>(first >> {layout.first_bits}) *\n"
+            f"          (n >> {layout.second_bits}) +\n"
+            f"      (second >> {layout.second_bits})"
+        )
+    else:
+        used = {"i": 0, "j": 0}
+        outer_terms: list[str] = []
+        physical_bit = 0
+        while physical_bit < len(layout.outer_word):
+            mode = layout.outer_word[physical_bit]
+            end = physical_bit + 1
+            while (
+                end < len(layout.outer_word)
+                and layout.outer_word[end] == mode
+            ):
+                end += 1
+            width = end - physical_bit
+            logical_bit = used[mode]
+            used[mode] += width
+            coordinate = "first" if mode == "i" else "second"
+            tile_bits = (
+                layout.first_bits if mode == "i" else layout.second_bits
+            )
+            term = (
+                f"((static_cast<uint64_t>({coordinate}) >> "
+                f"{tile_bits + logical_bit}) & {_mask(width)})"
+            )
+            if physical_bit:
+                term += f" << {physical_bit}"
+            outer_terms.append(term)
+            physical_bit = end
+        outer = (
+            " |\n      ".join(outer_terms) if outer_terms else "0ull"
+        )
     description = (
         f"word(low -> high)={layout.word}"
         if layout.a_rows is None
@@ -180,9 +223,7 @@ def layout_function(name: str, layout: EvaluatorLayout) -> str:
 __host__ __device__ static __forceinline__ uint64_t {name}(
     uint32_t first, uint32_t second, uint32_t n) {{
   const uint64_t outer =
-      static_cast<uint64_t>(first >> {layout.first_bits}) *
-          (n >> {layout.second_bits}) +
-      (second >> {layout.second_bits});
+      {outer};
   const uint64_t inner =
       {inner};
   return (outer << {layout.width}) | inner;

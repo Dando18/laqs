@@ -5,8 +5,9 @@ the five HIP kernel evaluators. For each kernel it:
 
 1. builds the traced objectives and the kernel's configured component weights;
 2. solves `G_S` by exhaustive cut-point enumeration, `G_C` by the exact
-   canonical count-grid dynamic program, and `G_A` by the affine access-block
-   count-grid dynamic program;
+   canonical count-grid dynamic program, bounded `G_OC` by exhaustive inner
+   realization plus a canonical-suffix DP, and `G_A` by the affine
+   access-block count-grid dynamic program;
 3. forms distinct joint layouts for every target matrix;
 4. retains the ordinary exact Pareto frontier over
    `(Q_fine, J_peak, J_area, codegen runs, codegen XORs)`;
@@ -23,11 +24,23 @@ correctness and timing harness as canonical words. Its codegen objectives use
 contiguous source-field groups and the row-weight XOR proxy described in the
 codegen notes.
 
+The `G_OC` experiment is exact for an explicitly bounded language: every
+canonical layout plus every block-diagonal outer-canonical layout whose
+arbitrary invertible inner map has at most `--goc-max-inner-bits` bits. The
+default and current implementation limit are four, which permits exhaustive
+realization of every inner matrix. For each cut point, a DP searches every
+canonical interleaving of the remaining outer bits. The optional upper-right
+coupling block is zero: it leaves every low-address quotient subspace
+unchanged, while nonzero entries only add XOR terms, so it cannot improve the
+experiment's locality/codegen Pareto objectives.
+
 Exact analytical score ties remain separate for `G_S` and `G_C` because their
 generated address expressions can have different runtimes. The much larger
-`G_A` word language retains one deterministic representative for analytically
-equivalent DP paths. Benchmark commands are deduplicated across the baseline
-and all three grammars.
+`G_OC` preserves the complete `G_C` tie family so its measured candidate set
+respects `G_C` subset `G_OC`, while equivalent noncanonical inner realizations
+are represented once. `G_A` retains one deterministic representative for
+analytically equivalent score paths. Benchmark commands are deduplicated
+across the baseline and all four grammars.
 
 The affine-access lemma requires a distributive access lattice. The current
 SYRK `A` edge spaces provide a concrete counterexample, so the experiment
@@ -82,17 +95,19 @@ The default outputs are:
 The checked-in report uses 10 samples, 5 launches per sample, 3 warmups,
 ROCm 7.0.2, `gfx942`, and the ordinary five-cost Pareto frontier. It contains
 223 unique benchmark mappings after cross-grammar and baseline deduplication.
-The 211 existing `G_S`/`G_C` mappings were reused from the preceding report;
-only 12 distinct new affine layouts required GPU measurements, and every one
-passed correctness validation.
+All retained `G_OC` mappings were already present in the measured `G_C` or
+`G_A` families, so the extension reused all 223 prior correctness-checked
+timings and required no new production measurements. A separate mixed-layout
+GPU smoke test passed correctness validation for the new descriptor/codegen
+path.
 
-| Kernel | `G_S` frontier | `G_C` frontier | `G_A` frontier | `G_S` speedup | `G_C` speedup | `G_A` speedup |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| ATAX | 6 | 10 | 4 | 1.791x | 1.791x | 1.768x |
-| GEMM | 12 | 12 | 8 | 1.057x | 1.057x | 1.083x |
-| GESUMMV | 88 | 181 | 17 | 2.121x | 2.121x | 2.121x |
-| MVT | 2 | 2 | 2 | 1.858x | 1.858x | 1.956x |
-| SYRK | 4 | 4 | N/A | 2.334x | 2.334x | N/A |
+| Kernel | `G_S` frontier | `G_C` frontier | `G_OC` frontier | `G_A` frontier | `G_S` speedup | `G_C` speedup | `G_OC` speedup | `G_A` speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ATAX | 6 | 10 | 10 | 4 | 1.791x | 1.791x | 1.791x | 1.768x |
+| GEMM | 12 | 12 | 12 | 8 | 1.057x | 1.057x | 1.057x | 1.083x |
+| GESUMMV | 88 | 181 | 181 | 17 | 2.121x | 2.121x | 2.121x | 2.121x |
+| MVT | 2 | 2 | 2 | 2 | 1.858x | 1.858x | 1.858x | 1.956x |
+| SYRK | 4 | 4 | 4 | N/A | 2.334x | 2.334x | 2.334x | N/A |
 
 These are measured best-in-frontier results, not predicted rankings. The
 objectives and component weights are the current experimental model, and this

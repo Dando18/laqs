@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Benchmark exact RELAY grammar frontiers on the five kernel evaluators.
 
-For each kernel, this experiment solves the standard grammar ``G_S`` by
-exhaustive enumeration, the canonical grammar ``G_C`` by dynamic programming,
-and the affine-access grammar ``G_A`` by its access-block count-grid dynamic
-program. Every retained layout mapping on the resulting analytical frontier
-is correctness-checked and timed. The fastest measured member is the algorithm
+For each kernel, this experiment solves ``G_S``, ``G_C``, bounded ``G_OC``,
+and the affine-access grammar ``G_A`` with their corresponding exact searches.
+Every retained layout mapping on the resulting analytical frontier is
+correctness-checked and timed. The fastest measured member is the algorithm
 result, and its speedup is measured against the full row-major baseline.
 
 The default is the ordinary Pareto frontier over
@@ -63,6 +62,11 @@ GRAMMARS = {
         "algorithm": "G_C dynamic programming",
         "solver": "count-grid dynamic programming",
     },
+    "outer_canonical": {
+        "notation": "G_OC",
+        "algorithm": "G_OC exact search",
+        "solver": "bounded inner enumeration and canonical-suffix DP",
+    },
     "affine": {
         "notation": "G_A",
         "algorithm": "G_A affine-access DP",
@@ -108,7 +112,7 @@ def parse_arguments(
         action="append",
         choices=tuple(GRAMMARS),
         default=None,
-        help="grammar solver to include; repeat as needed (default: all three)",
+        help="grammar solver to include; repeat as needed (default: all four)",
     )
     parser.add_argument(
         "--size",
@@ -131,6 +135,16 @@ def parse_arguments(
         help=(
             "relative Q_fine gate for --frontier-type=fine-gated "
             "(default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
+        "--goc-max-inner-bits",
+        type=nonnegative_integer,
+        default=4,
+        metavar="BITS",
+        help=(
+            "largest arbitrary G_OC inner map searched exactly; currently "
+            "limited to four (default: %(default)s)"
         ),
     )
     parser.add_argument(
@@ -258,15 +272,18 @@ def _configuration(
         ),
         "frontier": (
             "exact Pareto filtering over "
-            "(Q_fine, J_peak, J_area, runs, xors); G_S/G_C score ties "
-            "retained and G_A equivalent DP paths represented once"
+            "(Q_fine, J_peak, J_area, runs, xors); compact-grammar score "
+            "ties retained (including G_C inside G_OC) and noncanonical "
+            "equivalent score paths represented once"
             if args.frontier_type == "pareto"
             else (
                 "Q_fine <= (1 + epsilon) Q_fine*, followed by exact Pareto "
-                "filtering over (J_peak, J_area, runs, xors); G_S/G_C score "
-                "ties retained and G_A equivalent DP paths represented once"
+                "filtering over (J_peak, J_area, runs, xors); compact-grammar "
+                "score ties retained (including G_C inside G_OC) and "
+                "noncanonical equivalent score paths represented once"
             )
         ),
+        "goc_max_inner_bits": args.goc_max_inner_bits,
         "samples": args.samples,
         "iterations": args.iterations,
         "warmup": args.warmup,
@@ -426,6 +443,9 @@ def prepare_report(
                         frontier_type=args.frontier_type,
                         fine_component=FINE_COMPONENT,
                         fine_tolerance=args.fine_tolerance,
+                        outer_canonical_max_inner_bits=(
+                            args.goc_max_inner_bits
+                        ),
                         name=f"{spec.name}_{grammar}_{args.size}",
                     )
                 )
@@ -649,6 +669,7 @@ def _compatible_configuration(
         "frontier_type",
         "fine_component",
         "fine_tolerance",
+        "goc_max_inner_bits",
         "samples",
         "iterations",
         "warmup",
@@ -659,8 +680,12 @@ def _compatible_configuration(
         "compiler",
         "arch",
     )
+    defaults = {"goc_max_inner_bits": 4}
     return tuple(
-        field for field in fields if source.get(field) != target.get(field)
+        field
+        for field in fields
+        if source.get(field, defaults.get(field))
+        != target.get(field, defaults.get(field))
     )
 
 
@@ -883,7 +908,7 @@ def render_plot(report: Mapping[str, object], output: Path) -> None:
         for name in configuration["grammars"]
     ]
     sns.set_theme(style="whitegrid", context="notebook")
-    figure, axis = plt.subplots(figsize=(10.5, 5.4))
+    figure, axis = plt.subplots(figsize=(12.5, 5.6))
     sns.barplot(
         data=data,
         x="display_name",
@@ -901,6 +926,10 @@ def render_plot(report: Mapping[str, object], output: Path) -> None:
         "Best measured layout from each RELAY solver frontier "
         f"(N={configuration['matrix_size']})"
     )
+    axis.set_ylim(
+        0.0,
+        max(float(row["speedup"]) for row in rows) * 1.16,
+    )
     axis.legend(
         title="Layout algorithm",
         frameon=True,
@@ -909,7 +938,13 @@ def render_plot(report: Mapping[str, object], output: Path) -> None:
         ncol=len(algorithm_order),
     )
     for container in axis.containers:
-        axis.bar_label(container, fmt="%.2f×", padding=3, fontsize=8)
+        axis.bar_label(
+            container,
+            fmt="%.2f×",
+            padding=3,
+            fontsize=8,
+            rotation=90,
+        )
     kernels = report.get("kernels", [])
     assert isinstance(kernels, list)
     bar_width = 0.8 / len(algorithm_order)
@@ -979,6 +1014,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         parser.error("--block-x times --block-y must not exceed 1024")
     if args.block_size > 1024:
         parser.error("--block-size must not exceed 1024")
+    if args.goc_max_inner_bits > 4:
+        parser.error("--goc-max-inner-bits currently must not exceed four")
     if args.prepare_only and args.resume:
         parser.error("--prepare-only cannot be combined with --resume")
     if args.resume and args.reuse_timings is not None:

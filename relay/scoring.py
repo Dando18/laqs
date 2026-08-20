@@ -11,7 +11,14 @@ All scores in this module are costs: lower values are better.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Literal, Mapping, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Literal,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 
 from .layouts import Layout
 from .model import Coord, MatrixSpec
@@ -346,6 +353,10 @@ def score_layouts(
     *,
     component_weights: Mapping[str, float] | None = None,
     offset_cache_by_array: Mapping[str, dict[Coord, int]] | None = None,
+    array_component_cache: MutableMapping[
+        tuple[str, tuple[object, ...], str], tuple[float, float]
+    ]
+    | None = None,
 ) -> LayoutScore:
     """Score one layout for every participating array.
 
@@ -356,7 +367,9 @@ def score_layouts(
     all three scalar aggregates while retaining it in the detailed report.
     Address-code runs and XORs are computed independently of those aggregates.
     ``offset_cache_by_array`` lets callers reuse realized offsets in additional
-    diagnostics for the same layouts.
+    diagnostics for the same layouts. ``array_component_cache`` avoids
+    rescoring the same concrete array layout when many joint candidates reuse
+    it; cached values retain both the raw region count and packing bound.
     """
 
     weights = dict(component_weights or {})
@@ -396,13 +409,28 @@ def score_layouts(
                     f"layout {layout.name!r} targets {layout.matrix_name!r}, "
                     f"not {array_name!r}"
                 )
-            raw = weighted_component_region_count(
-                matrix,
-                layout,
-                component,
-                offset_cache=offset_caches[array_name],
+            cache_key = (
+                array_name,
+                layout.signature(),
+                component.name,
             )
-            bound = component.packing_bound(matrix)
+            cached = (
+                array_component_cache.get(cache_key)
+                if array_component_cache is not None
+                else None
+            )
+            if cached is None:
+                raw = weighted_component_region_count(
+                    matrix,
+                    layout,
+                    component,
+                    offset_cache=offset_caches[array_name],
+                )
+                bound = component.packing_bound(matrix)
+                if array_component_cache is not None:
+                    array_component_cache[cache_key] = (raw, bound)
+            else:
+                raw, bound = cached
             per_array.append(ArrayComponentScore(array_name, raw, bound))
 
         raw_total = sum(item.raw_region_count for item in per_array)
