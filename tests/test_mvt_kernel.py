@@ -7,6 +7,12 @@ import tempfile
 import unittest
 
 from kernels.mvt import evaluate, problem
+from relay import (
+    MI300A_V1,
+    UNIVERSAL_V1_BASIS,
+    UniversalScopeObjectives,
+    build_edge_families,
+)
 from relay.objectives import build_objectives
 
 
@@ -27,8 +33,8 @@ class MvtProblemTests(unittest.TestCase):
             ],
         )
         self.assertEqual(len(events), 4 * 16 + 4)
-        self.assertEqual(len(sequences), 2)
-        self.assertEqual([len(sequence.event_ids) for sequence in sequences], [16, 16])
+        self.assertEqual(len(sequences), 1)
+        self.assertEqual(sequences[0].event_ids, tuple(event.id for event in events))
 
         row_load = events[2]
         transpose_load = events[4]
@@ -42,95 +48,84 @@ class MvtProblemTests(unittest.TestCase):
             [access.coord for access in transpose_load.accesses],
             [(0, i) for i in range(16)],
         )
-        self.assertTrue(
-            all(
-                event_id.startswith("A.row")
-                for event_id in sequences[0].event_ids
-            )
-        )
-        self.assertTrue(
-            all(
-                event_id.startswith("A.transpose")
-                for event_id in sequences[1].event_ids
-            )
+        self.assertEqual(
+            [events[event_index].site for event_index in range(2, 6)],
+            ["A.row.load", "y1.load", "A.transpose.load", "y2.load"],
         )
 
-    def test_objectives_label_grounded_and_hypothesis_scopes(self) -> None:
+    def test_array_lane_windows_union_row_and_transpose_streams(self) -> None:
+        config = problem.build_config(problem_size=8, block_size=8)
+        matrices = {matrix.name: matrix for matrix in problem.get_matrices(config)}
+        event_items, sequences = problem.get_events_and_sequences(config)
+        events = {event.id: event for event in event_items}
+        families = {
+            family.name: family
+            for family in build_edge_families(matrices, events, sequences)
+        }
+
+        stream_edges = families[
+            "lane_window.t4.stream.load"
+        ].edges_by_array["A"]
+        array_edges = families["lane_window.t4.array.load"].edges_by_array["A"]
+
+        self.assertNotEqual(
+            {(edge.points, edge.weight) for edge in stream_edges},
+            {(edge.points, edge.weight) for edge in array_edges},
+        )
+        self.assertTrue(
+            any((0, 1) in edge.points and (1, 0) in edge.points for edge in array_edges)
+        )
+
+    def test_universal_scopes_preserve_both_matrix_directions(self) -> None:
         config = problem.build_config(problem_size=16, block_size=16)
         matrices = {matrix.name: matrix for matrix in problem.get_matrices(config)}
         event_items, sequences = problem.get_events_and_sequences(config)
         events = {event.id: event for event in event_items}
         components = build_objectives(
-            problem.get_objectives(config), matrices, events, sequences
+            (UniversalScopeObjectives(MI300A_V1.byte_scales),),
+            matrices,
+            events,
+            sequences,
         )
         by_name = {component.name: component for component in components}
+        fine = by_name[MI300A_V1.fine_component]
 
-        self.assertEqual(len(components), 17)
+        self.assertEqual(fine.edge_family, "issue.g64.stream.load")
         self.assertEqual(
+            {edge.points for edge in fine.edges_by_array["A"]},
             {
-                component.name
-                for component in components
-                if component.provenance == "grounded"
+                tuple((i, 0) for i in range(16)),
+                tuple((0, j) for j in range(16)),
             },
-            {"wave_load.64B", "output_store.64B"},
-        )
-        self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["A"]), 32)
-        self.assertEqual(
-            len(by_name["row_lane_stream.128B.window16"].edges_by_array["A"]),
-            16,
         )
         self.assertEqual(
-            len(by_name["row_lane_stream.512B.window16"].edges_by_array["A"]),
-            16,
+            {edge.weight for edge in fine.edges_by_array["A"]}, {16.0}
         )
-        self.assertEqual(
-            len(
-                by_name["transpose_lane_stream.128B.window16"]
-                .edges_by_array["A"]
-            ),
-            16,
-        )
-        cross_points = by_name["workgroup_step_cross.2048B"].edges_by_array[
-            "A"
-        ][0].points
-        self.assertEqual(len(cross_points), 31)
-        self.assertIn((0, 15), cross_points)
-        self.assertIn((15, 0), cross_points)
-        for region_bytes in (512, 1024, 4096, 8192):
-            component = by_name[
-                f"transpose_wave_neighborhood.{region_bytes}B"
+
+        schema = {scope.name for scope in UNIVERSAL_V1_BASIS.scope_keys()}
+        families = {component.edge_family for component in components}
+        self.assertLessEqual(families, schema)
+        for family in families:
+            materialized = [
+                component
+                for component in components
+                if component.edge_family == family
             ]
-            self.assertEqual(component.provenance, "hypothesis")
-            self.assertEqual(len(component.edges_by_array["A"]), 16)
-        self.assertEqual(set(problem.get_component_weights(config)), set(by_name))
-        self.assertEqual(
-            problem.get_component_weights(config)[
-                "transpose_wave_neighborhood.4096B"
-            ],
-            0.0625,
+            self.assertEqual(
+                tuple(component.region_bytes for component in materialized),
+                MI300A_V1.byte_scales,
+            )
+            self.assertTrue(
+                all(
+                    component.edges_by_array is materialized[0].edges_by_array
+                    for component in materialized
+                )
+            )
+        self.assertTrue(
+            all(component.provenance == "universal-v1" for component in components)
         )
-        self.assertEqual(
-            problem.get_component_weights(config)[
-                "row_lane_stream.512B.window16"
-            ],
-            0.0,
-        )
-        self.assertEqual(
-            problem.get_component_weights(config)[
-                "transpose_wave_neighborhood.512B"
-            ],
-            0.0,
-        )
-        self.assertEqual(
-            problem.get_component_weights(config)[
-                "A.wave_lane_group.lane64.512B"
-            ],
-            0.0,
-        )
-        self.assertEqual(
-            problem.get_component_weights(config)["wave_neighborhood.512B"],
-            0.0,
-        )
+        self.assertFalse(hasattr(problem, "get_objectives"))
+        self.assertFalse(hasattr(problem, "get_component_weights"))
 
 
 class MvtEvaluatorTests(unittest.TestCase):

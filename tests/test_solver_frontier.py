@@ -12,16 +12,19 @@ import unittest
 from experiments.layout_ranking import KERNEL_SPECS
 from experiments.solver_frontier import (
     _add_benchmark,
+    _cost_dict,
     evaluator_command,
     finalize_report,
     nonnegative_float,
     parse_arguments,
+    prepare_report,
     render_plot,
     reuse_timings,
 )
 from relay import (
     AffineAccessLayout,
     ExplicitRegions,
+    FrontierCost,
     Hyperedge,
     LinearInnerLayout,
     MatrixSpec,
@@ -122,6 +125,19 @@ def exhaustive_frontier(
         ]
 
     candidates = []
+    if problem.hardware_profile is not None:
+        weights = problem.hardware_profile.component_weights(components)
+        peak_tolerances = problem.hardware_profile.peak_tolerances(components)
+    else:
+        weights = {
+            component.name: problem.component_weights.get(component.name, 1.0)
+            for component in components
+        }
+        peak_tolerances = dict(problem.peak_tolerances)
+        if not peak_tolerances:
+            peak_tolerances = {
+                name: 1.0 for name, weight in weights.items() if weight > 0
+            }
     for words in product(*word_sets):
         layouts = {
             name: canonical_layout_from_word(
@@ -133,17 +149,13 @@ def exhaustive_frontier(
             matrices,
             components,
             layouts,
-            component_weights={
-                component.name: problem.component_weights.get(
-                    component.name, 1.0
-                )
-                for component in components
-            },
+            component_weights=weights,
+            peak_tolerances=peak_tolerances,
         )
         cost = (
             score.component(problem.fine_component).raw_region_count,
-            score.peak_normalized_excess,
-            score.weighted_normalized_excess,
+            score.hardware_peak,
+            score.hardware_area,
             float(score.codegen.runs),
             float(score.codegen.xors),
         )
@@ -340,13 +352,18 @@ class GrammarFrontierTests(unittest.TestCase):
                 1,
             )
             score = score_layouts(
-                {"A": matrix}, result.components, {"A": layout}
+                {"A": matrix},
+                result.components,
+                {"A": layout},
+                peak_tolerances={
+                    component.name: 1.0 for component in result.components
+                },
             )
             exhaustive_costs.append(
                 (
                     score.component("fine").raw_region_count,
-                    score.peak_normalized_excess,
-                    score.weighted_normalized_excess,
+                    score.hardware_peak,
+                    score.hardware_area,
                     float(score.codegen.runs),
                     float(score.codegen.xors),
                 )
@@ -493,8 +510,8 @@ class GrammarFrontierTests(unittest.TestCase):
                 self.assertEqual(
                     result.frontier_objectives,
                     (
-                        "peak-normalized-excess",
-                        "weighted-normalized-excess",
+                        "hardware-peak",
+                        "hardware-area",
                         "codegen-runs",
                         "codegen-xors",
                     ),
@@ -505,8 +522,10 @@ class SolverFrontierExperimentTests(unittest.TestCase):
     def test_matching_prior_timing_can_be_reused(self) -> None:
         configuration = {
             "matrix_size": 8,
+            "hardware_profile": "mi300a",
+            "hardware_profile_id": "mi300a-gfx942-universal-v1-poc",
             "frontier_type": "pareto",
-            "fine_component": "wave_load.64B",
+            "fine_component": "issue.g64.stream.load.64B",
             "fine_tolerance": None,
             "samples": 2,
             "iterations": 1,
@@ -575,7 +594,82 @@ class SolverFrontierExperimentTests(unittest.TestCase):
         _, args = parse_arguments([])
 
         self.assertEqual(args.frontier_type, "pareto")
+        self.assertEqual(args.hardware_profile, "mi300a")
         self.assertIsNone(args.grammar)
+
+    def test_cost_report_uses_hardware_aggregate_names(self) -> None:
+        cost = FrontierCost(3.0, 0.25, 1.5, 2, 1)
+
+        self.assertEqual(
+            _cost_dict(cost),
+            {
+                "fine_region_count": 3.0,
+                "hardware_peak": 0.25,
+                "hardware_area": 1.5,
+                "codegen_runs": 2,
+                "codegen_xors": 1,
+            },
+        )
+
+    def test_prepared_report_uses_one_hardware_profile_and_universal_scopes(
+        self,
+    ) -> None:
+        _, args = parse_arguments(
+            [
+                "--kernel",
+                "atax",
+                "--grammar",
+                "standard",
+                "--size",
+                "8",
+                "--block-size",
+                "8",
+                "--prepare-only",
+            ]
+        )
+
+        report = prepare_report(args, ("atax",), ("standard",))
+
+        profile = report["hardware_profile"]
+        kernel = report["kernels"][0]
+        objective = kernel["objectives"][0]
+        candidate = kernel["solvers"][0]["frontier"][0]
+        self.assertEqual(report["configuration"]["hardware_profile"], "mi300a")
+        self.assertEqual(
+            report["configuration"]["hardware_profile_id"],
+            profile["profile_id"],
+        )
+        self.assertEqual(
+            report["configuration"]["fine_component"],
+            profile["fine_component"],
+        )
+        self.assertEqual(
+            set(kernel["component_weights"]),
+            {item["name"] for item in kernel["objectives"]},
+        )
+        self.assertEqual(
+            kernel["peak_tolerances"],
+            {
+                name: tolerance
+                for name, tolerance in profile["kappa"].items()
+                if name in kernel["component_weights"]
+            },
+        )
+        self.assertEqual(objective["provenance"], "universal-v1")
+        self.assertIsNotNone(objective["edge_family"])
+        self.assertIsNotNone(objective["normalization_bytes"])
+        self.assertEqual(
+            set(candidate["cost"]),
+            {
+                "fine_region_count",
+                "hardware_peak",
+                "hardware_area",
+                "codegen_runs",
+                "codegen_xors",
+            },
+        )
+        self.assertIn("hardware_peak", candidate["score"]["aggregates"])
+        self.assertIn("hardware_area", candidate["score"]["aggregates"])
 
     def test_evaluator_command_preserves_distinct_operand_words(self) -> None:
         _, args = parse_arguments(

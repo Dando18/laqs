@@ -1,4 +1,4 @@
-"""Construct memory events and objectives for a square GESUMMV kernel.
+"""Construct matrices, memory events, and sequences for a square GESUMMV kernel.
 
 Each thread computes one output element
 
@@ -15,17 +15,10 @@ import math
 
 from relay import (
     Access,
-    EventFilter,
     EventSequence,
-    GroupedRegions,
-    LanePrefixRegions,
     MatrixSpec,
     MemoryEvent,
-    PerLaneTemporalRegions,
-    SimultaneousRegions,
-    TemporalWindowRegions,
 )
-from relay.objectives import ObjectiveSpec
 
 
 @dataclass(frozen=True)
@@ -145,111 +138,3 @@ def get_events_and_sequences(
         )
 
     return tuple(events), tuple(sequences)
-
-
-def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
-    """Describe GESUMMV transaction, reuse, and cache-locality scopes.
-
-    Only the wave load and output-store scopes come directly from the traced
-    memory instructions.  Lane grouping and every temporal or larger-region
-    scope are explicitly marked as hypotheses: they encode plausible locality
-    neighborhoods rather than asserted hardware behavior.
-    """
-
-    del config
-    matrix_reads = EventFilter.make(arrays=("A", "B"), kinds=("read",))
-    inner_matrix_reads = EventFilter.make(
-        arrays=("A", "B"),
-        kinds=("read",),
-        metadata={"phase": "inner"},
-    )
-    y_writes = EventFilter.make(arrays=("y",), kinds=("write",))
-    lane_levels = ((8, 64), (16, 128), (32, 256), (64, 512))
-
-    return (
-        SimultaneousRegions(
-            "wave_load.64B",
-            64,
-            event_filter=matrix_reads,
-            provenance="grounded",
-            description="logical addresses issued by one traced wave load",
-        ),
-        SimultaneousRegions(
-            "output_store.64B",
-            64,
-            event_filter=y_writes,
-            provenance="grounded",
-            description="logical addresses issued by the traced wave store",
-        ),
-        LanePrefixRegions(
-            "wave_lane_group",
-            levels=lane_levels,
-            event_filter=matrix_reads,
-            provenance="hypothesis",
-        ),
-        PerLaneTemporalRegions(
-            "lane_reuse.128B",
-            128,
-            windows=(16,),
-            stride=16,
-            event_filter=matrix_reads,
-            provenance="hypothesis",
-            description=(
-                "sixteen consecutive inner-loop values used by one lane; "
-                "a temporal-reuse neighborhood hypothesis"
-            ),
-        ),
-        SimultaneousRegions(
-            "wave_neighborhood.512B",
-            512,
-            event_filter=matrix_reads,
-            provenance="hypothesis",
-            description=(
-                "one wave's 64 FP64 matrix values in a broader locality region"
-            ),
-        ),
-        GroupedRegions(
-            "workgroup_step_panel.1024B",
-            1024,
-            group_by=("workgroup", "step"),
-            event_filter=inner_matrix_reads,
-            provenance="hypothesis",
-            description=(
-                "the 128-row A or B panel used by both waves at one loop step"
-            ),
-        ),
-        TemporalWindowRegions(
-            "wave_phase.4096B",
-            4096,
-            window=None,
-            event_filter=matrix_reads,
-            provenance="hypothesis",
-            description=(
-                "one wave's complete matrix-read phase in a cache-scale region"
-            ),
-        ),
-    )
-
-
-def get_component_weights(config: Config) -> dict[str, float]:
-    """Return MI300A-calibrated ``tau`` weights for score aggregation.
-
-    The N=256, 22-layout calibration selected the 512-byte wave neighborhood,
-    per-lane reuse, and complete-phase cache scopes. Smaller transaction and
-    workgroup-panel terms remain diagnostic at weight zero. The active scopes
-    are hypotheses about this machine, not universal cache parameters.
-    """
-
-    del config
-    return {
-        "wave_load.64B": 0.0,
-        "output_store.64B": 0.0,
-        "wave_lane_group.lane8.64B": 0.0,
-        "wave_lane_group.lane16.128B": 0.0,
-        "wave_lane_group.lane32.256B": 0.0,
-        "wave_lane_group.lane64.512B": 0.5,
-        "lane_reuse.128B.window16": 1.0,
-        "wave_neighborhood.512B": 0.5,
-        "workgroup_step_panel.1024B": 0.0,
-        "wave_phase.4096B": 4.0,
-    }

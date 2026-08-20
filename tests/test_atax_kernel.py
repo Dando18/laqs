@@ -7,6 +7,11 @@ import tempfile
 import unittest
 
 from kernels.atax import evaluate, problem
+from relay import (
+    MI300A_V1,
+    UNIVERSAL_V1_BASIS,
+    UniversalScopeObjectives,
+)
 from relay.objectives import build_objectives
 
 
@@ -57,53 +62,56 @@ class AtaxProblemTests(unittest.TestCase):
             tuple(event.id for event in events[17:]),
         )
 
-    def test_objectives_capture_both_a_access_orientations(self) -> None:
+    def test_universal_scopes_capture_both_a_access_orientations(self) -> None:
         config = problem.build_config(problem_size=8, block_size=8)
         matrices = {matrix.name: matrix for matrix in problem.get_matrices(config)}
         event_items, sequences = problem.get_events_and_sequences(config)
         events = {event.id: event for event in event_items}
         components = build_objectives(
-            problem.get_objectives(config), matrices, events, sequences
+            (UniversalScopeObjectives(MI300A_V1.byte_scales),),
+            matrices,
+            events,
+            sequences,
         )
         by_name = {component.name: component for component in components}
+        fine = by_name[MI300A_V1.fine_component]
 
-        self.assertEqual(len(components), 12)
-        wave_edges = by_name["wave_load.64B"].edges_by_array["A"]
-        self.assertEqual(len(wave_edges), 16)
-        self.assertEqual(wave_edges[0].points, tuple((i, 0) for i in range(8)))
-        self.assertEqual(wave_edges[8].points, tuple((0, j) for j in range(8)))
+        self.assertEqual(fine.edge_family, "issue.g64.stream.load")
         self.assertEqual(
-            len(by_name["stage1_wave_load.64B"].edges_by_array["A"]),
-            8,
-        )
-        self.assertEqual(
-            by_name["stage1_wave_neighborhood.256B"].provenance,
-            "hypothesis",
-        )
-        self.assertEqual(
-            len(by_name["output_store.64B"].edges_by_array["tmp"]), 1
-        )
-        self.assertEqual(
-            len(by_name["output_store.64B"].edges_by_array["y"]), 1
-        )
-        self.assertEqual(
-            len(by_name["workgroup_step_panel.1024B"].edges_by_array["A"]),
-            16,
-        )
-        self.assertEqual(
+            {edge.points for edge in fine.edges_by_array["A"]},
             {
-                component.name
-                for component in components
-                if component.provenance == "grounded"
+                tuple((i, 0) for i in range(8)),
+                tuple((0, j) for j in range(8)),
             },
-            {"wave_load.64B", "stage1_wave_load.64B", "output_store.64B"},
         )
-        self.assertEqual(set(problem.get_component_weights(config)), set(by_name))
-        self.assertEqual(problem.get_component_weights(config)["wave_load.64B"], 0.0)
         self.assertEqual(
-            problem.get_component_weights(config)["wave_lane_group.lane16.128B"],
-            4.0,
+            {edge.weight for edge in fine.edges_by_array["A"]}, {8.0}
         )
+
+        schema = {scope.name for scope in UNIVERSAL_V1_BASIS.scope_keys()}
+        families = {component.edge_family for component in components}
+        self.assertLessEqual(families, schema)
+        for family in families:
+            materialized = [
+                component
+                for component in components
+                if component.edge_family == family
+            ]
+            self.assertEqual(
+                tuple(component.region_bytes for component in materialized),
+                MI300A_V1.byte_scales,
+            )
+            self.assertTrue(
+                all(
+                    component.edges_by_array is materialized[0].edges_by_array
+                    for component in materialized
+                )
+            )
+        self.assertTrue(
+            all(component.provenance == "universal-v1" for component in components)
+        )
+        self.assertFalse(hasattr(problem, "get_objectives"))
+        self.assertFalse(hasattr(problem, "get_component_weights"))
 
 
 class AtaxEvaluatorTests(unittest.TestCase):

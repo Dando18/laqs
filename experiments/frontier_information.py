@@ -15,7 +15,7 @@ from typing import Mapping, Sequence
 from relay.layouts import Layout
 from relay.model import MatrixSpec
 from relay.objectives import Hyperedge, ObjectiveComponent
-from relay.scoring import normalized_excess
+from relay.scoring import excess_footprint, normalized_excess
 
 
 REPRESENTATIONS = (
@@ -130,6 +130,7 @@ def diagnostic_layout_signature(
         tuple[str, tuple[tuple[int, ...], ...]], tuple[int, ...]
     ] = {}
     dense_values: dict[str, float] = {}
+    dense_families_seen: set[str] = set()
     split_scores: dict[str, dict[str, object]] = {}
 
     for component in components:
@@ -157,9 +158,11 @@ def diagnostic_layout_signature(
                 partition = array if semantic is None else f"{array}.{semantic}"
                 partitions.setdefault(partition, []).append((array, edge))
 
-        if any(curves):
+        family_name = component.edge_family or component.name
+        if any(curves) and family_name not in dense_families_seen:
+            dense_families_seen.add(family_name)
             for dimension, value in enumerate(curves):
-                dense_values[f"{component.name}.d{dimension}"] = value
+                dense_values[f"{family_name}.d{dimension}"] = value
 
         if len(partitions) <= 1:
             continue
@@ -188,6 +191,12 @@ def diagnostic_layout_signature(
                 "raw_region_count": raw,
                 "packing_lower_bound": bound,
                 "normalized_excess": normalized_excess(raw, bound),
+                "excess_footprint": excess_footprint(
+                    raw,
+                    bound,
+                    component.region_bytes,
+                    component.normalization_bytes,
+                ),
             }
 
     return {
@@ -231,33 +240,35 @@ def representation_vectors(
         raise ValueError(f"unknown frontier representation {representation!r}")
     records = group["results"]
     assert isinstance(records, list) and records
+    fine_component = str(group["fine_component"])
     first_components = _component_map(records[0])
     component_names = tuple(first_components)
     active_names = tuple(
         name
         for name, component in first_components.items()
         if float(component["weight"]) > 0.0
+        or component.get("peak_tolerance") is not None
     )
 
     if representation == "aggregate":
         objectives = (
-            "wave_load.64B.raw-region-count",
-            "peak-normalized-excess",
-            "weighted-normalized-excess",
+            f"{fine_component}.raw-region-count",
+            "hardware-peak",
+            "hardware-area",
             "codegen-runs",
             "codegen-xors",
         )
     elif representation == "active-components":
         objectives = (
-            "wave_load.64B.raw-region-count",
-            *(f"{name}.normalized-excess" for name in active_names),
+            f"{fine_component}.raw-region-count",
+            *(f"{name}.excess-footprint" for name in active_names),
             "codegen-runs",
             "codegen-xors",
         )
     elif representation == "all-components":
         objectives = (
-            "wave_load.64B.raw-region-count",
-            *(f"{name}.normalized-excess" for name in component_names),
+            f"{fine_component}.raw-region-count",
+            *(f"{name}.excess-footprint" for name in component_names),
             "codegen-runs",
             "codegen-xors",
         )
@@ -271,9 +282,9 @@ def representation_vectors(
             split = diagnostics["stream_split"]
             assert isinstance(split, dict)
             objectives = (
-                "wave_load.64B.raw-region-count",
-                *(f"{name}.normalized-excess" for name in component_names),
-                *(f"{name}.normalized-excess" for name in sorted(split)),
+                f"{fine_component}.raw-region-count",
+                *(f"{name}.excess-footprint" for name in component_names),
+                *(f"{name}.excess-footprint" for name in sorted(split)),
                 "codegen-runs",
                 "codegen-xors",
             )
@@ -296,26 +307,26 @@ def representation_vectors(
         aggregates = score["aggregates"]
         codegen = score["codegen"]
         assert isinstance(aggregates, dict) and isinstance(codegen, dict)
-        fine = float(components["wave_load.64B"]["raw_region_count"])
+        fine = float(components[fine_component]["raw_region_count"])
         tail = (float(codegen["runs"]), float(codegen["xors"]))
         if representation == "aggregate":
             vector = (
                 fine,
-                float(aggregates["peak_normalized_excess"]),
-                float(aggregates["weighted_normalized_excess"]),
+                float(aggregates["hardware_peak"]),
+                float(aggregates["hardware_area"]),
                 *tail,
             )
         elif representation == "active-components":
             vector = (
                 fine,
-                *(float(components[name]["normalized_excess"]) for name in active_names),
+                *(float(components[name]["excess_footprint"]) for name in active_names),
                 *tail,
             )
         elif representation == "all-components":
             vector = (
                 fine,
                 *(
-                    float(components[name]["normalized_excess"])
+                    float(components[name]["excess_footprint"])
                     for name in component_names
                 ),
                 *tail,
@@ -324,17 +335,17 @@ def representation_vectors(
             diagnostics = record["diagnostic_signatures"]
             split = diagnostics["stream_split"]
             split_names = tuple(
-                name.removesuffix(".normalized-excess")
+                name.removesuffix(".excess-footprint")
                 for name in objectives[1 + len(component_names) : -2]
             )
             vector = (
                 fine,
                 *(
-                    float(components[name]["normalized_excess"])
+                    float(components[name]["excess_footprint"])
                     for name in component_names
                 ),
                 *(
-                    float(split[name]["normalized_excess"])
+                    float(split[name]["excess_footprint"])
                     for name in split_names
                 ),
                 *tail,
@@ -726,11 +737,12 @@ def analyze_frontier_information(
                 "Q_fine, J_peak, J_area, codegen runs, and codegen XORs"
             ),
             "active-components": (
-                "Q_fine, every normalized component excess with tau > 0, "
+                "Q_fine, every exposure-weighted component feature with tau "
+                "or kappa support, "
                 "codegen runs, and codegen XORs"
             ),
             "all-components": (
-                "Q_fine, every existing normalized component excess including "
+                "Q_fine, every universal exposure-weighted component including "
                 "zero-weight diagnostics, codegen runs, and codegen XORs"
             ),
             "stream-split": (

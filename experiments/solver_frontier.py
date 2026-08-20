@@ -8,9 +8,10 @@ correctness-checked and timed. The fastest measured member is the algorithm
 result, and its speedup is measured against the full row-major baseline.
 
 The default is the ordinary Pareto frontier over
-``(Q_fine, J_peak, J_area, runs, xors)``. A fine-locality-gated frontier from
-``notes/relay.tex`` remains available as an experiment setting. Exact
-analytical ties remain distinct and are all benchmarked.
+``(Q_fine, H_peak, H_area, runs, xors)`` under one selected hardware profile.
+A fine-locality-gated frontier from ``notes/relay.tex`` remains available as
+an experiment setting. Exact analytical ties remain distinct and are all
+benchmarked.
 """
 
 from __future__ import annotations
@@ -38,9 +39,13 @@ from experiments.layout_ranking import (
     parse_evaluator_output,
 )
 from relay import (
+    HARDWARE_PROFILES,
     CanonicalLayout,
+    HardwareProfile,
     NonDistributiveAccessError,
     SimpleRelayProblem,
+    UniversalScopeObjectives,
+    get_hardware_profile,
     row_major_layout,
     score_layouts,
     score_to_dict,
@@ -50,7 +55,6 @@ from relay.objectives import build_objectives
 
 
 EXPERIMENT_NAME = "solver-frontier-speedup"
-FINE_COMPONENT = "wave_load.64B"
 GRAMMARS = {
     "standard": {
         "notation": "G_S",
@@ -196,6 +200,12 @@ def parse_arguments(
     )
     parser.add_argument("--arch", default=None, help="optional GPU architecture")
     parser.add_argument(
+        "--hardware-profile",
+        choices=tuple(HARDWARE_PROFILES),
+        default="mi300a",
+        help="global hardware response used for every kernel (default: %(default)s)",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=0,
@@ -259,12 +269,15 @@ def _configuration(
     kernel_names: Sequence[str],
     grammars: Sequence[str],
 ) -> dict[str, object]:
+    hardware_profile = get_hardware_profile(args.hardware_profile)
     return {
         "kernels": list(kernel_names),
         "grammars": list(grammars),
         "matrix_size": args.size,
+        "hardware_profile": args.hardware_profile,
+        "hardware_profile_id": hardware_profile.profile_id,
         "frontier_type": args.frontier_type,
-        "fine_component": FINE_COMPONENT,
+        "fine_component": hardware_profile.fine_component,
         "fine_tolerance": (
             args.fine_tolerance
             if args.frontier_type == "fine-gated"
@@ -272,13 +285,13 @@ def _configuration(
         ),
         "frontier": (
             "exact Pareto filtering over "
-            "(Q_fine, J_peak, J_area, runs, xors); compact-grammar score "
+            "(Q_fine, H_peak, H_area, runs, xors); compact-grammar score "
             "ties retained (including G_C inside G_OC) and noncanonical "
             "equivalent score paths represented once"
             if args.frontier_type == "pareto"
             else (
                 "Q_fine <= (1 + epsilon) Q_fine*, followed by exact Pareto "
-                "filtering over (J_peak, J_area, runs, xors); compact-grammar "
+                "filtering over (H_peak, H_area, runs, xors); compact-grammar "
                 "score ties retained (including G_C inside G_OC) and "
                 "noncanonical equivalent score paths represented once"
             )
@@ -298,8 +311,10 @@ def _configuration(
 
 
 def _problem_inputs(
-    spec: KernelSpec, args: argparse.Namespace
-) -> tuple[object, tuple, tuple, tuple, tuple, dict[str, float], object]:
+    spec: KernelSpec,
+    args: argparse.Namespace,
+    hardware_profile: HardwareProfile,
+) -> tuple[object, tuple, tuple, tuple, tuple, object]:
     if spec.block_style == "2d":
         block = (args.block_x, args.block_y, 1)
     else:
@@ -310,15 +325,13 @@ def _problem_inputs(
     )
     matrices = tuple(spec.problem.get_matrices(config))
     events, sequences = spec.problem.get_events_and_sequences(config)
-    objectives = tuple(spec.problem.get_objectives(config))
-    weights = dict(spec.problem.get_component_weights(config))
+    objectives = (UniversalScopeObjectives(hardware_profile.byte_scales),)
     return (
         config,
         matrices,
         tuple(events),
         tuple(sequences),
         objectives,
-        weights,
         block,
     )
 
@@ -339,8 +352,8 @@ def _words(
 def _cost_dict(cost) -> dict[str, object]:
     return {
         "fine_region_count": cost.fine_region_count,
-        "peak_normalized_excess": cost.peak_normalized_excess,
-        "weighted_normalized_excess": cost.weighted_normalized_excess,
+        "hardware_peak": cost.hardware_peak,
+        "hardware_area": cost.hardware_area,
         "codegen_runs": cost.codegen_runs,
         "codegen_xors": cost.codegen_xors,
     }
@@ -380,6 +393,7 @@ def prepare_report(
     grammars: Sequence[str],
     solver_seeds: Mapping[tuple[str, str], Mapping[str, object]] | None = None,
 ) -> dict[str, object]:
+    hardware_profile = get_hardware_profile(args.hardware_profile)
     benchmarks: list[dict[str, object]] = []
     benchmark_ids: dict[tuple[str, tuple[str, ...]], str] = {}
     kernel_records: list[dict[str, object]] = []
@@ -392,9 +406,8 @@ def prepare_report(
             events,
             sequences,
             objectives,
-            weights,
             block,
-        ) = _problem_inputs(spec, args)
+        ) = _problem_inputs(spec, args, hardware_profile)
         matrices = {matrix.name: matrix for matrix in matrices_tuple}
         solver_results = []
         components = tuple(
@@ -405,6 +418,8 @@ def prepare_report(
                 sequences,
             )
         )
+        weights = hardware_profile.component_weights(components)
+        peak_tolerances = hardware_profile.peak_tolerances(components)
         for grammar in grammars:
             seeded = (solver_seeds or {}).get((spec.name, grammar))
             if seeded is not None:
@@ -439,9 +454,9 @@ def prepare_report(
                         sequences=sequences,
                         objectives=objectives,
                         grammar=grammar,
-                        component_weights=weights,
+                        hardware_profile=hardware_profile,
                         frontier_type=args.frontier_type,
-                        fine_component=FINE_COMPONENT,
+                        fine_component=hardware_profile.fine_component,
                         fine_tolerance=args.fine_tolerance,
                         outer_canonical_max_inner_bits=(
                             args.goc_max_inner_bits
@@ -530,7 +545,7 @@ def prepare_report(
             matrices,
             components,
             baseline_layouts,
-            component_weights=weights,
+            hardware_profile=hardware_profile,
         )
         baseline_words = {
             name: baseline_layouts[name].word_string(matrices[name])
@@ -546,13 +561,17 @@ def prepare_report(
                 "matrix_size": args.size,
                 "block": list(block) if isinstance(block, tuple) else block,
                 "component_weights": weights,
+                "peak_tolerances": peak_tolerances,
                 "objectives": [
                     {
                         "name": component.name,
                         "region_bytes": component.region_bytes,
                         "provenance": component.provenance,
                         "description": component.description,
+                        "edge_family": component.edge_family,
+                        "normalization_bytes": component.normalization_bytes,
                         "weight": weights[component.name],
+                        "peak_tolerance": peak_tolerances.get(component.name),
                     }
                     for component in components
                 ],
@@ -570,6 +589,7 @@ def prepare_report(
 
     report: dict[str, object] = {
         "experiment": EXPERIMENT_NAME,
+        "hardware_profile": hardware_profile.to_dict(),
         "configuration": _configuration(
             args, kernel_names, grammars
         ),
@@ -666,6 +686,8 @@ def _compatible_configuration(
 ) -> tuple[str, ...]:
     fields = (
         "matrix_size",
+        "hardware_profile",
+        "hardware_profile_id",
         "frontier_type",
         "fine_component",
         "fine_tolerance",

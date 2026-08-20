@@ -138,6 +138,8 @@ class AggregateScoringTests(unittest.TestCase):
             "weighted-region-count": 10.0,
             "peak-normalized-excess": 1.5,
             "weighted-normalized-excess": 3.0,
+            "hardware-peak": 1.5,
+            "hardware-area": 3.0,
         }
 
         for mode, value in expected.items():
@@ -174,6 +176,8 @@ class AggregateScoringTests(unittest.TestCase):
                 "weighted_region_count": 10.0,
                 "peak_normalized_excess": 1.5,
                 "weighted_normalized_excess": 3.0,
+                "hardware_peak": 1.5,
+                "hardware_area": 3.0,
             },
         )
         fine, coarse = data["components"]
@@ -186,8 +190,13 @@ class AggregateScoringTests(unittest.TestCase):
                 "raw_region_count": 5.0,
                 "packing_lower_bound": 2.0,
                 "normalized_excess": 1.5,
+                "normalization_bytes": None,
+                "excess_footprint": 1.5,
+                "peak_tolerance": 1.0,
+                "peak_excess_ratio": 1.5,
                 "weighted_region_count": 10.0,
                 "weighted_normalized_excess": 3.0,
+                "weighted_excess_footprint": 3.0,
                 "arrays": [
                     {
                         "name": "A",

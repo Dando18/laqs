@@ -1,25 +1,38 @@
+#!/usr/bin/env python3
 
-from argparse import ArgumentParser
+from __future__ import annotations
+
+from argparse import ArgumentParser, Namespace
 
 from relay import (
-    simple_solve,
-    SimpleRelayProblem,
+    HARDWARE_PROFILES,
+    EventSequence,
+    HardwareProfile,
     MatrixSpec,
     MemoryEvent,
-    EventSequence,
-    ObjectiveComponent,
+    SimpleRelayProblem,
+    UniversalScopeObjectives,
+    get_hardware_profile,
+    simple_solve,
 )
 
-def load_problem(problem_file: str) -> list[list[MatrixSpec], list[MemoryEvent], list[EventSequence], list[ObjectiveComponent]]:
-    """ problem_file is a python file that defines three functions
-    - get_matrices() -> list[MatrixSpec]
-    - get_events_and_sequences() -> list[MemoryEvent]
-    - get_objectives() -> list[ObjectiveComponent]
 
-    Call these functions.
-    """
+def load_problem(
+    problem_file: str,
+    hardware_profile: HardwareProfile,
+) -> tuple[
+    tuple[MatrixSpec, ...],
+    tuple[MemoryEvent, ...],
+    tuple[EventSequence, ...],
+    tuple[UniversalScopeObjectives, ...],
+]:
+    """Load matrix, event, and schedule facts from a kernel module."""
+
     import importlib.util
+
     spec = importlib.util.spec_from_file_location("problem_module", problem_file)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"cannot load problem module from {problem_file}")
     problem_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(problem_module)
 
@@ -36,23 +49,25 @@ def load_problem(problem_file: str) -> list[list[MatrixSpec], list[MemoryEvent],
     events, sequences = problem_module.get_events_and_sequences(problem_config)
     print("\tdone.")
 
-    print("Constructing objectives...", end="", flush=True)
-    objectives = problem_module.get_objectives(problem_config)
-    print("\tdone.")
+    objectives = (UniversalScopeObjectives(hardware_profile.byte_scales),)
 
-    return matrices, events, sequences, objectives
+    return tuple(matrices), tuple(events), tuple(sequences), objectives
 
 
-def main(args):
-    
-    matrices, events, sequences, objectives = load_problem(args.problem_file)
-    
+def main(args: Namespace) -> None:
+    hardware_profile = get_hardware_profile(args.hardware_profile)
+    matrices, events, sequences, objectives = load_problem(
+        args.problem_file, hardware_profile
+    )
+
     problem = SimpleRelayProblem(
         matrices=matrices,
         events=events,
         sequences=sequences,
         objectives=objectives,
-        grammar="standard"
+        grammar="standard",
+        hardware_profile=hardware_profile,
+        fine_component=hardware_profile.fine_component,
     )
 
     simple_solve(problem)
@@ -61,6 +76,12 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser(description="Solve a relay problem")
     parser.add_argument("problem_file", help="Path to the relay problem file")
+    parser.add_argument(
+        "--hardware-profile",
+        choices=tuple(HARDWARE_PROFILES),
+        default="mi300a",
+        help="global hardware response used for search (default: %(default)s)",
+    )
     args = parser.parse_args()
 
     main(args)

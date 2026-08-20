@@ -27,34 +27,45 @@ def _record(
         "score": {
             "components": [
                 {
-                    "name": "wave_load.64B",
+                    "name": "issue.g64.stream.load.64B",
                     "weight": 0.0,
                     "raw_region_count": fine,
                     "normalized_excess": 0.0,
+                    "excess_footprint": 0.0,
                 },
                 {
                     "name": "first",
                     "weight": 1.0,
                     "raw_region_count": first + 1.0,
                     "normalized_excess": first,
+                    "excess_footprint": first,
                 },
                 {
                     "name": "second",
                     "weight": 1.0,
                     "raw_region_count": second + 1.0,
                     "normalized_excess": second,
+                    "excess_footprint": second,
                 },
             ],
             "aggregates": {
                 "peak_normalized_excess": max(first, second),
                 "weighted_normalized_excess": first + second,
+                "hardware_peak": max(first, second),
+                "hardware_area": first + second,
             },
             "codegen": {"runs": 1, "xors": 0},
         },
         "diagnostic_signatures": {
             "stream_split": {
-                "first::A.row": {"normalized_excess": first},
-                "first::A.transpose": {"normalized_excess": second},
+                "first::A.row": {
+                    "normalized_excess": first,
+                    "excess_footprint": first,
+                },
+                "first::A.transpose": {
+                    "normalized_excess": second,
+                    "excess_footprint": second,
+                },
             },
             "dense_scales": {
                 "dimensions": [0, 1],
@@ -115,6 +126,7 @@ class InformationLadderTests(unittest.TestCase):
             "kernel": "example",
             "display_name": "Example",
             "matrix_size": 8,
+            "fine_component": "issue.g64.stream.load.64B",
             "results": [
                 _record("winner", 1.0, 2.0, 2.0, 0.0, (0.0, 2.0)),
                 _record("aggregate-best", 1.2, 1.0, 0.0, 1.0, (2.0, 0.0)),
@@ -145,7 +157,7 @@ class InformationLadderTests(unittest.TestCase):
         )
         self.assertEqual(
             set(certificate["dominators"][0]["component_excess_deltas"]),
-            {"wave_load.64B", "first", "second"},
+            {"issue.g64.stream.load.64B", "first", "second"},
         )
         membership = group["results"][0]["frontier_representations"]
         self.assertEqual(membership["aggregate"]["pareto_depth"], 2)

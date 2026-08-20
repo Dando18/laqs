@@ -36,6 +36,62 @@ class Hyperedge:
         return cls(unique, weight, source)
 
 
+@dataclass(frozen=True, order=True)
+class ScopeKey:
+    """Hardware-independent coordinate in the universal access-scope basis."""
+
+    family: str
+    parameter: int | str | None
+    partition: str
+    operation: str
+
+    @property
+    def name(self) -> str:
+        if self.parameter is None:
+            scope = self.family
+        elif self.family == "issue":
+            scope = f"{self.family}.g{self.parameter}"
+        elif self.family.endswith("window"):
+            scope = f"{self.family}.t{self.parameter}"
+        else:
+            scope = f"{self.family}.{self.parameter}"
+        return f"{scope}.{self.partition}.{self.operation}"
+
+
+@dataclass(frozen=True)
+class EdgeFamily:
+    """One scale-free access scope with exact dynamic edge multiplicities."""
+
+    scope: ScopeKey
+    edges_by_array: Mapping[str, tuple[Hyperedge, ...]]
+    normalization_bytes: float
+    provenance: str = "universal"
+    search: bool = True
+    description: str = ""
+
+    def __post_init__(self) -> None:
+        if self.normalization_bytes <= 0:
+            raise ValueError("edge-family normalization bytes must be positive")
+
+    @property
+    def name(self) -> str:
+        return self.scope.name
+
+    def at_scale(self, region_bytes: int) -> "ObjectiveComponent":
+        """Evaluate this edge family at one physical byte scale."""
+
+        return ObjectiveComponent(
+            name=f"{self.name}.{region_bytes}B",
+            region_bytes=region_bytes,
+            edges_by_array=self.edges_by_array,
+            provenance=self.provenance,
+            search=self.search,
+            description=self.description,
+            edge_family=self.name,
+            normalization_bytes=self.normalization_bytes,
+        )
+
+
 @dataclass(frozen=True)
 class ObjectiveComponent:
     """One access scope evaluated at one aligned byte granularity."""
@@ -46,6 +102,14 @@ class ObjectiveComponent:
     provenance: str = "hypothesis"
     search: bool = True
     description: str = ""
+    edge_family: str | None = None
+    normalization_bytes: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.region_bytes <= 0:
+            raise ValueError("objective region_bytes must be positive")
+        if self.normalization_bytes is not None and self.normalization_bytes <= 0:
+            raise ValueError("objective normalization_bytes must be positive")
 
     def capacity_elements(self, matrix: MatrixSpec) -> int:
         if self.region_bytes % matrix.element_bytes != 0:

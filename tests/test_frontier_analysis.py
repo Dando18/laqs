@@ -26,6 +26,7 @@ def group(
         "kernel": name.lower(),
         "display_name": name,
         "matrix_size": 8,
+        "fine_component": "issue.g64.stream.load.64B",
         "results": [
             {
                 "name": layout_name,
@@ -35,16 +36,18 @@ def group(
                 "score": {
                     "components": [
                         {
-                            "name": "wave_load.64B",
+                            "name": "issue.g64.stream.load.64B",
                             "weight": 0.0,
                             "raw_region_count": 1.0 + (layout_name > "B"),
                             "normalized_excess": 0.0,
+                            "excess_footprint": 0.0,
                         },
                         {
                             "name": "reuse",
                             "weight": 2.0,
                             "raw_region_count": 1.0,
                             "normalized_excess": score_order[layout_name],
+                            "excess_footprint": score_order[layout_name],
                         },
                     ],
                     "aggregates": {
@@ -52,6 +55,8 @@ def group(
                         "weighted_normalized_excess": (
                             2.0 * score_order[layout_name]
                         ),
+                        "hardware_peak": score_order[layout_name],
+                        "hardware_area": 2.0 * score_order[layout_name],
                     },
                     "codegen": {"runs": 1, "xors": 0},
                 },

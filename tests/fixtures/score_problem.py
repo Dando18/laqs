@@ -7,7 +7,6 @@ from relay import (
     EventSequence,
     MatrixSpec,
     MemoryEvent,
-    SimultaneousRegions,
 )
 
 
@@ -29,16 +28,4 @@ def get_events_and_sequences(
         "A.load",
         (Access("A", (i, 0), lane=i) for i in range(size)),
     )
-    return (event,), ()
-
-
-def get_objectives(
-    config: dict[str, int],
-) -> tuple[SimultaneousRegions, ...]:
-    del config
-    return (SimultaneousRegions("column-wave-16B", 16),)
-
-
-def get_component_weights(config: dict[str, int]) -> dict[str, float]:
-    del config
-    return {"column-wave-16B": 0.5}
+    return (event,), (EventSequence.make("wave0", (event.id,)),)

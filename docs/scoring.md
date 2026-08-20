@@ -8,10 +8,11 @@ Every score is a cost. **Lower is better.**
 
 ## Component score
 
-An objective component represents one access scope at one aligned byte scale.
-For example, `wave_load.64B` may contain one hyperedge per wave-wide load and
-use 64-byte regions. For hyperedge `E`, realized layout `L`, and a region that
-holds `c` elements, RELAY computes
+An objective component represents one universal access scope at one aligned
+byte scale. For example, `issue.g64.stream.load.64B` contains the compressed
+hyperedges for 64-lane stream-local loads evaluated with 64-byte regions. For
+hyperedge `E`, realized layout `L`, and a region that holds `c` elements,
+RELAY computes
 
 ```text
 q(E, L, c) = number of distinct values of floor(L(x) / c), for x in E.
@@ -48,17 +49,21 @@ region from one array is never treated as a region from another array.
 
 ## Scalar score modes
 
-Each objective component has a nonnegative component weight `tau`.  The
-default is 1.  A weight of 0 retains the component in the detailed report but
-removes it from every scalar aggregate.
+Each objective component has a nonnegative component weight `tau`. A direct
+scorer call without a hardware profile defaults unspecified components to 1.
+A hardware profile instead supplies a complete response over the realized
+universal cells, assigning 0 to unsupported cells. A weight of 0 retains the
+component in the detailed report but removes it from weighted aggregates.
 
 | CLI mode | Definition | Interpretation |
 | --- | --- | --- |
 | `weighted-region-count` | `sum(tau * Q)` | Raw multiscale region cost. |
 | `peak-normalized-excess` | `max(e)` over components with `tau > 0` | Worst relative miss over the packing bound. The magnitude of `tau` does not scale this maximum. |
-| `weighted-normalized-excess` | `sum(tau * e)` | Weighted area under the normalized-excess components (`J_area` in the notes). |
+| `weighted-normalized-excess` | `sum(tau * e)` | Legacy weighted area under normalized-excess components. |
+| `hardware-peak` | `max(e / kappa)` over profile-supported peak cells | Worst excess relative to the hardware profile's acceptable tolerance. |
+| `hardware-area` | `sum(tau * b * (Q - LB) / B_K)` | Exposure-preserving `J_area` under the hardware response. |
 
-The CLI always reports every component and all three aggregates.  `--score-mode`
+The CLI always reports every component and all five aggregates. `--score-mode`
 only chooses the scalar printed as `Selected score` and stored as
 `selected_score` in JSON.  This keeps the underlying multi-objective vector
 visible rather than hiding it behind one unexplained label.
@@ -87,7 +92,7 @@ dominates point `b` exactly when `a` is no greater in every objective and is
 strictly smaller in at least one. Exact objective ties are retained as distinct
 frontier members.
 
-With no explicit extractors, the function compares all three public aggregate
+With no explicit extractors, the function compares all five public aggregate
 score modes followed by `codegen-runs` and `codegen-xors`. A caller can instead
 construct the multi-objective vector from the notes, including a particular
 fine-scale component and the codegen proxies:
@@ -102,15 +107,13 @@ frontier = pareto_frontier(
         "column_major": column_score,
     },
     objectives={
-        "wave_load.64B.raw-region-count": (
-            lambda score: score.component("wave_load.64B").raw_region_count
+        "issue.g64.stream.load.64B.raw-region-count": (
+            lambda score: score.component(
+                "issue.g64.stream.load.64B"
+            ).raw_region_count
         ),
-        "peak-normalized-excess": (
-            lambda score: score.peak_normalized_excess
-        ),
-        "weighted-normalized-excess": (
-            lambda score: score.weighted_normalized_excess
-        ),
+        "hardware-peak": lambda score: score.hardware_peak,
+        "hardware-area": lambda score: score.hardware_area,
         "codegen-runs": lambda score: score.codegen.runs,
         "codegen-xors": lambda score: score.codegen.xors,
     },
@@ -128,13 +131,21 @@ does not apply epsilon tolerances or select one preferred member.
 ## Library API
 
 ```python
-from relay import canonical_layout_from_word, score_layouts
+from relay import (
+    MI300A_V1,
+    UniversalScopeObjectives,
+    canonical_layout_from_word,
+    score_layouts,
+)
 from relay.objectives import build_objectives
 
 matrices = {matrix.name: matrix for matrix in problem.matrices}
 events = {event.id: event for event in problem.events}
 components = build_objectives(
-    problem.objectives, matrices, events, problem.sequences
+    (UniversalScopeObjectives(MI300A_V1.byte_scales),),
+    matrices,
+    events,
+    problem.sequences,
 )
 
 layouts = {
@@ -146,11 +157,11 @@ score = score_layouts(
     matrices,
     components,
     layouts,
-    component_weights={"wave_load.64B": 2.0},
+    hardware_profile=MI300A_V1,
 )
 
-print(score.component("wave_load.64B").normalized_excess)
-print(score.value("weighted-normalized-excess"))
+print(score.component(MI300A_V1.fine_component).normalized_excess)
+print(score.value("hardware-area"))
 ```
 
 The main public routines are:
@@ -193,9 +204,11 @@ Problem files use the small Python protocol already used by
 build_config(**options)
 get_matrices(config)
 get_events_and_sequences(config)
-get_objectives(config)
-get_component_weights(config)
 ```
+
+The command constructs `UniversalScopeObjectives` from the selected hardware
+profile's byte-scale ladder. Kernel modules provide access and schedule facts,
+not objective names or hardware weights.
 
 Score global row-major GEMM layouts:
 
@@ -211,17 +224,17 @@ Score one common 8x8 tiled layout and emit JSON:
 ```bash
 .venv/bin/python bin/score_layout.py kernels/gemm/problem.py \
   --layout all=jjjiii \
-  --score-mode peak-normalized-excess \
-  --component-weight wave_load.64B=2 \
+  --score-mode hardware-area \
+  --hardware-profile mi300a \
+  --component-weight issue.g64.stream.load.64B=2 \
   --problem-option problem_size=256 \
   --json
 ```
 
-`get_component_weights(config)` returns the problem's complete mapping from
-objective-component name to the notes' `tau` weight. The CLI applies those
-defaults; repeated `--component-weight NAME=VALUE` options override individual
-entries. A zero override keeps the component detail but excludes it from all
-aggregates.
+`--hardware-profile` selects the global byte-scale ladder, `tau` response, and
+peak tolerances. Repeated `--component-weight NAME=VALUE` options override
+individual profile `tau` entries for exploration. A zero override keeps the
+component detail but excludes it from weighted aggregates.
 
 `--layout all=...` supplies a default; an array-specific assignment overrides
 it. Non-target context arrays default to row-major when they have no explicit
@@ -230,6 +243,6 @@ the explicit spelling `word:jjjiii`. `--problem-option NAME=JSON_VALUE` passes
 configuration into `build_config`; numbers, strings, booleans, and lists must
 therefore use JSON syntax.
 
-The JSON report includes the selected score, all aggregate scores, per-array
-and total codegen costs, every component's `Q`, `LB`, normalized excess and
-weight, plus per-array component contributions.
+The JSON report includes the selected hardware profile, selected score, all
+aggregate scores, per-array and total codegen costs, every component's `Q`,
+`LB`, normalized excess and weight, plus per-array component contributions.

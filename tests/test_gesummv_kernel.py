@@ -7,6 +7,11 @@ import tempfile
 import unittest
 
 from kernels.gesummv import evaluate, problem
+from relay import (
+    MI300A_V1,
+    UNIVERSAL_V1_BASIS,
+    UniversalScopeObjectives,
+)
 from relay.objectives import build_objectives
 
 
@@ -40,58 +45,53 @@ class GesummvProblemTests(unittest.TestCase):
         self.assertEqual({access.coord for access in first_x.accesses}, {(0,)})
         self.assertEqual(events[-1].site, "y.store")
 
-    def test_objectives_cover_matrix_loads_and_output_stores(self) -> None:
+    def test_universal_scopes_cover_both_matrix_load_streams(self) -> None:
         config = problem.build_config(problem_size=8, block_size=8)
         matrices = {matrix.name: matrix for matrix in problem.get_matrices(config)}
         event_items, sequences = problem.get_events_and_sequences(config)
         events = {event.id: event for event in event_items}
         components = build_objectives(
-            problem.get_objectives(config), matrices, events, sequences
+            (UniversalScopeObjectives(MI300A_V1.byte_scales),),
+            matrices,
+            events,
+            sequences,
         )
         by_name = {component.name: component for component in components}
+        fine = by_name[MI300A_V1.fine_component]
 
-        self.assertEqual(len(components), 10)
-        self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["A"]), 8)
-        self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["B"]), 8)
-        self.assertNotIn("x", by_name["wave_load.64B"].edges_by_array)
-        self.assertEqual(
-            len(by_name["output_store.64B"].edges_by_array["y"]), 1
-        )
-        self.assertIn("lane_reuse.128B.window16", by_name)
-        self.assertEqual(
-            by_name["wave_lane_group.lane8.64B"]
-            .edges_by_array["A"][0]
-            .points,
-            tuple((i, 0) for i in range(8)),
-        )
-        self.assertEqual(
-            by_name["workgroup_step_panel.1024B"]
-            .edges_by_array["A"][0]
-            .points,
-            tuple((i, 0) for i in range(8)),
-        )
-        self.assertEqual(
-            {
-                component.name
+        self.assertEqual(fine.edge_family, "issue.g64.stream.load")
+        self.assertEqual(set(fine.edges_by_array), {"A", "B"})
+        for array in ("A", "B"):
+            self.assertEqual(
+                fine.edges_by_array[array][0].points,
+                tuple((i, 0) for i in range(8)),
+            )
+            self.assertEqual(fine.edges_by_array[array][0].weight, 8.0)
+
+        schema = {scope.name for scope in UNIVERSAL_V1_BASIS.scope_keys()}
+        families = {component.edge_family for component in components}
+        self.assertLessEqual(families, schema)
+        for family in families:
+            materialized = [
+                component
                 for component in components
-                if component.provenance == "grounded"
-            },
-            {"wave_load.64B", "output_store.64B"},
+                if component.edge_family == family
+            ]
+            self.assertEqual(
+                tuple(component.region_bytes for component in materialized),
+                MI300A_V1.byte_scales,
+            )
+            self.assertTrue(
+                all(
+                    component.edges_by_array is materialized[0].edges_by_array
+                    for component in materialized
+                )
+            )
+        self.assertTrue(
+            all(component.provenance == "universal-v1" for component in components)
         )
-        self.assertEqual(
-            set(problem.get_component_weights(config)),
-            set(by_name),
-        )
-        self.assertEqual(
-            problem.get_component_weights(config)[
-                "wave_lane_group.lane16.128B"
-            ],
-            0.0,
-        )
-        self.assertEqual(
-            problem.get_component_weights(config)["wave_phase.4096B"],
-            4.0,
-        )
+        self.assertFalse(hasattr(problem, "get_objectives"))
+        self.assertFalse(hasattr(problem, "get_component_weights"))
 
 
 class GesummvEvaluatorTests(unittest.TestCase):

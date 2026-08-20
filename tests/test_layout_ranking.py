@@ -10,7 +10,6 @@ from unittest.mock import patch
 
 from experiments.layout_ranking import (
     KERNEL_SPECS,
-    PARETO_OBJECTIVES,
     TimingResult,
     average_tie_ranks,
     evaluator_command,
@@ -22,6 +21,7 @@ from experiments.layout_ranking import (
     selected_layout_cases,
     variation_aware_rank_metrics,
 )
+from relay import MI300A_V1
 
 
 def timing(median: float, lower: float, upper: float) -> TimingResult:
@@ -226,6 +226,14 @@ class CombinedExperimentTests(unittest.TestCase):
                 )
             )
             self.assertEqual(report["component_weight_overrides"], {})
+            self.assertEqual(
+                report["configuration"]["hardware_profile_id"],
+                MI300A_V1.profile_id,
+            )
+            self.assertEqual(
+                report["configuration"]["hardware_profile_definition"],
+                MI300A_V1.to_dict(),
+            )
             self.assertIsNone(report["frontier_analysis"])
             self.assertFalse(
                 json_path.with_name(json_path.stem + "_plots").exists()
@@ -256,7 +264,7 @@ class CombinedExperimentTests(unittest.TestCase):
                     )
             self.assertTrue(
                 any(
-                    objective["provenance"] == "hypothesis"
+                    objective["provenance"] == "universal-v1"
                     for group in report["runs"]
                     for objective in group["objectives"]
                 )
@@ -265,7 +273,13 @@ class CombinedExperimentTests(unittest.TestCase):
                 frontier = group["pareto_frontier"]
                 self.assertEqual(
                     [objective["name"] for objective in frontier["objectives"]],
-                    list(PARETO_OBJECTIVES),
+                    [
+                        f"{group['fine_component']}.raw-region-count",
+                        "hardware-peak",
+                        "hardware-area",
+                        "codegen-runs",
+                        "codegen-xors",
+                    ],
                 )
                 member_names = {
                     member["name"] for member in frontier["members"]

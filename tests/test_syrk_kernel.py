@@ -7,6 +7,11 @@ import tempfile
 import unittest
 
 from kernels.syrk import evaluate, problem
+from relay import (
+    MI300A_V1,
+    UNIVERSAL_V1_BASIS,
+    UniversalScopeObjectives,
+)
 from relay.objectives import build_objectives
 
 
@@ -25,7 +30,7 @@ class SyrkProblemTests(unittest.TestCase):
         )
         self.assertEqual(len(events), 2 * 8 + 2)
         self.assertEqual(len(sequences), 1)
-        self.assertEqual(len(sequences[0].event_ids), 2 * 8)
+        self.assertEqual(sequences[0].event_ids, tuple(event.id for event in events))
 
         row_i, row_j = events[1:3]
         self.assertEqual(row_i.site, "A.row_i.load")
@@ -40,8 +45,10 @@ class SyrkProblemTests(unittest.TestCase):
         )
         self.assertEqual(events[0].site, "C.load")
         self.assertEqual(events[-1].site, "C.store")
+        self.assertEqual(events[0].meta("step"), "0")
+        self.assertEqual(events[-1].meta("step"), "0")
 
-    def test_objectives_label_grounded_and_hypothesis_scopes(self) -> None:
+    def test_universal_scopes_cover_loads_and_stores(self) -> None:
         config = problem.build_config(
             problem_size=8,
             block_size=(8, 8, 1),
@@ -50,43 +57,47 @@ class SyrkProblemTests(unittest.TestCase):
         event_items, sequences = problem.get_events_and_sequences(config)
         events = {event.id: event for event in event_items}
         components = build_objectives(
-            problem.get_objectives(config), matrices, events, sequences
+            (UniversalScopeObjectives(MI300A_V1.byte_scales),),
+            matrices,
+            events,
+            sequences,
         )
         by_name = {component.name: component for component in components}
+        fine = by_name[MI300A_V1.fine_component]
 
-        self.assertEqual(len(components), 11)
-        self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["A"]), 16)
-        self.assertEqual(len(by_name["wave_load.64B"].edges_by_array["C"]), 1)
+        self.assertEqual(fine.edge_family, "issue.g64.stream.load")
+        self.assertEqual(set(fine.edges_by_array), {"A", "C"})
         self.assertEqual(
-            len(by_name["output_store.64B"].edges_by_array["C"]), 1
-        )
-        self.assertEqual(
-            by_name["A.row_j_lane_group.lane8.64B"]
-            .edges_by_array["A"][0]
-            .points,
+            fine.edges_by_array["A"][0].points,
             tuple((i, 0) for i in range(8)),
         )
-        self.assertEqual(
-            len(by_name["A.workgroup_k_column.256B"].edges_by_array["A"]),
-            8,
-        )
-        self.assertEqual(
-            {
-                component.name
+        stores = by_name["issue.g64.stream.store.64B"]
+        self.assertEqual(set(stores.edges_by_array), {"C"})
+
+        schema = {scope.name for scope in UNIVERSAL_V1_BASIS.scope_keys()}
+        families = {component.edge_family for component in components}
+        self.assertLessEqual(families, schema)
+        for family in families:
+            materialized = [
+                component
                 for component in components
-                if component.provenance == "grounded"
-            },
-            {"wave_load.64B", "output_store.64B"},
-        )
-        self.assertTrue(
-            all(
-                component.provenance == "hypothesis"
-                for component in components
-                if component.name
-                not in {"wave_load.64B", "output_store.64B"}
+                if component.edge_family == family
+            ]
+            self.assertEqual(
+                tuple(component.region_bytes for component in materialized),
+                MI300A_V1.byte_scales,
             )
+            self.assertTrue(
+                all(
+                    component.edges_by_array is materialized[0].edges_by_array
+                    for component in materialized
+                )
+            )
+        self.assertTrue(
+            all(component.provenance == "universal-v1" for component in components)
         )
-        self.assertEqual(set(problem.get_component_weights(config)), set(by_name))
+        self.assertFalse(hasattr(problem, "get_objectives"))
+        self.assertFalse(hasattr(problem, "get_component_weights"))
 
 
 class SyrkEvaluatorTests(unittest.TestCase):
