@@ -47,13 +47,22 @@ from .solver import (
     SolverConfig,
     solve,
 )
-from .simple_solver import simple_solve, SimpleRelayProblem
+from .simple_solver import (
+    ArraySearchResult,
+    FrontierCost,
+    FrontierMember,
+    FrontierType,
+    SimpleRelayProblem,
+    SimpleRelayResult,
+    simple_solve,
+)
 
 __all__ = [
     "Access",
     "ArrayComponentScore",
     "ArrayCodegenCost",
     "ArrayResult",
+    "ArraySearchResult",
     "Candidate",
     "CanonicalLayout",
     "ComponentScore",
@@ -62,6 +71,9 @@ __all__ = [
     "EventFilter",
     "EventSequence",
     "ExplicitRegions",
+    "FrontierCost",
+    "FrontierMember",
+    "FrontierType",
     "GroupedRegions",
     "Hyperedge",
     "JointCandidate",
@@ -102,4 +114,5 @@ __all__ = [
     "weighted_component_region_count",
     "simple_solve",
     "SimpleRelayProblem",
+    "SimpleRelayResult",
 ]
