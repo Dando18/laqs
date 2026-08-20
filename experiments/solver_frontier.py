@@ -2,11 +2,11 @@
 """Benchmark exact RELAY grammar frontiers on the five kernel evaluators.
 
 For each kernel, this experiment solves the standard grammar ``G_S`` by
-exhaustive enumeration and the canonical grammar ``G_C`` by dynamic
-programming. Every distinct layout mapping on the resulting analytical
-frontier is correctness-checked and timed. The fastest measured member is the
-algorithm result, and its speedup is measured against the full row-major
-baseline.
+exhaustive enumeration, the canonical grammar ``G_C`` by dynamic programming,
+and the affine-access grammar ``G_A`` by its access-block count-grid dynamic
+program. Every retained layout mapping on the resulting analytical frontier
+is correctness-checked and timed. The fastest measured member is the algorithm
+result, and its speedup is measured against the full row-major baseline.
 
 The default is the ordinary Pareto frontier over
 ``(Q_fine, J_peak, J_area, runs, xors)``. A fine-locality-gated frontier from
@@ -17,6 +17,7 @@ analytical ties remain distinct and are all benchmarked.
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from dataclasses import asdict
 import json
 from math import isfinite
@@ -38,12 +39,15 @@ from experiments.layout_ranking import (
     parse_evaluator_output,
 )
 from relay import (
+    CanonicalLayout,
+    NonDistributiveAccessError,
     SimpleRelayProblem,
     row_major_layout,
     score_layouts,
     score_to_dict,
     simple_solve,
 )
+from relay.objectives import build_objectives
 
 
 EXPERIMENT_NAME = "solver-frontier-speedup"
@@ -58,6 +62,11 @@ GRAMMARS = {
         "notation": "G_C",
         "algorithm": "G_C dynamic programming",
         "solver": "count-grid dynamic programming",
+    },
+    "affine": {
+        "notation": "G_A",
+        "algorithm": "G_A affine-access DP",
+        "solver": "affine access-block count-grid dynamic programming",
     },
 }
 
@@ -99,7 +108,7 @@ def parse_arguments(
         action="append",
         choices=tuple(GRAMMARS),
         default=None,
-        help="grammar solver to include; repeat as needed (default: both)",
+        help="grammar solver to include; repeat as needed (default: all three)",
     )
     parser.add_argument(
         "--size",
@@ -189,6 +198,27 @@ def parse_arguments(
         help="resume missing timings from a compatible checkpoint",
     )
     parser.add_argument(
+        "--reuse-timings",
+        type=Path,
+        default=None,
+        metavar="REPORT",
+        help=(
+            "reuse matching raw benchmark records from a compatible prior "
+            "solver-frontier report"
+        ),
+    )
+    parser.add_argument(
+        "--reuse-solvers",
+        action="append",
+        type=Path,
+        default=None,
+        metavar="REPORT",
+        help=(
+            "reuse matching analytical solver results from a compatible "
+            "report; repeat as needed"
+        ),
+    )
+    parser.add_argument(
         "--max-benchmarks",
         type=positive_integer,
         default=None,
@@ -228,11 +258,13 @@ def _configuration(
         ),
         "frontier": (
             "exact Pareto filtering over "
-            "(Q_fine, J_peak, J_area, runs, xors); score ties retained"
+            "(Q_fine, J_peak, J_area, runs, xors); G_S/G_C score ties "
+            "retained and G_A equivalent DP paths represented once"
             if args.frontier_type == "pareto"
             else (
                 "Q_fine <= (1 + epsilon) Q_fine*, followed by exact Pareto "
-                "filtering over (J_peak, J_area, runs, xors); score ties retained"
+                "filtering over (J_peak, J_area, runs, xors); G_S/G_C score "
+                "ties retained and G_A equivalent DP paths represented once"
             )
         ),
         "samples": args.samples,
@@ -278,7 +310,11 @@ def _words(
     layouts: Mapping[str, object], matrices: Mapping[str, object]
 ) -> dict[str, str]:
     return {
-        name: layouts[name].word_string(matrices[name])
+        name: (
+            layouts[name].word_string(matrices[name])
+            if isinstance(layouts[name], CanonicalLayout)
+            else layouts[name].evaluator_descriptor(matrices[name])
+        )
         for name in layouts
     }
 
@@ -315,6 +351,7 @@ def _add_benchmark(
             "command": None,
             "stdout": None,
             "stderr": None,
+            "timing_source": None,
         }
     )
     return benchmark_id
@@ -324,6 +361,7 @@ def prepare_report(
     args: argparse.Namespace,
     kernel_names: Sequence[str],
     grammars: Sequence[str],
+    solver_seeds: Mapping[tuple[str, str], Mapping[str, object]] | None = None,
 ) -> dict[str, object]:
     benchmarks: list[dict[str, object]] = []
     benchmark_ids: dict[tuple[str, tuple[str, ...]], str] = {}
@@ -342,28 +380,74 @@ def prepare_report(
         ) = _problem_inputs(spec, args)
         matrices = {matrix.name: matrix for matrix in matrices_tuple}
         solver_results = []
-        built_results = []
+        components = tuple(
+            build_objectives(
+                objectives,
+                matrices,
+                {event.id: event for event in events},
+                sequences,
+            )
+        )
         for grammar in grammars:
+            seeded = (solver_seeds or {}).get((spec.name, grammar))
+            if seeded is not None:
+                solver_record = deepcopy(dict(seeded))
+                solver_record.setdefault("status", "ok")
+                solver_record.setdefault("reason", None)
+                solver_record["best"] = None
+                for candidate in solver_record["frontier"]:
+                    candidate["benchmark_id"] = _add_benchmark(
+                        benchmarks,
+                        benchmark_ids,
+                        spec,
+                        candidate["words"],
+                    )
+                solver_results.append(solver_record)
+                print(
+                    f"Reusing {spec.display_name} N={args.size} "
+                    f"{GRAMMARS[grammar]['algorithm']} solver result...",
+                    flush=True,
+                )
+                continue
             print(
                 f"Solving {spec.display_name} N={args.size} "
                 f"with {GRAMMARS[grammar]['algorithm']}...",
                 flush=True,
             )
-            result = simple_solve(
-                SimpleRelayProblem(
-                    matrices=matrices_tuple,
-                    events=events,
-                    sequences=sequences,
-                    objectives=objectives,
-                    grammar=grammar,
-                    component_weights=weights,
-                    frontier_type=args.frontier_type,
-                    fine_component=FINE_COMPONENT,
-                    fine_tolerance=args.fine_tolerance,
-                    name=f"{spec.name}_{grammar}_{args.size}",
+            try:
+                result = simple_solve(
+                    SimpleRelayProblem(
+                        matrices=matrices_tuple,
+                        events=events,
+                        sequences=sequences,
+                        objectives=objectives,
+                        grammar=grammar,
+                        component_weights=weights,
+                        frontier_type=args.frontier_type,
+                        fine_component=FINE_COMPONENT,
+                        fine_tolerance=args.fine_tolerance,
+                        name=f"{spec.name}_{grammar}_{args.size}",
+                    )
                 )
-            )
-            built_results.append(result)
+            except NonDistributiveAccessError as error:
+                solver_results.append(
+                    {
+                        "grammar": grammar,
+                        **GRAMMARS[grammar],
+                        "status": "not_applicable",
+                        "reason": str(error),
+                        "exact": False,
+                        "solver_elapsed_seconds": None,
+                        "array_searches": [],
+                        "joint_raw_frontier_count": 0,
+                        "frontier_definition": None,
+                        "frontier_size": 0,
+                        "frontier": [],
+                        "best": None,
+                    }
+                )
+                print(f"  not applicable: {error}", flush=True)
+                continue
             frontier_records = []
             for index, member in enumerate(result.frontier):
                 words = _words(member.layouts, matrices)
@@ -383,6 +467,8 @@ def prepare_report(
                 {
                     "grammar": grammar,
                     **GRAMMARS[grammar],
+                    "status": "ok",
+                    "reason": None,
                     "exact": result.exact,
                     "solver_elapsed_seconds": result.elapsed_seconds,
                     "array_searches": [
@@ -416,7 +502,6 @@ def prepare_report(
                 flush=True,
             )
 
-        components = built_results[0].components
         baseline_layouts = {
             matrix.name: row_major_layout(matrix)
             for matrix in matrices_tuple
@@ -543,6 +628,139 @@ def benchmark(
     record["command"] = command
     record["stdout"] = completed.stdout
     record["stderr"] = completed.stderr
+    record["timing_source"] = "measured in this experiment run"
+
+
+def _read_report(path: Path) -> dict[str, object]:
+    try:
+        report = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(str(error)) from error
+    if report.get("experiment") != EXPERIMENT_NAME:
+        raise ValueError(f"{path}: report is from a different experiment")
+    return report
+
+
+def _compatible_configuration(
+    source: Mapping[str, object], target: Mapping[str, object]
+) -> tuple[str, ...]:
+    fields = (
+        "matrix_size",
+        "frontier_type",
+        "fine_component",
+        "fine_tolerance",
+        "samples",
+        "iterations",
+        "warmup",
+        "device",
+        "block_size",
+        "block_x",
+        "block_y",
+        "compiler",
+        "arch",
+    )
+    return tuple(
+        field for field in fields if source.get(field) != target.get(field)
+    )
+
+
+def load_solver_seeds(
+    paths: Sequence[Path], target_configuration: Mapping[str, object]
+) -> tuple[dict[tuple[str, str], Mapping[str, object]], list[str]]:
+    """Load compatible per-kernel analytical results without timing data."""
+
+    seeds: dict[tuple[str, str], Mapping[str, object]] = {}
+    sources: list[str] = []
+    for path in paths:
+        resolved = path.expanduser().resolve()
+        report = _read_report(resolved)
+        configuration = report.get("configuration")
+        if not isinstance(configuration, dict):
+            raise ValueError(f"{resolved}: report has no configuration")
+        mismatched = _compatible_configuration(
+            configuration, target_configuration
+        )
+        if mismatched:
+            raise ValueError(
+                f"{resolved}: solver source configuration differs in: "
+                + ", ".join(mismatched)
+            )
+        for kernel in report.get("kernels", []):
+            if not isinstance(kernel, dict):
+                continue
+            kernel_name = str(kernel["kernel"])
+            for solver in kernel.get("solvers", []):
+                if not isinstance(solver, dict):
+                    continue
+                seeds[(kernel_name, str(solver["grammar"]))] = solver
+        sources.append(str(resolved))
+    return seeds, sources
+
+
+def reuse_timings(
+    report: dict[str, object], source_path: Path
+) -> int:
+    """Copy exact matching benchmark evidence from a compatible report."""
+
+    source = _read_report(source_path)
+    configuration = report["configuration"]
+    source_configuration = source.get("configuration")
+    if not isinstance(configuration, dict) or not isinstance(
+        source_configuration, dict
+    ):
+        raise ValueError("timing source has no experiment configuration")
+    mismatched = _compatible_configuration(
+        source_configuration, configuration
+    )
+    if mismatched:
+        raise ValueError(
+            "timing source configuration differs in: "
+            + ", ".join(mismatched)
+        )
+
+    source_records: dict[
+        tuple[str, tuple[str, ...]], dict[str, object]
+    ] = {}
+    for candidate in source.get("benchmarks", []):
+        if not isinstance(candidate, dict) or candidate.get("timing") is None:
+            continue
+        kernel = str(candidate["kernel"])
+        words = candidate["words"]
+        if not isinstance(words, dict) or kernel not in KERNEL_SPECS:
+            continue
+        key = (
+            kernel,
+            tuple(words[name] for name in KERNEL_SPECS[kernel].evaluator_arrays),
+        )
+        source_records[key] = candidate
+
+    reused = 0
+    benchmarks = report["benchmarks"]
+    assert isinstance(benchmarks, list)
+    for record in benchmarks:
+        kernel = str(record["kernel"])
+        words = record["words"]
+        assert isinstance(words, dict)
+        key = (
+            kernel,
+            tuple(words[name] for name in KERNEL_SPECS[kernel].evaluator_arrays),
+        )
+        source_record = source_records.get(key)
+        if source_record is None:
+            continue
+        for field in ("timing", "command", "stdout", "stderr"):
+            record[field] = source_record[field]
+        record["timing_source"] = {
+            "report": str(source_path.resolve()),
+            "benchmark_id": source_record["id"],
+        }
+        reused += 1
+    report["reused_timings"] = {
+        "report": str(source_path.resolve()),
+        "count": reused,
+    }
+    finalize_report(report)
+    return reused
 
 
 def finalize_report(report: dict[str, object]) -> None:
@@ -559,7 +777,7 @@ def finalize_report(report: dict[str, object]) -> None:
     report["complete"] = complete
     plot_data = []
 
-    kernels = report["kernels"]
+    kernels = report.get("kernels", [])
     assert isinstance(kernels, list)
     for kernel in kernels:
         assert isinstance(kernel, dict)
@@ -588,6 +806,9 @@ def finalize_report(report: dict[str, object]) -> None:
             }
         )
         for solver in kernel["solvers"]:
+            if solver.get("status", "ok") != "ok":
+                solver["best"] = None
+                continue
             frontier = solver["frontier"]
             best = min(
                 frontier,
@@ -680,9 +901,38 @@ def render_plot(report: Mapping[str, object], output: Path) -> None:
         "Best measured layout from each RELAY solver frontier "
         f"(N={configuration['matrix_size']})"
     )
-    axis.legend(title="Layout algorithm", frameon=True)
+    axis.legend(
+        title="Layout algorithm",
+        frameon=True,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+        ncol=len(algorithm_order),
+    )
     for container in axis.containers:
         axis.bar_label(container, fmt="%.2f×", padding=3, fontsize=8)
+    kernels = report.get("kernels", [])
+    assert isinstance(kernels, list)
+    bar_width = 0.8 / len(algorithm_order)
+    for kernel_index, kernel in enumerate(kernels):
+        assert isinstance(kernel, dict)
+        for solver in kernel["solvers"]:
+            if solver.get("status", "ok") == "ok":
+                continue
+            hue_index = algorithm_order.index(str(solver["algorithm"]))
+            x_position = (
+                kernel_index
+                - 0.4
+                + bar_width * (hue_index + 0.5)
+            )
+            axis.text(
+                x_position,
+                0.08,
+                "N/A\n(non-distributive)",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                color="0.25",
+            )
     figure.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(".tmp.png")
@@ -709,6 +959,14 @@ def print_summary(report: Mapping[str, object]) -> None:
             f"  {row['display_name']:8s} {row['algorithm']:25s} "
             f"{row['speedup']:.3f}x  {words}"
         )
+    for kernel in report["kernels"]:
+        for solver in kernel["solvers"]:
+            if solver.get("status", "ok") == "ok":
+                continue
+            print(
+                f"  {kernel['display_name']:8s} {solver['algorithm']:25s} "
+                f"not applicable: {solver['reason']}"
+            )
 
 
 def run(argv: Sequence[str] | None = None) -> int:
@@ -723,12 +981,25 @@ def run(argv: Sequence[str] | None = None) -> int:
         parser.error("--block-size must not exceed 1024")
     if args.prepare_only and args.resume:
         parser.error("--prepare-only cannot be combined with --resume")
+    if args.resume and args.reuse_timings is not None:
+        parser.error("--reuse-timings cannot be combined with --resume")
+    if args.resume and args.reuse_solvers:
+        parser.error("--reuse-solvers cannot be combined with --resume")
     if args.prepare_only and args.max_benchmarks is not None:
         parser.error("--prepare-only cannot be combined with --max-benchmarks")
 
     output = args.output.expanduser().resolve()
     plot = args.plot.expanduser().resolve()
     expected_configuration = _configuration(args, kernel_names, grammars)
+    solver_seeds: dict[tuple[str, str], Mapping[str, object]] = {}
+    solver_sources: list[str] = []
+    if args.reuse_solvers:
+        try:
+            solver_seeds, solver_sources = load_solver_seeds(
+                args.reuse_solvers, expected_configuration
+            )
+        except ValueError as error:
+            parser.error(str(error))
     if args.resume:
         if not output.exists():
             parser.error(f"resume checkpoint does not exist: {output}")
@@ -742,7 +1013,22 @@ def run(argv: Sequence[str] | None = None) -> int:
             parser.error("resume checkpoint configuration does not match")
         print(f"Resuming {output}", flush=True)
     else:
-        report = prepare_report(args, kernel_names, grammars)
+        report = prepare_report(
+            args,
+            kernel_names,
+            grammars,
+            solver_seeds,
+        )
+        if solver_sources:
+            report["reused_solver_results"] = solver_sources
+        if args.reuse_timings is not None:
+            try:
+                count = reuse_timings(
+                    report, args.reuse_timings.expanduser().resolve()
+                )
+            except ValueError as error:
+                parser.error(str(error))
+            print(f"Reused {count} matching benchmark timings", flush=True)
         write_report(report, output)
 
     if not args.prepare_only:

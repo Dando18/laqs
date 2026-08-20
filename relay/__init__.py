@@ -1,5 +1,6 @@
 from .dsl import lane_accesses, lane_event, sequence
 from .layouts import (
+    AffineAccessLayout,
     CanonicalLayout,
     LinearInnerLayout,
     canonical_layout_from_word,
@@ -52,6 +53,7 @@ from .simple_solver import (
     FrontierCost,
     FrontierMember,
     FrontierType,
+    NonDistributiveAccessError,
     SimpleRelayProblem,
     SimpleRelayResult,
     simple_solve,
@@ -59,6 +61,7 @@ from .simple_solver import (
 
 __all__ = [
     "Access",
+    "AffineAccessLayout",
     "ArrayComponentScore",
     "ArrayCodegenCost",
     "ArrayResult",
@@ -84,6 +87,7 @@ __all__ = [
     "LinearInnerLayout",
     "MatrixSpec",
     "MemoryEvent",
+    "NonDistributiveAccessError",
     "ObjectiveComponent",
     "PerLaneTemporalRegions",
     "ParetoFrontier",

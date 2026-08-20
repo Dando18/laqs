@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, Sequence
 
-from .gf2 import apply_matrix
+from .gf2 import apply_matrix, invert_matrix_from_columns
 from .model import Coord, MatrixSpec
 
 
@@ -61,6 +61,43 @@ def _outer_rank(
 
 def _flat_inner_bit_index(tile_exponents: Sequence[int], mode: int, bit: int) -> int:
     return sum(tile_exponents[:mode]) + bit
+
+
+def _flat_bit_mode(tile_exponents: Sequence[int], flat_bit: int) -> int:
+    cursor = 0
+    for mode, width in enumerate(tile_exponents):
+        if cursor <= flat_bit < cursor + width:
+            return mode
+        cursor += width
+    raise IndexError(flat_bit)
+
+
+def linear_codegen_runs(
+    a_rows: Sequence[int], tile_exponents: Sequence[int]
+) -> int:
+    """Count contiguous source-field groups in a linear address matrix."""
+
+    runs = 0
+    position = 0
+    while position < len(a_rows):
+        runs += 1
+        row = a_rows[position]
+        if row.bit_count() != 1:
+            position += 1
+            continue
+        source_bit = row.bit_length() - 1
+        mode = _flat_bit_mode(tile_exponents, source_bit)
+        end = position + 1
+        while end < len(a_rows):
+            next_bit = source_bit + end - position
+            if (
+                a_rows[end] != 1 << next_bit
+                or _flat_bit_mode(tile_exponents, next_bit) != mode
+            ):
+                break
+            end += 1
+        position = end
+    return runs
 
 
 @dataclass(frozen=True)
@@ -243,6 +280,139 @@ class LinearInnerLayout:
 
     def signature(self) -> tuple[object, ...]:
         return (self.grammar, self.tile_exponents, self.a_rows, self.outer_order)
+
+
+@dataclass(frozen=True)
+class AffineAccessLayout:
+    """A fixed-basis realization of an affine-access grammar word.
+
+    ``basis_columns`` lists the logical difference directions from low to
+    high physical address. ``a_rows`` is its inverse and is the matrix used
+    by address code generation. The access word contains only active access
+    blocks; any inactive complement directions are fixed at the high end.
+    """
+
+    name: str
+    matrix_name: str
+    tile_exponents: tuple[int, ...]
+    a_rows: tuple[int, ...]
+    outer_order: tuple[int, ...]
+    basis_columns: tuple[int, ...]
+    access_word: tuple[int, ...]
+    access_block_dimensions: tuple[int, ...]
+    inactive_rank: int = 0
+
+    def validate(self, matrix: MatrixSpec) -> None:
+        _validate_common(matrix, self.tile_exponents, self.outer_order)
+        if self.matrix_name != matrix.name:
+            raise ValueError("layout and matrix names differ")
+        width = sum(self.tile_exponents)
+        if len(self.a_rows) != width or len(self.basis_columns) != width:
+            raise ValueError("affine-access basis width does not match tile bits")
+        if len(self.access_word) != sum(self.access_block_dimensions):
+            raise ValueError("access word does not cover every access-block direction")
+        counts = [0] * len(self.access_block_dimensions)
+        for block in self.access_word:
+            if block < 0 or block >= len(counts):
+                raise ValueError("access word contains an invalid block")
+            counts[block] += 1
+        if tuple(counts) != self.access_block_dimensions:
+            raise ValueError("access word counts do not match access-block dimensions")
+        if self.inactive_rank != width - len(self.access_word):
+            raise ValueError("inactive rank does not complete the access basis")
+        mask = (1 << width) - 1
+        if any(row <= 0 or row & ~mask for row in self.a_rows):
+            raise ValueError("affine-access A matrix contains an invalid row mask")
+        if invert_matrix_from_columns(self.basis_columns, width) != self.a_rows:
+            raise ValueError("affine-access A matrix is not the inverse basis")
+
+    @property
+    def grammar(self) -> str:
+        return "affine_access"
+
+    @property
+    def runs(self) -> int:
+        return linear_codegen_runs(self.a_rows, self.tile_exponents)
+
+    @property
+    def xor_count(self) -> int:
+        return sum(max(0, row.bit_count() - 1) for row in self.a_rows)
+
+    @property
+    def inner_bits(self) -> int:
+        return len(self.a_rows)
+
+    @property
+    def active_rank(self) -> int:
+        return len(self.access_word)
+
+    @property
+    def tile_shape(self) -> tuple[int, ...]:
+        return tuple(1 << exponent for exponent in self.tile_exponents)
+
+    def inner_offset(self, matrix: MatrixSpec, coord: Coord) -> int:
+        if self.matrix_name != matrix.name:
+            raise ValueError("layout and matrix names differ")
+        return apply_matrix(
+            self.a_rows, matrix.inner_bits(coord, self.tile_exponents)
+        )
+
+    def offset(self, matrix: MatrixSpec, coord: Coord) -> int:
+        matrix.validate_coord(coord)
+        inner = self.inner_offset(matrix, coord)
+        outer = _outer_rank(
+            matrix, coord, self.tile_exponents, self.outer_order
+        )
+        return (outer << self.inner_bits) | inner
+
+    def physical_bit_labels(self, matrix: MatrixSpec) -> tuple[str, ...]:
+        labels: list[str] = []
+        for row in self.a_rows:
+            terms = [
+                matrix.bit_label(bit, self.tile_exponents)
+                for bit in range(self.inner_bits)
+                if (row >> bit) & 1
+            ]
+            labels.append("^".join(terms))
+        return tuple(labels)
+
+    def encode_plan(self, matrix: MatrixSpec) -> tuple[str, ...]:
+        return tuple(
+            f"y{index} = {expression}"
+            for index, expression in enumerate(self.physical_bit_labels(matrix))
+        )
+
+    def descriptor(self) -> str:
+        exponents = ",".join(str(value) for value in self.tile_exponents)
+        rows = ",".join(f"{row:x}" for row in self.a_rows)
+        return f"linear:{exponents}:{rows}"
+
+    def evaluator_descriptor(self, matrix: MatrixSpec) -> str:
+        """Use a compact canonical word when this matrix is canonical."""
+
+        used = [0] * matrix.rank
+        symbols: list[str] = []
+        offsets = matrix.bit_offsets(self.tile_exponents)
+        for row in self.a_rows:
+            if row.bit_count() != 1:
+                return self.descriptor()
+            flat_bit = row.bit_length() - 1
+            mode = _flat_bit_mode(self.tile_exponents, flat_bit)
+            logical_bit = flat_bit - offsets[mode]
+            if logical_bit != used[mode]:
+                return self.descriptor()
+            used[mode] += 1
+            symbols.append(matrix.mode_names[mode])
+        return "".join(symbols)
+
+    def signature(self) -> tuple[object, ...]:
+        return (
+            self.grammar,
+            self.tile_exponents,
+            self.a_rows,
+            self.outer_order,
+            self.access_word,
+        )
 
 
 def canonical_layout_from_word(

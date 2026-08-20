@@ -167,6 +167,39 @@ def complement_basis(existing: Sequence[int], width: int) -> tuple[int, ...]:
     return tuple(additions)
 
 
+def nullspace_basis(rows: Sequence[int], width: int) -> tuple[int, ...]:
+    """Return a canonical basis for the nullspace of binary row equations."""
+
+    if width < 0:
+        raise ValueError("width must be nonnegative")
+    mask = (1 << width) - 1
+    if any(row < 0 or row & ~mask for row in rows):
+        raise ValueError("row lies outside the requested ambient space")
+    equations = rref_basis(rows)
+    pivot_bits = {highest_bit(row) for row in equations}
+    vectors: list[int] = []
+    for free_bit in range(width):
+        if free_bit in pivot_bits:
+            continue
+        vector = 1 << free_bit
+        for row in reversed(equations):
+            pivot = highest_bit(row)
+            if parity(row & vector):
+                vector |= 1 << pivot
+        vectors.append(vector)
+    return rref_basis(vectors)
+
+
+def intersection_basis(
+    left: Sequence[int], right: Sequence[int], width: int
+) -> tuple[int, ...]:
+    """Return a canonical basis for the intersection of two subspaces."""
+
+    left_orthogonal = nullspace_basis(left, width)
+    right_orthogonal = nullspace_basis(right, width)
+    return nullspace_basis((*left_orthogonal, *right_orthogonal), width)
+
+
 def codimension_one_subspaces(basis: Sequence[int]) -> tuple[tuple[int, ...], ...]:
     """Enumerate all codimension-one subspaces of span(basis)."""
 

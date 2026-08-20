@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import replace
-from itertools import combinations, product
+from itertools import combinations, permutations, product
+import json
 from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
@@ -16,11 +17,14 @@ from experiments.solver_frontier import (
     nonnegative_float,
     parse_arguments,
     render_plot,
+    reuse_timings,
 )
 from relay import (
+    AffineAccessLayout,
     ExplicitRegions,
     Hyperedge,
     MatrixSpec,
+    NonDistributiveAccessError,
     ObjectiveComponent,
     SimpleRelayProblem,
     canonical_layout_from_word,
@@ -28,6 +32,7 @@ from relay import (
     simple_solve,
 )
 from relay.simple_solver import _standard_words
+from relay.gf2 import invert_matrix_from_columns
 
 
 def canonical_words(matrix: MatrixSpec) -> tuple[str, ...]:
@@ -171,6 +176,158 @@ def exhaustive_frontier(
 
 
 class GrammarFrontierTests(unittest.TestCase):
+    def test_affine_access_dp_finds_mixed_shared_direction(self) -> None:
+        matrix = MatrixSpec("A", (4, 4), 4, ("i", "j"))
+
+        def coordinate(bits: int) -> tuple[int, int]:
+            return bits & 0b11, bits >> 2
+
+        shared = 0b0101
+        first_only = 0b0010
+        second_only = 0b1000
+        first_space = tuple(
+            coordinate(bits)
+            for bits in (0, shared, first_only, shared ^ first_only)
+        )
+        second_space = tuple(
+            coordinate(bits)
+            for bits in (0, shared, second_only, shared ^ second_only)
+        )
+        edges = {
+            "A": (
+                Hyperedge.make(first_space),
+                Hyperedge.make(second_space),
+            )
+        }
+        problem = SimpleRelayProblem(
+            matrices=(matrix,),
+            events=(),
+            sequences=(),
+            objectives=(
+                ExplicitRegions("fine", 8, edges),
+                ExplicitRegions("coarse", 16, edges),
+            ),
+            grammar="affine",
+            fine_component="fine",
+        )
+
+        result = simple_solve(problem)
+
+        search = result.array_searches[0]
+        self.assertEqual(search.access_block_dimensions, (1, 1, 1))
+        self.assertEqual(search.grammar_layout_count, 6)
+        self.assertEqual(search.active_rank, 3)
+        self.assertEqual(search.inactive_rank, 1)
+        self.assertTrue(search.score_ties_collapsed)
+        self.assertTrue(result.frontier)
+        self.assertTrue(
+            all(
+                isinstance(member.layouts["A"], AffineAccessLayout)
+                for member in result.frontier
+            )
+        )
+        self.assertTrue(
+            any(
+                shared in member.layouts["A"].basis_columns
+                for member in result.frontier
+            )
+        )
+        self.assertTrue(
+            all(member.cost.codegen_xors >= 1 for member in result.frontier)
+        )
+
+        representative = result.frontier[0].layouts["A"]
+        active = representative.basis_columns[:3]
+        inactive = representative.basis_columns[3:]
+        exhaustive_costs = []
+        for index, order in enumerate(permutations(active)):
+            columns = (*order, *inactive)
+            layout = AffineAccessLayout(
+                f"oracle_{index}",
+                "A",
+                matrix.mode_bits,
+                invert_matrix_from_columns(columns, matrix.total_bits),
+                (1, 0),
+                columns,
+                (0, 1, 2),
+                (1, 1, 1),
+                1,
+            )
+            score = score_layouts(
+                {"A": matrix}, result.components, {"A": layout}
+            )
+            exhaustive_costs.append(
+                (
+                    score.component("fine").raw_region_count,
+                    score.peak_normalized_excess,
+                    score.weighted_normalized_excess,
+                    float(score.codegen.runs),
+                    float(score.codegen.xors),
+                )
+            )
+
+        def dominates(left, right) -> bool:
+            return all(a <= b for a, b in zip(left, right)) and any(
+                a < b for a, b in zip(left, right)
+            )
+
+        exhaustive_frontier_costs = {
+            cost
+            for cost in exhaustive_costs
+            if not any(
+                other != cost and dominates(other, cost)
+                for other in exhaustive_costs
+            )
+        }
+        self.assertEqual(
+            {member.cost.values for member in result.frontier},
+            exhaustive_frontier_costs,
+        )
+
+    def test_affine_access_dp_rejects_nondistributive_lattice(self) -> None:
+        matrix = MatrixSpec("A", (2, 2), 4, ("i", "j"))
+        edges = {
+            "A": tuple(
+                Hyperedge.make(((0, 0), point))
+                for point in ((1, 0), (0, 1), (1, 1))
+            )
+        }
+        problem = SimpleRelayProblem(
+            matrices=(matrix,),
+            events=(),
+            sequences=(),
+            objectives=(ExplicitRegions("fine", 8, edges),),
+            grammar="affine",
+            fine_component="fine",
+        )
+
+        with self.assertRaises(NonDistributiveAccessError):
+            simple_solve(problem)
+
+    def test_affine_access_dp_rejects_affine_hull_only_edge(self) -> None:
+        matrix = MatrixSpec("A", (2, 2), 4, ("i", "j"))
+        problem = SimpleRelayProblem(
+            matrices=(matrix,),
+            events=(),
+            sequences=(),
+            objectives=(
+                ExplicitRegions(
+                    "fine",
+                    8,
+                    {
+                        "A": (
+                            Hyperedge.make(((0, 0), (1, 0), (0, 1))),
+                        )
+                    },
+                ),
+            ),
+            grammar="affine",
+            fine_component="fine",
+        )
+
+        with self.assertRaisesRegex(ValueError, "is not an affine coset"):
+            simple_solve(problem)
+
     def test_standard_words_are_the_nine_unique_cut_point_layouts(self) -> None:
         matrix = MatrixSpec("A", (4, 8), 4, ("i", "j"))
         standard = {
@@ -259,6 +416,69 @@ class GrammarFrontierTests(unittest.TestCase):
 
 
 class SolverFrontierExperimentTests(unittest.TestCase):
+    def test_matching_prior_timing_can_be_reused(self) -> None:
+        configuration = {
+            "matrix_size": 8,
+            "frontier_type": "pareto",
+            "fine_component": "wave_load.64B",
+            "fine_tolerance": None,
+            "samples": 2,
+            "iterations": 1,
+            "warmup": 0,
+            "device": 0,
+            "block_size": 8,
+            "block_x": 4,
+            "block_y": 4,
+            "compiler": "hipcc",
+            "arch": None,
+        }
+        source = {
+            "experiment": "solver-frontier-speedup",
+            "configuration": configuration,
+            "benchmarks": [
+                {
+                    "id": "old",
+                    "kernel": "atax",
+                    "words": {"A": "jjjiii"},
+                    "timing": {"median_ms": 2.0},
+                    "command": ["old-command"],
+                    "stdout": "Correctness: PASS",
+                    "stderr": "",
+                }
+            ],
+        }
+        report = {
+            "configuration": dict(configuration),
+            "benchmarks": [
+                {
+                    "id": "new",
+                    "kernel": "atax",
+                    "words": {"A": "jjjiii"},
+                    "timing": None,
+                    "command": None,
+                    "stdout": None,
+                    "stderr": None,
+                    "timing_source": None,
+                }
+            ],
+            "kernels": [],
+            "plot_data": [],
+        }
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "prior.json"
+            path.write_text(json.dumps(source))
+
+            reused = reuse_timings(report, path)
+
+        self.assertEqual(reused, 1)
+        self.assertEqual(
+            report["benchmarks"][0]["timing"], {"median_ms": 2.0}
+        )
+        self.assertEqual(
+            report["benchmarks"][0]["timing_source"]["benchmark_id"],
+            "old",
+        )
+
     def test_frontier_tolerance_must_be_finite(self) -> None:
         for value in ("nan", "inf", "-inf", "-0.1"):
             with self.subTest(value=value):
@@ -269,6 +489,7 @@ class SolverFrontierExperimentTests(unittest.TestCase):
         _, args = parse_arguments([])
 
         self.assertEqual(args.frontier_type, "pareto")
+        self.assertIsNone(args.grammar)
 
     def test_evaluator_command_preserves_distinct_operand_words(self) -> None:
         _, args = parse_arguments(

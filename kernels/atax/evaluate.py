@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate, compile, and benchmark HIP ATAX for a canonical A layout.
+"""Generate, compile, and benchmark HIP ATAX for a matrix layout.
 
 A canonical word describes physical address bits inside a matrix tile from
 least significant to most significant.  For example, ``jjjjiiii`` is
@@ -16,7 +16,6 @@ allocation, for example:
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from pathlib import Path
 import shlex
 import shutil
@@ -25,79 +24,11 @@ import subprocess
 import sys
 import tempfile
 
-
-@dataclass(frozen=True)
-class CanonicalLayout:
-    """A two-dimensional canonical tiled layout."""
-
-    word: str
-    first_bits: int
-    second_bits: int
-
-    @property
-    def tile_rows(self) -> int:
-        return 1 << self.first_bits
-
-    @property
-    def tile_columns(self) -> int:
-        return 1 << self.second_bits
-
-
-def canonical_layout(word: str, option: str) -> CanonicalLayout:
-    normalized = word.lower()
-    if not normalized:
-        raise ValueError(f"{option} must not be empty")
-    invalid = sorted(set(normalized) - {"i", "j"})
-    if invalid:
-        raise ValueError(
-            f"{option} must contain only 'i' and 'j' (found {''.join(invalid)!r})"
-        )
-    first_bits = normalized.count("i")
-    second_bits = normalized.count("j")
-    if first_bits > 31 or second_bits > 31 or len(normalized) > 62:
-        raise ValueError(f"{option} is too wide for the generated index code")
-    return CanonicalLayout(normalized, first_bits, second_bits)
-
-
-def _mask(bits: int) -> str:
-    return "0ull" if bits == 0 else f"0x{(1 << bits) - 1:x}ull"
-
-
-def layout_function(name: str, layout: CanonicalLayout) -> str:
-    """Emit a host/device offset function for a canonical word."""
-
-    used = {"i": 0, "j": 0}
-    inner_terms: list[str] = []
-    physical_bit = 0
-    while physical_bit < len(layout.word):
-        mode = layout.word[physical_bit]
-        end = physical_bit + 1
-        while end < len(layout.word) and layout.word[end] == mode:
-            end += 1
-        width = end - physical_bit
-        logical_bit = used[mode]
-        used[mode] += width
-        coordinate = "first" if mode == "i" else "second"
-        term = (
-            f"((static_cast<uint64_t>({coordinate}) >> {logical_bit}) & "
-            f"{_mask(width)})"
-        )
-        if physical_bit:
-            term += f" << {physical_bit}"
-        inner_terms.append(term)
-        physical_bit = end
-    inner = " |\n        ".join(inner_terms)
-    return f"""// word(low -> high)={layout.word}, tile={layout.tile_rows}x{layout.tile_columns}
-__host__ __device__ static __forceinline__ uint64_t {name}(
-    uint32_t first, uint32_t second, uint32_t n) {{
-  const uint64_t outer =
-      static_cast<uint64_t>(first >> {layout.first_bits}) *
-          (n >> {layout.second_bits}) +
-      (second >> {layout.second_bits});
-  const uint64_t inner =
-      {inner};
-  return (outer << {len(layout.word)}) | inner;
-}}"""
+from relay.evaluator_layout import (
+    CanonicalLayout,
+    canonical_layout,
+    layout_function,
+)
 
 
 DRIVER_TEMPLATE = Template(
@@ -190,7 +121,7 @@ int main() {
   std::printf("Device: %s\n", properties.name);
   std::printf("ATAX FP64: N=%u, block=%u, samples=%d, iterations=%d, "
               "warmup=%d\n", n, block_size, samples, iterations, warmup);
-  std::printf("Layouts: A=%s (word is low -> high bits)\n", "$a_word");
+  std::printf("Layouts: A=%s (descriptor is low -> high bits)\n", "$a_word");
 
   validate_layout("A", &a_offset, n);
 
@@ -363,7 +294,7 @@ def parse_arguments(
     argv: list[str] | None = None,
 ) -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("a_word", help="canonical word for A(i,j)")
+    parser.add_argument("a_word", help="canonical word or linear layout for A(i,j)")
     parser.add_argument(
         "--n",
         type=positive_integer,

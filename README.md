@@ -75,22 +75,26 @@ layout-word convention, CLI contract, and JSON fields.
 
 ## Benchmark solver frontiers
 
-The solver-frontier experiment runs the `G_S` exhaustive solver and `G_C`
-dynamic-programming solver for all five kernels, benchmarks every layout in
-their ordinary five-cost Pareto frontiers, selects the fastest measured
-member, and plots speedup over full row-major layouts:
+The solver-frontier experiment runs the `G_S` exhaustive solver, the `G_C`
+canonical dynamic program, and the affine-access `G_A` dynamic program for all
+five kernels. It benchmarks every retained layout in their ordinary five-cost
+Pareto frontiers, selects the fastest measured member, and plots speedup over
+full row-major layouts. `G_A` is reported as not applicable when the access
+lattice is not distributive, as happens for the current SYRK model:
 
 ```bash
 .venv/bin/python experiments/solver_frontier.py \
+  --size 1024 \
   --prepare-only \
   --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942
 flux run -n1 -g1 -t 5m -q pdebug \
   .venv/bin/python experiments/solver_frontier.py \
+  --size 1024 \
   --resume \
   --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942
 ```
 
-The current N=256 MI300A results and complete workflow are documented in
+The current N=1024 MI300A results and complete workflow are documented in
 [`docs/solver-frontier-experiment.md`](docs/solver-frontier-experiment.md).
 The final plot is
 [`results/solver_frontier_speedup.png`](results/solver_frontier_speedup.png),

@@ -5,7 +5,9 @@ import unittest
 from relay.gf2 import (
     apply_matrix,
     invert_matrix_from_columns,
+    intersection_basis,
     matrix_rows_from_columns,
+    nullspace_basis,
     rref_basis,
 )
 
@@ -23,6 +25,13 @@ class GF2Tests(unittest.TestCase):
             encoded = apply_matrix(rows, vector)
             decoded = apply_matrix(inverse, encoded)
             self.assertEqual(decoded, vector)
+
+    def test_nullspace_and_intersection(self) -> None:
+        self.assertEqual(nullspace_basis((0b011,), 3), (0b100, 0b011))
+        self.assertEqual(
+            intersection_basis((0b001, 0b010), (0b011, 0b100), 3),
+            (0b011,),
+        )
 
 
 if __name__ == "__main__":
