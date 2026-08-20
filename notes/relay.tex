@@ -340,6 +340,8 @@ where $\lambda_h$ are hyperparameters for weighting different levels $h$.
 
 \paragraph{Why do we care about $V_{d_1} \subset V_{d_2} \subset \cdots \subset V_{d_m}$?} Well, for any given $V_d$ we can always construct a matrix $A$ that is bit-linear and invertible. Simply take $V_d = \text{span}\{b_1, b_2, \ldots, b_d\}$ and construct the matrix $B$ from the basis $(b_1, b_2, \ldots, b_d)$. Then $A=B^{-1}$ is a valid $A$ that is in $V_d$. We could optimize $V_d$ for each $d$ and not as a nested subset flag. However, this is not necessarily realizable as a single $A$ (it's probably usually not). We could just optimize one $V_d$ value and then form a flag from it, but then the flag is not necessarily optimal at all levels. If we care about multiple scales, then we should optimize a whole flag at once: all levels will be joint-optimized and it will be realizable into a single $A$.
 
+We can also think about this based on the ``collapsing'' intuition of the quotient space. Taking $\mathbb{F}_2^p / V_d$ we collapse all logical differences that affect only the $d$ lowest physical bits. At each step $V_d$ in the nested subsets we ``forget'' one additional bit of resolution. At $d=0$ nothing is forgotten, i.e. $\mathbb{F}_2^p / V_0 \cong \mathbb{F}_2^p$. At $d=1$ logical elements in the same 2-element aligned physical region become one point. At $d=2$ all the 2-element regions merge into 4-element regions and so on... Since $V_d \subset V_{d+1}$ then there is a natural projection $\mathbb{F}_2^p /V_d \rightarrow \mathbb{F}_2^p / V_{d+1}$. This means we can find $V_{d+1}$ by ``further collapsing'' $V_d$. This is important as solving for $V_{d+1}$ only requires merging pairs of quotient classes from $V_d$.
+
 \subsection{Active-Span Reduction}
 
 There's a nice optimization based on the fact that not all elements of the subspace $V_d$ participate for any given edge. $V_d$ is the space of all logical bit differences that are within $2^d$ of each other in physical address space. For any given edge $E\in\mathcal{E}$ only a subset $S\subset V_d$ actually matters.
@@ -379,8 +381,8 @@ q(E;V) = q(E; V \cap S).
     Thus $V$ and $V\cap S$ induce the same equivalence relation on $E$.
 \end{proof}
 
-\begin{lemma}{(Active Span Lemma)}
-    As a consequence of \Cref{lem:v_cap_s} we can say that there exists an optimal complete flag in which $V_d \subseteq S\,\, \text{for } d\le \dim S$ and $S\subseteq V_d \,\, \text{for } d \ge r$.
+\begin{lemma}{(Active Span Lemma)}\label{lem:active_span}
+    As a consequence of \Cref{lem:v_cap_s} we can say that there exists an optimal complete flag in which $V_d \subseteq S\,\, \text{for } d\le r$ and $S\subseteq V_d \,\, \text{for } d \ge r$.
 \end{lemma}
 
 \begin{proof}
@@ -552,5 +554,130 @@ where $\oplus_\text{index}b$ permutes bit positions $x\mapsto x \oplus b$. Then
 \]
 %
 For $r\le 9$ this can be done in 512-bits, i.e. up to eight 64-bit words. Thus, this can be done nicely with SIMD or on a GPU.
+
+\section{Deriving the Grammar for Affine Memory Events}
+
+For an edge $E$ choose an anchor pointer $a_E$ and define $S_E$ as
+%
+\[
+    S_E = \text{span}\{x \oplus a_E : x \in E\}.
+\]
+%
+Suppose that $E$ defines an affine subspace, that is $E=a_E + S_E$. This is actually the case for many types of memory events. Now let use define a {\it quotient map} $\pi_V$ that represents the projection from the space to the quotient space, $\pi_V : \mathbb{F}_2^p \mapsto \mathbb{F}_2^p / V$. Then it follows that
+%
+\[
+    \pi_V = \pi_V(a_E) + \pi_V(S_E)
+\]
+%
+and, thus, the number of cosets from edge $E$ is
+%
+\[
+    \begin{aligned}
+        q(E;V) &= |\pi_V(E)| \\
+        &= |\pi_V(S_E)| \\
+        &= 2^{\dim \pi_V(S_E)} \\
+        &= 2^{\dim S_E - \dim(S_E\cap V)}.
+    \end{aligned}
+\]
+
+Thus, we can say that, when $E$ is an affine subspace, we can take an anchor point $a_E$, define $S_E = \text{span}\{x \oplus a_E : x \in E\}$, and let $r_E = \dim S_E$ and $\rho_E(d) = \dim (S_E \cap V_D)$. Then
+%
+\[
+    q(a_E + S_E; V_d) = 2^{r_E - \rho_E(d)}.
+\]
+%
+This is, in some sense, a stronger form of~\Cref{lem:active_span}. The active-span lemma removes dimensions from the search that are not in the union of all event differences, since they are irrelevant. However, for an affine event, we can discard an entire point space and only rely on one subspace $S_E$. Some interesting consequences of the $q(E;V)$ formulations above are {\it translation invariance},
+%
+\[
+    \begin{aligned}
+        E_1 = a_1 + S, &\quad\quad E_2 = a_2 + S \\
+        \implies q(E_1; V_d) &= q(E_2; V_d)\,\, \forall A,d\, ,
+    \end{aligned}
+\]
+%
+and a simpler objective
+%
+\[
+    J(V) = \sum_{s,d} \tau_{s,d} \sum_{(S_E,w_E)\in \mathcal{S}_E} w_E 2^{r_E - \rho_E(d)} .
+\]
+
+Consider the lattice of $S_E$ spaces under addition and intersection, $\mathcal{L}_{\text{access}} = \langle S_E : E \in \mathcal{E} \rangle$. If $\mathcal{L}_{\text{access}}$ is distributive, that is $X\cap (Y+Z) = (X\cap Y) + (X\cap Z)$ for all $X,Y,Y \in \mathcal{L}_{\text{access}}$, then there is a common adapted basis of the spaces. This means that $S = \bigoplus_{\alpha\in\mathcal{A}} W_\alpha$ such that every $S_E$ can be represented as $S_E = \bigoplus_{\alpha \in I_E} W_\alpha$ for some $I_E\subseteq \mathcal{A}$. \emph{All event subspaces become coordinate subspaces in a shared basis}.
+
+These $W_\alpha$ bases then replace our $i$/$j$ modes in $\mathcal{G}_C$. Instead of growing in the $i$ or $j$ basis, we can grow in the $W_\alpha$ basis. Why is this interesting?
+
+\begin{lemma}{(Affine Access Grammar).}
+    If $E=a_E + S_E$ is an affine coset and the lattice generated by the space $S_E$ is distributive, then there exists a basis $B$ with the following property:
+
+    For every nested subspace sequence
+    %
+    \[
+        0 = V_0 \subset V_1 \subset \cdots \subset V_p = S,
+    \]
+    %
+    there exists another nested subspace sequence in $B$,
+    %
+    \[
+        0 = W_0 \subset W_1 \subset \cdots \subset W_p = S,
+    \]
+    %
+    such that 
+    %
+    \[
+        \dim\left(S_E\cap W_d\right) \ge \dim\left(S_E\cap V_d\right)
+    \]
+    %
+    for every $E$ and $d$. Thus,
+    %
+    \[
+        q(E; W_d) \le q(E; V_d)
+    \]
+    %
+    for every $E$ and $d$.
+\end{lemma}
+
+\begin{proof}
+    This follows intuitively, but I'm not at all sure how to prove it yet lol.
+\end{proof}
+
+Thus, all we need to do is find all $W_d$ and their ordering. We do not need to search all the arbitrary subspaces in $V_p$. To see this define the following grammar
+%
+\[
+    S = W_1 \oplus \cdots \oplus W_k, \quad r_\alpha = \dim W_\alpha.
+\]
+%
+Every event has a set $I_E$ such that
+%
+\[
+    S_E = \bigoplus_{\alpha \in I_E} W_\alpha.
+\]
+%
+Say we have only constructed a partial layout up to $a_\alpha$. Then
+%
+\[
+    a_\alpha = \dim (V_d \cap W_\alpha), \quad 0 \le a_\alpha \le r_\alpha, \quad d = \sum_\alpha a_\alpha.
+\]
+%
+Thus,
+%
+\[
+    \begin{aligned}
+        \dim(S_E \cap V_d) &= \sum_{\alpha \in I_E} a_\alpha \\
+        \implies q(E; V_d) &= 2^{r_E - \sum_{\alpha \in I_E} a_\alpha}.
+    \end{aligned}
+\]
+%
+Now we can simply keep the same DP as before,
+%
+\[
+D(\bm a) = c_d(\bm a) + \min_{\alpha: a_\alpha > 0} D(\bm a - \bm e_\alpha)
+\]
+%
+where
+%
+\[
+    c_d(\bm a) = \sum_s \tau_{s,d} \sum_{E\in \mathcal{E}_s} w_E 2^{r_E - \sum_{\alpha \in I_E} a_\alpha}.
+\]
+
+
 
 \end{document}
