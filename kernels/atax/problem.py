@@ -26,6 +26,7 @@ from relay import (
 class Config:
     problem_size: int = 256
     block_size: int = 128
+    element_bytes: int = 8
 
 
 @dataclass(frozen=True)
@@ -39,11 +40,16 @@ def build_config(**kwargs) -> Config:
 
 def get_matrices(config: Config) -> tuple[MatrixSpec, ...]:
     n = config.problem_size
+    element_bytes = config.element_bytes
     return (
-        MatrixSpec("A", (n, n), 8, ("i", "j"), target=True, role="read"),
-        MatrixSpec("x", (n,), 8, ("j",), target=False, role="read"),
-        MatrixSpec("tmp", (n,), 8, ("i",), target=False, role="read_write"),
-        MatrixSpec("y", (n,), 8, ("j",), target=False, role="write"),
+        MatrixSpec(
+            "A", (n, n), element_bytes, ("i", "j"), target=True, role="read"
+        ),
+        MatrixSpec("x", (n,), element_bytes, ("j",), target=False, role="read"),
+        MatrixSpec(
+            "tmp", (n,), element_bytes, ("i",), target=False, role="read_write"
+        ),
+        MatrixSpec("y", (n,), element_bytes, ("j",), target=False, role="write"),
     )
 
 

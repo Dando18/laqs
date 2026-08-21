@@ -16,6 +16,19 @@ from relay.objectives import build_objectives
 
 
 class AtaxProblemTests(unittest.TestCase):
+    def test_element_width_is_configurable_without_changing_array_roles(self) -> None:
+        for element_bytes in (2, 4, 8):
+            config = problem.build_config(
+                problem_size=8, block_size=8, element_bytes=element_bytes
+            )
+            matrices = problem.get_matrices(config)
+            self.assertTrue(
+                all(matrix.element_bytes == element_bytes for matrix in matrices)
+            )
+            self.assertEqual(
+                [matrix.name for matrix in matrices if matrix.target], ["A"]
+            )
+
     def test_problem_models_both_complete_matrix_vector_stages(self) -> None:
         config = problem.build_config(problem_size=8, block_size=8)
         matrices = problem.get_matrices(config)
