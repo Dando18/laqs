@@ -209,6 +209,19 @@ class NonDistributiveAccessError(ValueError):
         )
 
 
+class NonAffineAccessError(ValueError):
+    """Raised when an objective edge is outside the affine grammar."""
+
+    def __init__(self, matrix: str, objective: str, source: str):
+        self.matrix = matrix
+        self.objective = objective
+        self.source = source
+        super().__init__(
+            f"{matrix}: objective {objective!r} edge {source!r} "
+            "is not an affine coset"
+        )
+
+
 def _dominates(left: Sequence[float], right: Sequence[float]) -> bool:
     return all(a <= b for a, b in zip(left, right)) and any(
         a < b for a, b in zip(left, right)
@@ -1171,9 +1184,10 @@ def _affine_edge_spaces(
             }
             direction_space = rref_basis(differences)
             if len(differences) != 1 << len(direction_space):
-                raise ValueError(
-                    f"{matrix.name}: objective {component.name!r} edge "
-                    f"{edge.source!r} is not an affine coset"
+                raise NonAffineAccessError(
+                    matrix.name,
+                    component.name,
+                    edge.source,
                 )
             aggregated[direction_space] = (
                 aggregated.get(direction_space, 0.0) + edge.weight

@@ -28,6 +28,7 @@ from relay import (
     Hyperedge,
     LinearInnerLayout,
     MatrixSpec,
+    NonAffineAccessError,
     NonDistributiveAccessError,
     ObjectiveComponent,
     SimpleRelayProblem,
@@ -428,7 +429,9 @@ class GrammarFrontierTests(unittest.TestCase):
             fine_component="fine",
         )
 
-        with self.assertRaisesRegex(ValueError, "is not an affine coset"):
+        with self.assertRaisesRegex(
+            NonAffineAccessError, "is not an affine coset"
+        ):
             simple_solve(problem)
 
     def test_standard_words_are_the_nine_unique_cut_point_layouts(self) -> None:
@@ -670,6 +673,28 @@ class SolverFrontierExperimentTests(unittest.TestCase):
         )
         self.assertIn("hardware_peak", candidate["score"]["aggregates"])
         self.assertIn("hardware_area", candidate["score"]["aggregates"])
+
+    def test_non_affine_scope_marks_affine_grammar_not_applicable(self) -> None:
+        _, args = parse_arguments(
+            [
+                "--kernel",
+                "mvt",
+                "--grammar",
+                "affine",
+                "--size",
+                "8",
+                "--block-size",
+                "8",
+                "--prepare-only",
+            ]
+        )
+
+        report = prepare_report(args, ("mvt",), ("affine",))
+        solver = report["kernels"][0]["solvers"][0]
+
+        self.assertEqual(solver["status"], "not_applicable")
+        self.assertIn("is not an affine coset", solver["reason"])
+        self.assertEqual(solver["frontier"], [])
 
     def test_evaluator_command_preserves_distinct_operand_words(self) -> None:
         _, args = parse_arguments(

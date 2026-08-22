@@ -42,6 +42,7 @@ from relay import (
     HARDWARE_PROFILES,
     CanonicalLayout,
     HardwareProfile,
+    NonAffineAccessError,
     NonDistributiveAccessError,
     SimpleRelayProblem,
     UniversalScopeObjectives,
@@ -359,6 +360,55 @@ def _cost_dict(cost) -> dict[str, object]:
     }
 
 
+def _compact_score(
+    score: dict[str, object], retained_components: set[str]
+) -> dict[str, object]:
+    components = score.get("components")
+    if isinstance(components, list):
+        score["components"] = [
+            component
+            for component in components
+            if isinstance(component, dict)
+            and component.get("name") in retained_components
+        ]
+    return score
+
+
+def compact_report_scores(report: dict[str, object]) -> None:
+    """Discard repeated zero-response component detail from report scores."""
+
+    configuration = report["configuration"]
+    assert isinstance(configuration, dict)
+    fine_component = str(configuration["fine_component"])
+    kernels = report["kernels"]
+    assert isinstance(kernels, list)
+    for kernel in kernels:
+        assert isinstance(kernel, dict)
+        weights = kernel["component_weights"]
+        tolerances = kernel["peak_tolerances"]
+        assert isinstance(weights, dict)
+        assert isinstance(tolerances, dict)
+        retained = {
+            fine_component,
+            *tolerances,
+            *(name for name, weight in weights.items() if float(weight) > 0),
+        }
+        baseline = kernel["baseline"]
+        assert isinstance(baseline, dict)
+        score = baseline["score"]
+        assert isinstance(score, dict)
+        _compact_score(score, retained)
+        for solver in kernel["solvers"]:
+            for candidate in solver["frontier"]:
+                candidate_score = candidate["score"]
+                assert isinstance(candidate_score, dict)
+                _compact_score(candidate_score, retained)
+    report["score_component_serialization"] = (
+        "fine component plus nonzero tau and configured kappa components; "
+        "aggregate scores retain the complete universal basis"
+    )
+
+
 def _add_benchmark(
     benchmarks: list[dict[str, object]],
     benchmark_ids: dict[tuple[str, tuple[str, ...]], str],
@@ -464,7 +514,7 @@ def prepare_report(
                         name=f"{spec.name}_{grammar}_{args.size}",
                     )
                 )
-            except NonDistributiveAccessError as error:
+            except (NonAffineAccessError, NonDistributiveAccessError) as error:
                 solver_results.append(
                     {
                         "grammar": grammar,
@@ -984,7 +1034,7 @@ def render_plot(report: Mapping[str, object], output: Path) -> None:
             axis.text(
                 x_position,
                 0.08,
-                "N/A\n(non-distributive)",
+                "N/A\n(grammar premise)",
                 ha="center",
                 va="bottom",
                 fontsize=7,
@@ -1088,7 +1138,10 @@ def run(argv: Sequence[str] | None = None) -> int:
             except ValueError as error:
                 parser.error(str(error))
             print(f"Reused {count} matching benchmark timings", flush=True)
+        compact_report_scores(report)
         write_report(report, output)
+
+    compact_report_scores(report)
 
     if not args.prepare_only:
         benchmarks = report["benchmarks"]

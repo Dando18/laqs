@@ -90,8 +90,9 @@ affine-access `G_A` dynamic program for all five kernels. It benchmarks every
 retained layout in their ordinary five-cost Pareto frontiers, selects the
 fastest measured member, and plots speedup over full row-major layouts. The
 `G_OC` bound is controlled by `--goc-max-inner-bits` and defaults to four.
-`G_A` is reported as not applicable when the access lattice is not
-distributive, as happens for the current SYRK model:
+`G_A` is reported as not applicable when active edges are not affine cosets or
+the access lattice is not distributive. Under the current universal scopes,
+MVT and SYRK contain active non-affine temporal-window edges:
 
 ```bash
 .venv/bin/python experiments/solver_frontier.py \
