@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from itertools import permutations, product
 from math import factorial, isfinite, prod
 from time import perf_counter
-from typing import Literal, Mapping, Sequence, TypeVar
+from typing import TYPE_CHECKING, Literal, Mapping, Sequence, TypeVar
 
 from .gf2 import (
     add_vector,
@@ -42,11 +42,15 @@ from .model import EventSequence, MatrixSpec, MemoryEvent
 from .objectives import ObjectiveComponent, ObjectiveSpec, build_objectives
 from .scoring import (
     LayoutScore,
+    excess_footprint,
     normalized_excess,
     score_layouts,
     weighted_component_region_count,
 )
 from .search import LayoutSeed, ScorePolicy, SearchStats, search_canonical
+
+if TYPE_CHECKING:
+    from .hardware import HardwareProfile
 
 
 Grammar = Literal[
@@ -55,8 +59,8 @@ Grammar = Literal[
 FrontierType = Literal["pareto", "fine-gated"]
 FRONTIER_OBJECTIVES = (
     "fine-region-count",
-    "peak-normalized-excess",
-    "weighted-normalized-excess",
+    "hardware-peak",
+    "hardware-area",
     "codegen-runs",
     "codegen-xors",
 )
@@ -72,8 +76,10 @@ class SimpleRelayProblem:
     objectives: tuple[ObjectiveSpec, ...]
     grammar: Grammar
     component_weights: Mapping[str, float] = field(default_factory=dict)
+    peak_tolerances: Mapping[str, float] = field(default_factory=dict)
+    hardware_profile: "HardwareProfile | None" = None
     frontier_type: FrontierType = "pareto"
-    fine_component: str = "wave_load.64B"
+    fine_component: str = "issue.g64.stream.load.64B"
     fine_tolerance: float = 0.05
     outer_canonical_max_inner_bits: int = 4
     name: str = "simple_relay_problem"
@@ -84,8 +90,8 @@ class FrontierCost:
     """The notes-aligned costs for one realized joint layout."""
 
     fine_region_count: float
-    peak_normalized_excess: float
-    weighted_normalized_excess: float
+    hardware_peak: float
+    hardware_area: float
     codegen_runs: int
     codegen_xors: int
 
@@ -93,8 +99,8 @@ class FrontierCost:
     def values(self) -> tuple[float, ...]:
         return (
             self.fine_region_count,
-            self.peak_normalized_excess,
-            self.weighted_normalized_excess,
+            self.hardware_peak,
+            self.hardware_area,
             float(self.codegen_runs),
             float(self.codegen_xors),
         )
@@ -203,6 +209,19 @@ class NonDistributiveAccessError(ValueError):
         )
 
 
+class NonAffineAccessError(ValueError):
+    """Raised when an objective edge is outside the affine grammar."""
+
+    def __init__(self, matrix: str, objective: str, source: str):
+        self.matrix = matrix
+        self.objective = objective
+        self.source = source
+        super().__init__(
+            f"{matrix}: objective {objective!r} edge {source!r} "
+            "is not an affine coset"
+        )
+
+
 def _dominates(left: Sequence[float], right: Sequence[float]) -> bool:
     return all(a <= b for a, b in zip(left, right)) and any(
         a < b for a, b in zip(left, right)
@@ -295,6 +314,25 @@ def _effective_weights(
         component.name: float(weights.get(component.name, 1.0))
         for component in components
     }
+
+
+def _effective_tolerances(
+    components: Sequence[ObjectiveComponent],
+    tolerances: Mapping[str, float],
+) -> dict[str, float]:
+    component_names = {component.name for component in components}
+    unknown = sorted(set(tolerances) - component_names)
+    if unknown:
+        raise ValueError(
+            "peak tolerances were supplied for unknown objective components: "
+            + ", ".join(unknown)
+        )
+    if any(
+        not isfinite(tolerance) or tolerance <= 0
+        for tolerance in tolerances.values()
+    ):
+        raise ValueError("peak tolerances must be finite and positive")
+    return {name: float(tolerance) for name, tolerance in tolerances.items()}
 
 
 def _standard_words(matrix: MatrixSpec) -> tuple[tuple[int, ...], ...]:
@@ -1146,9 +1184,10 @@ def _affine_edge_spaces(
             }
             direction_space = rref_basis(differences)
             if len(differences) != 1 << len(direction_space):
-                raise ValueError(
-                    f"{matrix.name}: objective {component.name!r} edge "
-                    f"{edge.source!r} is not an affine coset"
+                raise NonAffineAccessError(
+                    matrix.name,
+                    component.name,
+                    edge.source,
                 )
             aggregated[direction_space] = (
                 aggregated.get(direction_space, 0.0) + edge.weight
@@ -1447,8 +1486,8 @@ def _joint_raw_frontier(
 def _member_cost(score: LayoutScore, fine_component: str) -> FrontierCost:
     return FrontierCost(
         fine_region_count=score.component(fine_component).raw_region_count,
-        peak_normalized_excess=score.peak_normalized_excess,
-        weighted_normalized_excess=score.weighted_normalized_excess,
+        hardware_peak=score.hardware_peak,
+        hardware_area=score.hardware_area,
         codegen_runs=score.codegen.runs,
         codegen_xors=score.codegen.xors,
     )
@@ -1459,9 +1498,15 @@ def _raw_cost(
     matrices: Sequence[MatrixSpec],
     components: Sequence[ObjectiveComponent],
     weights: Mapping[str, float],
+    peak_tolerances: Mapping[str, float],
     fine_component: str,
 ) -> FrontierCost:
     active = [component for component in components if weights[component.name] > 0]
+    peak_components = [
+        component
+        for component in components
+        if component.name in peak_tolerances
+    ]
     excesses = {
         component.name: normalized_excess(
             raw_scores.get(component.name, 0.0),
@@ -1471,13 +1516,31 @@ def _raw_cost(
                 if component.edges_by_array.get(matrix.name)
             ),
         )
-        for component in active
+        for component in (*active, *peak_components)
     }
     return FrontierCost(
         fine_region_count=float(raw_scores.get(fine_component, 0.0)),
-        peak_normalized_excess=max(excesses.values(), default=0.0),
-        weighted_normalized_excess=sum(
-            weights[name] * value for name, value in excesses.items()
+        hardware_peak=max(
+            (
+                excesses[component.name]
+                / peak_tolerances[component.name]
+                for component in peak_components
+            ),
+            default=0.0,
+        ),
+        hardware_area=sum(
+            weights[component.name]
+            * excess_footprint(
+                raw_scores.get(component.name, 0.0),
+                sum(
+                    component.packing_bound(matrix)
+                    for matrix in matrices
+                    if component.edges_by_array.get(matrix.name)
+                ),
+                component.region_bytes,
+                component.normalization_bytes,
+            )
+            for component in active
         ),
         codegen_runs=int(raw_scores.get("runs", 0.0)),
         codegen_xors=int(raw_scores.get("xors", 0.0)),
@@ -1535,9 +1598,27 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
         raise ValueError(
             f"unknown fine objective component {problem.fine_component!r}"
         )
-    weights = _effective_weights(components, problem.component_weights)
+    if problem.hardware_profile is not None and (
+        problem.component_weights or problem.peak_tolerances
+    ):
+        raise ValueError(
+            "hardware_profile cannot be combined with explicit weights or tolerances"
+        )
+    if problem.hardware_profile is not None:
+        weights = problem.hardware_profile.component_weights(components)
+        peak_tolerances = problem.hardware_profile.peak_tolerances(components)
+    else:
+        weights = _effective_weights(components, problem.component_weights)
+        peak_tolerances = _effective_tolerances(
+            components, problem.peak_tolerances
+        )
+        if not problem.peak_tolerances:
+            peak_tolerances = {
+                name: 1.0 for name, weight in weights.items() if weight > 0
+            }
     raw_names = {
         problem.fine_component,
+        *peak_tolerances,
         *(
             component.name
             for component in components
@@ -1608,6 +1689,7 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
                 problem.matrices,
                 components,
                 weights,
+                peak_tolerances,
                 problem.fine_component,
             ),
         )
@@ -1645,6 +1727,7 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
             components,
             layouts,
             component_weights=weights,
+            peak_tolerances=peak_tolerances,
             array_component_cache=array_component_cache,
         )
         realized_cost = _member_cost(score, problem.fine_component)

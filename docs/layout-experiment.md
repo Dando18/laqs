@@ -63,117 +63,43 @@ source-mode runs in the canonical word; `xors` counts XORs in a general linear
 address expression and is zero for this canonical experiment family. These
 costs are reported separately and do not change the scalar locality score.
 
-## Kernel objective models
+## Universal objective model
 
-The objective components construct the hyperedges consumed by the unchanged
-score equations in [Scoring realized layouts](scoring.md). `grounded` means
-the hyperedge membership comes directly from a traced wave memory instruction.
-`hypothesis` means the grouping or scale is a proposed model of reuse or cache
-locality. A hypothesis label deliberately does not claim that a hardware cache
-has exactly that capacity, replacement policy, or sharing boundary.
+Kernel files provide only matrices, memory events, lane identities, and
+schedule metadata. `UniversalScopeObjectives` applies the same scale-free
+issue, lane/SIMD-window, workgroup-step/window, and phase construction to every
+kernel. Stream-local and array-joint partitions are systematic, and every
+realized `EdgeFamily` is evaluated at every byte scale in the selected
+hardware profile. Kernel names, array names, and phase labels never appear in
+the profile coordinates.
 
-The current objective definitions and default `tau` weights are below. A
-slash-separated lane-weight list is ordered as lanes 8, 16, 32, and 64. Zero
-weight keeps a diagnostic component and its hyperedges in the report but
-excludes it from all three scalar aggregates.
+The current MI300A profile is selected with `--hardware-profile mi300a` and is
+shared unchanged by every kernel and size. It supplies a sparse nonnegative
+`tau`, independent `kappa` peak tolerances, and a fine issue component. Details
+of the schema, exposure-preserving feature, profile cells, and calibration are
+in [Universal access scopes and hardware profiles](hardware_profiles.md).
 
-ATAX uses these scopes for both matrix-vector stages:
-
-| Component | Provenance | Region B | Tau | Hyperedge meaning |
-| --- | --- | ---: | ---: | --- |
-| `wave_load.64B` | grounded | 64 | 0 | one traced A wave load from either stage |
-| `stage1_wave_load.64B` | grounded | 64 | 0.25 | one traced first-stage A wave load |
-| `output_store.64B` | grounded | 64 | 0 | one traced tmp or y vector store |
-| `wave_lane_group.lane{8,16,32,64}.*` | hypothesis | 64/128/256/512 | 0/4/0/0 | nested contiguous lane groups over both A streams |
-| `stage1_wave_neighborhood.256B` | hypothesis | 256 | 1 | first-stage A wave values at a calibrated cache-neighborhood scale |
-| `lane_reuse.128B.window16` | hypothesis | 128 | 0 | one lane's 16 consecutive reduction values in either stage |
-| `wave_neighborhood.512B` | hypothesis | 512 | 0 | one wave's A values at a broader locality scale |
-| `workgroup_step_panel.1024B` | hypothesis | 1024 | 0 | A row or column panel shared by all waves at one reduction step |
-| `wave_phase.4096B` | hypothesis | 4096 | 2 | one wave's complete row-wise or column-wise A pass |
-
-GEMM uses these scopes:
-
-| Component | Provenance | Region B | Tau | Hyperedge meaning |
-| --- | --- | ---: | ---: | --- |
-| `wave_load.64B` | grounded | 64 | 4 | one traced A, B, or C wave load |
-| `output_store.64B` | grounded | 64 | 0 | one traced C wave store |
-| `B.wave_lane_group.lane{8,16,32,64}.*` | hypothesis | 64/128/256/512 | 2/2/0/0 | nested contiguous lane groups for B loads |
-| `lane_reuse.128B.window16` | hypothesis | 128 | 1 | one lane's 16 consecutive A or B k-loop values |
-| `wave_neighborhood.512B` | hypothesis | 512 | 1 | one inner-loop wave load at a broader locality scale |
-| `workgroup_k_panel.256B` | hypothesis | 256 | 0 | unique A or B values reused by a workgroup at one k step |
-| `wave_k_window.4096B` | hypothesis | 4096 | 0 | 16 consecutive A/B load pairs for one wave |
-| `wave_inner_phase.32768B` | hypothesis | 32768 | 0 | one wave's complete k-loop working set |
-
-GESUMMV uses these scopes:
-
-| Component | Provenance | Region B | Tau | Hyperedge meaning |
-| --- | --- | ---: | ---: | --- |
-| `wave_load.64B` | grounded | 64 | 0 | one traced A or B wave load |
-| `output_store.64B` | grounded | 64 | 0 | one traced y wave store |
-| `wave_lane_group.lane{8,16,32,64}.*` | hypothesis | 64/128/256/512 | 0/0/0/0.5 | nested contiguous lane groups over matrix loads |
-| `lane_reuse.128B.window16` | hypothesis | 128 | 1 | one lane's 16 consecutive A or B values |
-| `wave_neighborhood.512B` | hypothesis | 512 | 0.5 | one wave's 64 FP64 matrix values at a broader scale |
-| `workgroup_step_panel.1024B` | hypothesis | 1024 | 0 | the A or B panel used by both waves at one loop step |
-| `wave_phase.4096B` | hypothesis | 4096 | 4 | one wave's complete matrix-read phase |
-
-MVT uses these scopes for the opposing row and transpose streams:
-
-| Component | Provenance | Region B | Tau | Hyperedge meaning |
-| --- | --- | ---: | ---: | --- |
-| `wave_load.64B` | grounded | 64 | 0 | one traced row or transpose A wave load |
-| `output_store.64B` | grounded | 64 | 0 | one traced x1 or x2 vector store |
-| `A.wave_lane_group.lane{8,16,32,64}.*` | hypothesis | 64/128/256/512 | 0/0/0/0 | nested contiguous lane groups over A loads |
-| `row_lane_stream.128B.window16` | hypothesis | 128 | 0 | one lane's 16 consecutive `A[i,j]` values |
-| `row_lane_stream.512B.window16` | hypothesis | 512 | 0 | the same row-lane window in a broader diagnostic neighborhood |
-| `transpose_lane_stream.128B.window16` | hypothesis | 128 | 0 | one lane's 16 consecutive `A[j,i]` values |
-| `wave_neighborhood.512B` | hypothesis | 512 | 0 | one row or transpose wave load at a broader scale |
-| `transpose_wave_neighborhood.512B` | hypothesis | 512 | 0 | one transpose wave load at the symmetric-wave scale |
-| `transpose_wave_neighborhood.{1024,4096,8192}B` | hypothesis | 1024/4096/8192 | 0.0625 each | one transpose wave load at three empirically calibrated cache-neighborhood scales |
-| `workgroup_step_cross.2048B` | hypothesis | 2048 | 0 | row and column arms touched by a workgroup at one inner step |
-| `wave_pattern_window.4096B` | hypothesis | 4096 | 0 | 16 consecutive loads from one directional stream |
-| `wave_pattern_phase.32768B` | hypothesis | 32768 | 0 | one wave's complete row or transpose stream |
-
-SYRK uses these scopes:
-
-| Component | Provenance | Region B | Tau | Hyperedge meaning |
-| --- | --- | ---: | ---: | --- |
-| `wave_load.64B` | grounded | 64 | 1 | one traced A or C wave load |
-| `output_store.64B` | grounded | 64 | 0 | one traced C wave store |
-| `A.row_j_lane_group.lane{8,16,32,64}.*` | hypothesis | 64/128/256/512 | 4/0.25/0/0 | nested lane groups for the `A[j,k]` stream |
-| `A.paired_row_reuse.128B.window16` | hypothesis | 128 | 0.25 | eight consecutive k steps from both A row streams for one lane |
-| `A.wave_neighborhood.512B` | hypothesis | 512 | 0 | one A wave load at a broader locality scale |
-| `A.workgroup_k_column.256B` | hypothesis | 256 | 0 | unique A rows used by the workgroup at one k step |
-| `A.wave_k_window.4096B` | hypothesis | 4096 | 0 | 16 consecutive k steps from both A streams for one wave |
-| `A.wave_inner_phase.32768B` | hypothesis | 32768 | 1 | one wave's complete pair of A row streams |
-
-These are explicit sparse weights, not hyperedge multiplicities or asserted
-hardware constants. The reports repeat every expanded component's exact name,
-provenance, region size, description, and applied weight so both active and
-zero-weight hypotheses remain auditable.
-
-For every kernel and size, the experiment also reports the exact score Pareto
-frontier over the locality vector from the notes plus explicit codegen costs:
+For every kernel and size, the primary analytical candidate set is the exact
+frontier over
 
 ```text
-(Q for wave_load.64B, J_peak, J_area, codegen runs, codegen XORs)
+(Q_fine, J_peak_hardware, J_area_hardware, codegen runs, codegen XORs)
 ```
 
-All five entries are minimized. A layout is included when no other measured
-layout case is no greater in every entry and strictly smaller in at least one.
-Exact cost ties are retained. This is a frontier of modeled costs only; runtime
-and timing variation are not Pareto objectives.
+where `J_area_hardware = sum(tau * x)` uses dynamic excess footprint and
+`J_peak_hardware = max(e / kappa)` has separate support. All five entries are
+minimized. Runtime and timing variation are not frontier objectives, and exact
+analytical ties remain distinct.
 
-The report also constructs four fine-locality-gated frontiers. For `delta` in
-0%, 1%, 5%, and 10%, it first forms
+The report also constructs fine-locality-gated frontiers. For `delta` in 0%,
+1%, 5%, and 10%, it first restricts candidates to
 
 ```text
 L_delta = { A : Q_fine(A) <= (1 + delta) Q_fine* }
 ```
 
-and then Pareto-filters `L_delta` over `(J_peak, J_area, codegen runs,
-codegen XORs)`. The gate prioritizes the grounded fine-load quantity before
-trading among reuse/locality hypotheses and address-code costs. Both frontier
-families remain independent of measured runtime.
+and then Pareto-filters over `(J_peak_hardware, J_area_hardware, runs, XORs)`.
+Both frontier families remain independent of measured runtime.
 
 ## Frontier candidate-generation scorecard
 
@@ -235,9 +161,9 @@ sequence of increasingly informative, runtime-independent frontiers:
 
 ```text
 F_agg     = (Q_fine, J_peak, J_area, runs, XORs)
-F_active  = (Q_fine, every e_k with tau_k > 0, runs, XORs)
-F_all     = (Q_fine, every existing e_k, runs, XORs)
-F_split   = F_all plus source-separated component excesses
+F_active  = (Q_fine, every x_k with tau or kappa support, runs, XORs)
+F_all     = (Q_fine, every universal x_k, runs, XORs)
+F_split   = F_all plus source-separated excess-footprint features
 F_dense-d = (every Q_s(V_d) at every feasible d, runs, XORs)
 ```
 
@@ -245,7 +171,7 @@ F_dense-d = (every Q_s(V_d) at every feasible d, runs, XORs)
 stage, MVT row/transpose, or SYRK row-i/row-j quantities when hyperedge source
 provenance exposes those partitions. These are diagnostic coordinates only:
 they receive no fitted tau and do not modify the kernel problem definitions.
-`F_dense-d` evaluates each existing target-array edge family for element-region
+`F_dense-d` evaluates each universal target-array edge family for element-region
 dimensions from zero through the full target address width. It therefore tests
 whether the original sparse choice of byte scales discarded useful quotient
 information.
@@ -258,10 +184,9 @@ maximum observed sample is smaller than the dominator's minimum observed
 sample.
 
 If a representation misses an exact measured winner, its dominance
-certificate lists every analytical dominator and `e_dominator - e_winner` for
-every existing component. This distinguishes aggregate compression from a
-zero-weight scope, sparse scale sampling, or a limitation that remains even in
-the dense quotient representation.
+certificate lists every analytical dominator and its component deltas. This
+distinguishes aggregate compression from a zero-weight scope, a missing scale,
+or a limitation that remains even in the dense quotient representation.
 
 The experiment also repeatedly removes each nondominated set to form Pareto
 layers `F_1, F_2, ...`. For every cumulative candidate set
@@ -270,12 +195,14 @@ Pareto-depth plot shows how conservatively retaining additional layers trades
 screening power for empirical winner recovery.
 
 The tau-weight robustness ablation independently multiplies each nonzero tau
-by a uniformly selected value from `{0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5}`. It
-recomputes `J_area`, rebuilds the five-cost frontier, and reports oracle regret
-and retained fraction for every trial. `Q_fine`, `J_peak`, runs, and XORs do
-not depend on tau and therefore remain unchanged. The defaults are 128 trials
-per kernel/size with seed 0; use `--tau-perturbation-trials` and
-`--tau-perturbation-seed` to change them reproducibly.
+by a uniformly selected value from `{0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5}`. Each
+trial draws one perturbed hardware profile and applies that same response to
+every selected kernel and size. It recomputes `J_area`, rebuilds the five-cost
+frontier, and reports oracle regret and retained fraction for every trial.
+`Q_fine`, `J_peak`, runs, and XORs do not depend on tau and therefore remain
+unchanged. The default is 128 global trials with seed 0; use
+`--tau-perturbation-trials` and `--tau-perturbation-seed` to change them
+reproducibly.
 
 The six plots are written to `<output stem>_plots/` by default:
 
@@ -325,10 +252,10 @@ ATAX, MVT, and SYRK additions.
 
 Problem events and objective components are built once per kernel and size,
 then reused for every layout. Repeated
-`--component-weight OBJECTIVE=WEIGHT` options override a problem-provided
-default wherever that objective exists in the selected kernels. An objective
+`--component-weight OBJECTIVE=WEIGHT` options override the selected profile's
+tau wherever that objective is realized in the selected kernels. An objective
 name that exists in none of the selected kernels is an error. Weight 0 excludes
-a component from scalar aggregates while retaining its detailed score. See
+a component from weighted aggregates while retaining its detailed score. See
 [Scoring realized layouts](scoring.md) for score formulas.
 
 ## Hardware run
@@ -414,9 +341,10 @@ flux run -n1 -g1 -t 5m -q pdebug \
 ```
 
 `--prepare-checkpoint` runs no evaluator and deliberately leaves the report
-incomplete. Resume validates stored CLI weight overrides but assumes that the
-problem objective code and its default weights have not changed since the
-checkpoint was prepared.
+incomplete. Resume validates stored CLI weight overrides and the complete
+selected hardware-profile definition. It still cannot fingerprint arbitrary
+changes to objective-construction code, so prepare a new checkpoint after
+changing the universal builder.
 
 Workgroup controls are separated by launch geometry:
 
@@ -462,9 +390,11 @@ identity and benchmark-configuration checks as full reuse. Combine it with
 allocations. Unlike `--reuse-timings`, a seed source need not cover every
 requested layout.
 
-## Objective calibration result
+## Historical kernel-specific calibration result
 
-The checked-in calibration set contains all 22 layouts for all five kernels at
+The checked-in reports in this section predate the universal scope/profile
+model and are retained as historical baselines. The calibration set contains
+all 22 layouts for all five kernels at
 `N=256` on an MI300A (`gfx942`), using a 32x32 group for GEMM/SYRK, a 128-thread
 group for ATAX/GESUMMV/MVT, five timing samples, three timed iterations per
 sample, and two warmups. The initial measurements and objective model are in
@@ -472,16 +402,15 @@ sample, and two warmups. The initial measurements and objective model are in
 with complete raw data in its adjacent JSON file.
 
 The component behavior was inspected against those timings, then the objective
-definitions and sparse weights were revised. In particular, ATAX gained an
+definitions and per-kernel sparse weights were revised. In particular, ATAX gained an
 explicit traced first-stage term and a first-stage cache-neighborhood
 hypothesis; MVT gained three explicitly hypothetical transpose-neighborhood
 scales. GEMM, GESUMMV, and SYRK retained their hyperedge families with revised
-weights. The current tables above are the resulting model. The same raw timing
-samples were attached with `--reuse-timings` to produce
+weights. The same raw timing samples were attached with `--reuse-timings` to produce
 [`../results/layout_ranking_five_kernel_final.md`](../results/layout_ranking_five_kernel_final.md).
 
 That file remains the historical N=256 calibration result. After the expanded
-three-size sweep exposed the MVT N=1024 miss, the current MVT model added two
+three-size sweep exposed the MVT N=1024 miss, the historical MVT model added two
 zero-weight 512-byte stream diagnostics and disabled both active symmetric
 512-byte wave copies. Those two copies encode the same full-wave edge family
 and jointly caused the false dominance. A discrete ablation over all three
@@ -508,9 +437,9 @@ set, not an unbiased estimate of reliability. Every cache/reuse term labeled
 `hypothesis` remains a modeling proposal even when its fitted weight is
 nonzero.
 
-## Fresh post-calibration multi-size result
+## Historical post-calibration multi-size result
 
-After fixing the objective definitions and weights, the experiment was run
+After fixing those former per-kernel definitions and weights, the experiment was run
 again at all three default sizes. The complete combined report is
 [`../results/layout_ranking.md`](../results/layout_ranking.md), with all 1,095
 raw benchmark records in the adjacent JSON. All cases reported correctness
@@ -670,8 +599,8 @@ measurement can replace this metric later without changing the raw report.
 
 The JSON report contains:
 
-- the selected kernels, sizes, workgroups, score mode, kernel-default weights,
-  command-line weight overrides, and timing configuration;
+- the selected kernels, sizes, workgroups, score mode, hardware profile,
+  command-line tau overrides, and timing configuration;
 - the global randomized benchmark order;
 - one run record for every kernel and size;
 - each run's Pareto objective definitions, members, objective values, and a

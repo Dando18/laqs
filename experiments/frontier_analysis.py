@@ -38,12 +38,12 @@ def _score_components(record: Mapping[str, object]) -> list[Mapping[str, object]
 
 
 def _base_score_vector(
-    record: Mapping[str, object], *, include_fine: bool
+    record: Mapping[str, object], *, include_fine: bool, fine_component: str
 ) -> tuple[float, ...]:
     fine = next(
         float(component["raw_region_count"])
         for component in _score_components(record)
-        if component["name"] == "wave_load.64B"
+        if component["name"] == fine_component
     )
     score = record["score"]
     assert isinstance(score, dict)
@@ -51,8 +51,8 @@ def _base_score_vector(
     codegen = score["codegen"]
     assert isinstance(aggregates, dict) and isinstance(codegen, dict)
     vector = (
-        float(aggregates["peak_normalized_excess"]),
-        float(aggregates["weighted_normalized_excess"]),
+        float(aggregates["hardware_peak"]),
+        float(aggregates["hardware_area"]),
         float(codegen["runs"]),
         float(codegen["xors"]),
     )
@@ -393,11 +393,17 @@ def _equivalence_groups(
     records: Sequence[Mapping[str, object]],
     *,
     include_fine: bool,
+    fine_component: str,
 ) -> dict[str, object]:
     by_vector: dict[tuple[float, ...], list[Mapping[str, object]]] = {}
     for record in records:
         by_vector.setdefault(
-            _base_score_vector(record, include_fine=include_fine), []
+            _base_score_vector(
+                record,
+                include_fine=include_fine,
+                fine_component=fine_component,
+            ),
+            [],
         ).append(record)
 
     groups = []
@@ -442,11 +448,16 @@ def analyze_score_equivalence(
     records = group["results"]
     gated = group["fine_locality_gated_frontiers"]
     assert isinstance(records, list) and isinstance(gated, list)
-    main = _equivalence_groups(records, include_fine=True)
+    fine_component = str(group["fine_component"])
+    main = _equivalence_groups(
+        records,
+        include_fine=True,
+        fine_component=fine_component,
+    )
     main["objectives"] = [
-        "wave_load.64B.raw-region-count",
-        "peak-normalized-excess",
-        "weighted-normalized-excess",
+        f"{fine_component}.raw-region-count",
+        "hardware-peak",
+        "hardware-area",
         "codegen-runs",
         "codegen-xors",
     ]
@@ -457,17 +468,26 @@ def analyze_score_equivalence(
         eligible = [
             record
             for record in records
-            if _base_score_vector(record, include_fine=True)[0] <= limit
+            if _base_score_vector(
+                record,
+                include_fine=True,
+                fine_component=fine_component,
+            )[0]
+            <= limit
         ]
-        result = _equivalence_groups(eligible, include_fine=False)
+        result = _equivalence_groups(
+            eligible,
+            include_fine=False,
+            fine_component=fine_component,
+        )
         result.update(
             {
                 "delta": float(frontier["delta"]),
                 "delta_percent": float(frontier["delta_percent"]),
                 "eligible_count": len(eligible),
                 "objectives": [
-                    "peak-normalized-excess",
-                    "weighted-normalized-excess",
+                    "hardware-peak",
+                    "hardware-area",
                     "codegen-runs",
                     "codegen-xors",
                 ],
@@ -496,12 +516,32 @@ def analyze_tau_weight_robustness(
     if not factors or any(factor <= 0 for factor in factors):
         raise ValueError("tau perturbation factors must be positive")
 
+    active_union = sorted(
+        {
+            str(component["name"])
+            for group in groups
+            for component in _score_components(group["results"][0])
+            if float(component["weight"]) > 0.0
+        }
+    )
+    global_multipliers = []
+    for trial in range(trials):
+        digest = hashlib.sha256(f"{seed}:global:{trial}".encode()).digest()
+        generator = random.Random(int.from_bytes(digest[:8], "big"))
+        global_multipliers.append(
+            {
+                name: float(generator.choice(factors))
+                for name in active_union
+            }
+        )
+
     instances = []
     all_regrets = []
     all_retained = []
     for group in groups:
         records = group["results"]
         assert isinstance(records, list)
+        fine_component = str(group["fine_component"])
         optimum = min(_runtime(record) for record in records)
         active_names = [
             str(component["name"])
@@ -520,22 +560,20 @@ def analyze_tau_weight_robustness(
         }
         trial_results = []
         for trial in range(trials):
-            digest = hashlib.sha256(
-                (
-                    f"{seed}:{group['kernel']}:{group['matrix_size']}:{trial}"
-                ).encode()
-            ).digest()
-            generator = random.Random(int.from_bytes(digest[:8], "big"))
             multipliers = {
-                name: float(generator.choice(factors)) for name in active_names
+                name: global_multipliers[trial][name] for name in active_names
             }
             named_vectors = []
             for record in records:
-                base = _base_score_vector(record, include_fine=True)
+                base = _base_score_vector(
+                    record,
+                    include_fine=True,
+                    fine_component=fine_component,
+                )
                 area = sum(
                     float(component["weight"])
                     * multipliers.get(str(component["name"]), 1.0)
-                    * float(component["normalized_excess"])
+                    * float(component["excess_footprint"])
                     for component in _score_components(record)
                     if float(component["weight"]) > 0.0
                 )
@@ -591,8 +629,9 @@ def analyze_tau_weight_robustness(
         )
     return {
         "method": (
-            "independently draw one multiplier per nonzero tau and instance "
-            "from the discrete factor set, then rebuild the notes frontier"
+            "draw one global multiplier per nonzero hardware tau from the "
+            "discrete factor set in each trial, then apply the same perturbed "
+            "profile to every kernel instance"
         ),
         "seed": seed,
         "trials_per_instance": trials,

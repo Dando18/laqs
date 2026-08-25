@@ -63,12 +63,15 @@ from experiments.frontier_information import (
     diagnostic_layout_signature,
 )
 from relay import (
+    HARDWARE_PROFILES,
     SCORE_MODES,
     CanonicalLayout,
     LayoutScore,
     MatrixSpec,
     ScoreMode,
+    UniversalScopeObjectives,
     canonical_layout_from_word,
+    get_hardware_profile,
     pareto_frontier,
     row_major_layout,
     score_layouts,
@@ -80,16 +83,14 @@ from relay.objectives import build_objectives
 
 DEFAULT_SIZES = (256, 512, 1024)
 VARIATION_METHOD = "observed-sample-range-rank-bounds"
-PARETO_FINE_COMPONENT = "wave_load.64B"
-PARETO_OBJECTIVES = (
-    "wave_load.64B.raw-region-count",
-    "peak-normalized-excess",
-    "weighted-normalized-excess",
+PARETO_TAIL_OBJECTIVES = (
+    "hardware-peak",
+    "hardware-area",
     "codegen-runs",
     "codegen-xors",
 )
 FINE_LOCALITY_GATED_DELTAS = (0.0, 0.01, 0.05, 0.10)
-FINE_LOCALITY_GATED_OBJECTIVES = PARETO_OBJECTIVES[1:]
+FINE_LOCALITY_GATED_OBJECTIVES = PARETO_TAIL_OBJECTIVES
 RECTANGULAR_TILE_SHAPES = (
     (8, 16),
     (16, 8),
@@ -449,25 +450,25 @@ def layouts_for_case(
 
 def notes_pareto_frontier(
     scores: Mapping[str, LayoutScore],
+    fine_component: str,
 ) -> dict[str, object]:
     """Build the notes-aligned locality/codegen cost frontier."""
 
+    objectives = (f"{fine_component}.raw-region-count", *PARETO_TAIL_OBJECTIVES)
     frontier = pareto_frontier(
         scores,
         objectives={
-            PARETO_OBJECTIVES[0]: (
-                lambda score: score.component(
-                    PARETO_FINE_COMPONENT
-                ).raw_region_count
+            objectives[0]: (
+                lambda score: score.component(fine_component).raw_region_count
             ),
-            PARETO_OBJECTIVES[1]: (
-                lambda score: score.peak_normalized_excess
+            objectives[1]: (
+                lambda score: score.hardware_peak
             ),
-            PARETO_OBJECTIVES[2]: (
-                lambda score: score.weighted_normalized_excess
+            objectives[2]: (
+                lambda score: score.hardware_area
             ),
-            PARETO_OBJECTIVES[3]: lambda score: float(score.codegen.runs),
-            PARETO_OBJECTIVES[4]: lambda score: float(score.codegen.xors),
+            objectives[3]: lambda score: float(score.codegen.runs),
+            objectives[4]: lambda score: float(score.codegen.xors),
         },
     )
     return {
@@ -477,25 +478,25 @@ def notes_pareto_frontier(
         ),
         "objectives": [
             {
-                "name": PARETO_OBJECTIVES[0],
+                "name": objectives[0],
                 "definition": (
-                    "Q for the grounded wave_load.64B objective component"
+                    f"Q for the grounded {fine_component} component"
                 ),
             },
             {
-                "name": PARETO_OBJECTIVES[1],
-                "definition": "J_peak over active objective components",
+                "name": objectives[1],
+                "definition": "J_peak = max(e / kappa) over profile peak cells",
             },
             {
-                "name": PARETO_OBJECTIVES[2],
-                "definition": "J_area = sum(tau * normalized excess)",
+                "name": objectives[2],
+                "definition": "J_area = sum(tau * exposure-weighted excess footprint)",
             },
             {
-                "name": PARETO_OBJECTIVES[3],
+                "name": objectives[3],
                 "definition": "sum of address-expression runs over target arrays",
             },
             {
-                "name": PARETO_OBJECTIVES[4],
+                "name": objectives[4],
                 "definition": "sum of address-expression XORs over target arrays",
             },
         ],
@@ -511,11 +512,12 @@ def notes_pareto_frontier(
 
 def fine_locality_gated_frontiers(
     scores: Mapping[str, LayoutScore],
+    fine_component: str,
 ) -> list[dict[str, object]]:
     """Gate on near-minimal fine locality, then Pareto-filter other costs."""
 
     fine_values = {
-        name: score.component(PARETO_FINE_COMPONENT).raw_region_count
+        name: score.component(fine_component).raw_region_count
         for name, score in scores.items()
     }
     minimum = min(fine_values.values())
@@ -531,10 +533,10 @@ def fine_locality_gated_frontiers(
             eligible,
             objectives={
                 FINE_LOCALITY_GATED_OBJECTIVES[0]: (
-                    lambda score: score.peak_normalized_excess
+                    lambda score: score.hardware_peak
                 ),
                 FINE_LOCALITY_GATED_OBJECTIVES[1]: (
-                    lambda score: score.weighted_normalized_excess
+                    lambda score: score.hardware_area
                 ),
                 FINE_LOCALITY_GATED_OBJECTIVES[2]: (
                     lambda score: float(score.codegen.runs)
@@ -745,9 +747,15 @@ def parse_arguments(
         help="optional GPU architecture, for example gfx942",
     )
     parser.add_argument(
+        "--hardware-profile",
+        choices=tuple(HARDWARE_PROFILES),
+        default="mi300a",
+        help="global hardware response used for every kernel (default: %(default)s)",
+    )
+    parser.add_argument(
         "--score-mode",
         choices=SCORE_MODES,
-        default="weighted-normalized-excess",
+        default="hardware-area",
         help="scalar cost used for displayed score ranks (default: %(default)s)",
     )
     parser.add_argument(
@@ -756,7 +764,7 @@ def parse_arguments(
         default=[],
         metavar="OBJECTIVE=WEIGHT",
         help=(
-            "override one problem-provided tau weight wherever that objective "
+            "override one hardware-profile tau weight wherever that objective "
             "exists"
         ),
     )
@@ -846,7 +854,7 @@ def parse_arguments(
         type=positive_integer,
         default=128,
         help=(
-            "random tau-weight ablations per completed kernel/size "
+            "global random tau-weight ablations shared across completed groups "
             "(default: %(default)s)"
         ),
     )
@@ -882,7 +890,10 @@ def score_group(
     config, block = _problem_config(spec, n, args)
     matrices_tuple = tuple(spec.problem.get_matrices(config))
     event_items, sequences = spec.problem.get_events_and_sequences(config)
-    objective_specs = tuple(spec.problem.get_objectives(config))
+    hardware_profile = get_hardware_profile(args.hardware_profile)
+    objective_specs = (
+        UniversalScopeObjectives(hardware_profile.byte_scales),
+    )
     matrices = {matrix.name: matrix for matrix in matrices_tuple}
     events = {event.id: event for event in event_items}
     print(f"Building {spec.display_name} N={n} objective components...", flush=True)
@@ -890,19 +901,8 @@ def score_group(
         build_objectives(objective_specs, matrices, events, sequences)
     )
     component_names = {component.name for component in components}
-    default_weights = dict(spec.problem.get_component_weights(config))
-    unknown_defaults = sorted(set(default_weights) - component_names)
-    missing_defaults = sorted(component_names - set(default_weights))
-    if unknown_defaults or missing_defaults:
-        details = []
-        if unknown_defaults:
-            details.append("unknown: " + ", ".join(unknown_defaults))
-        if missing_defaults:
-            details.append("missing: " + ", ".join(missing_defaults))
-        raise ValueError(
-            f"{spec.name} component-weight table does not match its objectives "
-            f"({'; '.join(details)})"
-        )
+    default_weights = hardware_profile.component_weights(components)
+    peak_tolerances = hardware_profile.peak_tolerances(components)
     applicable_overrides = {
         name: weight
         for name, weight in component_weight_overrides.items()
@@ -922,6 +922,7 @@ def score_group(
             components,
             layouts,
             component_weights=applied_weights,
+            peak_tolerances=peak_tolerances,
             offset_cache_by_array=offset_caches,
         )
         diagnostic_signatures = diagnostic_layout_signature(
@@ -966,8 +967,12 @@ def score_group(
     for record, rank in zip(records, score_ranks):
         record["score_rank"] = rank
 
-    frontier = notes_pareto_frontier(scores_by_name)
-    gated_frontiers = fine_locality_gated_frontiers(scores_by_name)
+    frontier = notes_pareto_frontier(
+        scores_by_name, hardware_profile.fine_component
+    )
+    gated_frontiers = fine_locality_gated_frontiers(
+        scores_by_name, hardware_profile.fine_component
+    )
     frontier_members = {
         str(member["name"])
         for member in frontier["members"]
@@ -987,7 +992,10 @@ def score_group(
         "matrix_size": n,
         "block": block,
         "score_mode": mode,
+        "hardware_profile": hardware_profile.to_dict(),
+        "fine_component": hardware_profile.fine_component,
         "component_weights": applied_weights,
+        "peak_tolerances": peak_tolerances,
         "component_weight_overrides": applicable_overrides,
         "objectives": [
             {
@@ -995,7 +1003,10 @@ def score_group(
                 "region_bytes": component.region_bytes,
                 "provenance": component.provenance,
                 "description": component.description,
+                "edge_family": component.edge_family,
+                "normalization_bytes": component.normalization_bytes,
                 "weight": applied_weights[component.name],
+                "peak_tolerance": peak_tolerances.get(component.name),
             }
             for component in components
         ],
@@ -1752,9 +1763,10 @@ def markdown_report(report: Mapping[str, object]) -> str:
             (
                 "### Objective model",
                 "",
-                "`grounded` scopes come from traced memory instructions. "
-                "`hypothesis` scopes encode proposed reuse or cache-locality "
-                "neighborhoods.",
+                "`universal-v1` scopes are constructed uniformly from each "
+                "kernel's traced memory events and schedule metadata. The "
+                "hardware profile supplies byte scales, tau, and peak "
+                "tolerances.",
                 "",
                 _markdown_table(
                     ("Objective", "Provenance", "Region B", "Tau", "Meaning"),
@@ -1769,14 +1781,18 @@ def markdown_report(report: Mapping[str, object]) -> str:
         assert isinstance(frontier, dict)
         frontier_members = frontier["members"]
         assert isinstance(frontier_members, list)
+        frontier_objectives = frontier["objectives"]
+        assert isinstance(frontier_objectives, list)
+        frontier_objective_names = tuple(
+            str(objective["name"]) for objective in frontier_objectives
+        )
         frontier_rows = [
             [
                 f"`{member['name']}`",
-                f"{float(member['values'][PARETO_OBJECTIVES[0]]):.6g}",
-                f"{float(member['values'][PARETO_OBJECTIVES[1]]):.6g}",
-                f"{float(member['values'][PARETO_OBJECTIVES[2]]):.6g}",
-                f"{float(member['values'][PARETO_OBJECTIVES[3]]):.6g}",
-                f"{float(member['values'][PARETO_OBJECTIVES[4]]):.6g}",
+                *(
+                    f"{float(member['values'][name]):.6g}"
+                    for name in frontier_objective_names
+                ),
             ]
             for member in frontier_members
         ]
@@ -2091,6 +2107,7 @@ def _configuration(
     kernel_names: Sequence[str],
     sizes: Sequence[int],
 ) -> dict[str, object]:
+    hardware_profile = get_hardware_profile(args.hardware_profile)
     return {
         "kernels": list(kernel_names),
         "matrix_sizes": list(sizes),
@@ -2103,6 +2120,9 @@ def _configuration(
         "device": args.device,
         "compiler": args.compiler,
         "arch": args.arch,
+        "hardware_profile": args.hardware_profile,
+        "hardware_profile_id": hardware_profile.profile_id,
+        "hardware_profile_definition": hardware_profile.to_dict(),
         "score_only": args.score_only,
         "reuse_timings": (
             [

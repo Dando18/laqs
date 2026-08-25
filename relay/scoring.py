@@ -25,6 +25,7 @@ from .model import Coord, MatrixSpec
 from .objectives import Hyperedge, ObjectiveComponent, build_objectives
 
 if TYPE_CHECKING:
+    from .hardware import HardwareProfile
     from .solver import RelayProblem
 
 
@@ -32,12 +33,16 @@ ScoreMode = Literal[
     "weighted-region-count",
     "peak-normalized-excess",
     "weighted-normalized-excess",
+    "hardware-peak",
+    "hardware-area",
 ]
 
 SCORE_MODES: tuple[ScoreMode, ...] = (
     "weighted-region-count",
     "peak-normalized-excess",
     "weighted-normalized-excess",
+    "hardware-peak",
+    "hardware-area",
 )
 
 
@@ -74,6 +79,9 @@ class ComponentScore:
     packing_lower_bound: float
     normalized_excess: float
     arrays: tuple[ArrayComponentScore, ...]
+    normalization_bytes: float | None = None
+    excess_footprint: float = 0.0
+    peak_tolerance: float | None = None
 
     @property
     def weighted_region_count(self) -> float:
@@ -82,6 +90,20 @@ class ComponentScore:
     @property
     def weighted_normalized_excess(self) -> float:
         return self.weight * self.normalized_excess
+
+    @property
+    def weighted_excess_footprint(self) -> float:
+        """Return ``tau[s,b] * x[s,b]`` for the hardware area score."""
+
+        return self.weight * self.excess_footprint
+
+    @property
+    def peak_excess_ratio(self) -> float | None:
+        """Return ``e[s,b] / kappa[s,b]`` when this peak cell is active."""
+
+        if self.peak_tolerance is None:
+            return None
+        return self.normalized_excess / self.peak_tolerance
 
 
 @dataclass(frozen=True)
@@ -124,6 +146,8 @@ class LayoutScore:
     weighted_region_count: float
     peak_normalized_excess: float
     weighted_normalized_excess: float
+    hardware_peak: float = 0.0
+    hardware_area: float = 0.0
 
     def value(self, mode: ScoreMode) -> float:
         """Return one explicitly named scalar score; lower is better."""
@@ -134,6 +158,10 @@ class LayoutScore:
             return self.peak_normalized_excess
         if mode == "weighted-normalized-excess":
             return self.weighted_normalized_excess
+        if mode == "hardware-peak":
+            return self.hardware_peak
+        if mode == "hardware-area":
+            return self.hardware_area
         raise ValueError(
             f"unknown score mode {mode!r}; expected one of {', '.join(SCORE_MODES)}"
         )
@@ -311,6 +339,30 @@ def normalized_excess(raw_region_count: float, packing_lower_bound: float) -> fl
     return (raw_region_count - packing_lower_bound) / max(packing_lower_bound, 1.0)
 
 
+def excess_footprint(
+    raw_region_count: float,
+    packing_lower_bound: float,
+    region_bytes: int,
+    normalization_bytes: float | None,
+) -> float:
+    """Return the kernel-exposure-preserving feature ``x[s,b]``.
+
+    Universal objectives provide the common kernel denominator ``B_K``.  The
+    normalized-excess fallback keeps legacy hand-built objective components
+    usable while they are migrated.
+    """
+
+    if normalization_bytes is None:
+        return normalized_excess(raw_region_count, packing_lower_bound)
+    if normalization_bytes <= 0:
+        raise ValueError("normalization_bytes must be positive")
+    return (
+        region_bytes
+        * (raw_region_count - packing_lower_bound)
+        / normalization_bytes
+    )
+
+
 def layout_codegen_cost(
     matrices: Mapping[str, MatrixSpec],
     layouts: Mapping[str, Layout],
@@ -352,6 +404,8 @@ def score_layouts(
     layouts: Mapping[str, Layout],
     *,
     component_weights: Mapping[str, float] | None = None,
+    peak_tolerances: Mapping[str, float] | None = None,
+    hardware_profile: "HardwareProfile | None" = None,
     offset_cache_by_array: Mapping[str, dict[Coord, int]] | None = None,
     array_component_cache: MutableMapping[
         tuple[str, tuple[object, ...], str], tuple[float, float]
@@ -372,7 +426,18 @@ def score_layouts(
     it; cached values retain both the raw region count and packing bound.
     """
 
-    weights = dict(component_weights or {})
+    if hardware_profile is not None and (
+        component_weights is not None or peak_tolerances is not None
+    ):
+        raise ValueError(
+            "hardware_profile cannot be combined with explicit weights or tolerances"
+        )
+    if hardware_profile is not None:
+        weights = hardware_profile.component_weights(components)
+        tolerances = hardware_profile.peak_tolerances(components)
+    else:
+        weights = dict(component_weights or {})
+        tolerances = dict(peak_tolerances or {})
     component_names = {component.name for component in components}
     unknown_weights = sorted(set(weights) - component_names)
     if unknown_weights:
@@ -382,6 +447,25 @@ def score_layouts(
         )
     if any(weight < 0 for weight in weights.values()):
         raise ValueError("component weights must be nonnegative")
+    unknown_tolerances = sorted(set(tolerances) - component_names)
+    if unknown_tolerances:
+        raise ValueError(
+            "peak tolerances were supplied for unknown objective components: "
+            + ", ".join(unknown_tolerances)
+        )
+    if any(tolerance <= 0 for tolerance in tolerances.values()):
+        raise ValueError("peak tolerances must be positive")
+
+    effective_weights = {
+        component.name: float(weights.get(component.name, 1.0))
+        for component in components
+    }
+    if hardware_profile is None and peak_tolerances is None:
+        tolerances = {
+            name: 1.0
+            for name, weight in effective_weights.items()
+            if weight > 0
+        }
 
     results: list[ComponentScore] = []
     offset_caches = (
@@ -439,11 +523,23 @@ def score_layouts(
             ComponentScore(
                 name=component.name,
                 region_bytes=component.region_bytes,
-                weight=float(weights.get(component.name, 1.0)),
+                weight=effective_weights[component.name],
                 raw_region_count=raw_total,
                 packing_lower_bound=bound_total,
                 normalized_excess=normalized_excess(raw_total, bound_total),
                 arrays=tuple(per_array),
+                normalization_bytes=component.normalization_bytes,
+                excess_footprint=excess_footprint(
+                    raw_total,
+                    bound_total,
+                    component.region_bytes,
+                    component.normalization_bytes,
+                ),
+                peak_tolerance=(
+                    float(tolerances[component.name])
+                    if component.name in tolerances
+                    else None
+                ),
             )
         )
 
@@ -460,6 +556,17 @@ def score_layouts(
         weighted_normalized_excess=sum(
             component.weighted_normalized_excess for component in active
         ),
+        hardware_peak=max(
+            (
+                component.peak_excess_ratio
+                for component in results
+                if component.peak_excess_ratio is not None
+            ),
+            default=0.0,
+        ),
+        hardware_area=sum(
+            component.weighted_excess_footprint for component in active
+        ),
     )
 
 
@@ -468,6 +575,8 @@ def score_problem(
     layouts: Mapping[str, Layout],
     *,
     component_weights: Mapping[str, float] | None = None,
+    peak_tolerances: Mapping[str, float] | None = None,
+    hardware_profile: "HardwareProfile | None" = None,
 ) -> LayoutScore:
     """Build a :class:`RelayProblem`'s objectives and score given layouts."""
 
@@ -481,6 +590,8 @@ def score_problem(
         components,
         layouts,
         component_weights=component_weights,
+        peak_tolerances=peak_tolerances,
+        hardware_profile=hardware_profile,
     )
 
 
@@ -505,6 +616,8 @@ def score_to_dict(score: LayoutScore) -> dict[str, object]:
             "weighted_region_count": score.weighted_region_count,
             "peak_normalized_excess": score.peak_normalized_excess,
             "weighted_normalized_excess": score.weighted_normalized_excess,
+            "hardware_peak": score.hardware_peak,
+            "hardware_area": score.hardware_area,
         },
         "components": [
             {
@@ -514,9 +627,16 @@ def score_to_dict(score: LayoutScore) -> dict[str, object]:
                 "raw_region_count": component.raw_region_count,
                 "packing_lower_bound": component.packing_lower_bound,
                 "normalized_excess": component.normalized_excess,
+                "normalization_bytes": component.normalization_bytes,
+                "excess_footprint": component.excess_footprint,
+                "peak_tolerance": component.peak_tolerance,
+                "peak_excess_ratio": component.peak_excess_ratio,
                 "weighted_region_count": component.weighted_region_count,
                 "weighted_normalized_excess": (
                     component.weighted_normalized_excess
+                ),
+                "weighted_excess_footprint": (
+                    component.weighted_excess_footprint
                 ),
                 "arrays": [
                     {

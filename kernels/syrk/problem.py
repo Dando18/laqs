@@ -1,4 +1,4 @@
-"""Construct memory events and objectives for a square SYRK kernel.
+"""Construct matrices, memory events, and sequences for a square SYRK kernel.
 
 Each thread computes one element of the full symmetric result
 
@@ -16,17 +16,10 @@ import math
 
 from relay import (
     Access,
-    EventFilter,
     EventSequence,
-    GroupedRegions,
-    LanePrefixRegions,
     MatrixSpec,
     MemoryEvent,
-    PerLaneTemporalRegions,
-    SimultaneousRegions,
-    TemporalWindowRegions,
 )
-from relay.objectives import ObjectiveSpec
 
 
 @dataclass(frozen=True)
@@ -94,9 +87,10 @@ def get_events_and_sequences(
                 ],
                 group=group,
                 order=order,
-                metadata={**common_metadata, "phase": "prologue"},
+                metadata={**common_metadata, "phase": "prologue", "step": 0},
             )
         )
+        sequence_ids.append(c_load_id)
         order += 1
 
         for k in range(n):
@@ -144,9 +138,10 @@ def get_events_and_sequences(
                 ],
                 group=group,
                 order=order,
-                metadata={**common_metadata, "phase": "epilogue"},
+                metadata={**common_metadata, "phase": "epilogue", "step": 0},
             )
         )
+        sequence_ids.append(c_store_id)
         order += 1
         sequences.append(
             EventSequence.make(
@@ -155,123 +150,3 @@ def get_events_and_sequences(
         )
 
     return tuple(events), tuple(sequences)
-
-
-def get_objectives(config: Config) -> tuple[ObjectiveSpec, ...]:
-    """Describe SYRK transaction, reuse, and cache-locality scopes.
-
-    Wave loads and stores correspond directly to traced memory instructions
-    and are grounded. Every wider lane, temporal, workgroup, or cache-scale
-    scope is a hypothesis about useful physical proximity.
-    """
-
-    del config
-    reads = EventFilter.make(arrays=("A", "C"), kinds=("read",))
-    a_reads = EventFilter.make(arrays=("A",), kinds=("read",))
-    row_j_reads = EventFilter.make(
-        arrays=("A",), sites=("A.row_j.load",), kinds=("read",)
-    )
-    inner_a_reads = EventFilter.make(
-        arrays=("A",), kinds=("read",), metadata={"phase": "inner"}
-    )
-    c_writes = EventFilter.make(arrays=("C",), kinds=("write",))
-
-    return (
-        SimultaneousRegions(
-            "wave_load.64B",
-            64,
-            event_filter=reads,
-            provenance="grounded",
-            description="logical addresses issued by one traced wave load",
-        ),
-        SimultaneousRegions(
-            "output_store.64B",
-            64,
-            event_filter=c_writes,
-            provenance="grounded",
-            description="logical addresses issued by the traced C wave store",
-        ),
-        LanePrefixRegions(
-            "A.row_j_lane_group",
-            levels=((8, 64), (16, 128), (32, 256), (64, 512)),
-            event_filter=row_j_reads,
-            provenance="hypothesis",
-        ),
-        PerLaneTemporalRegions(
-            "A.paired_row_reuse.128B",
-            128,
-            windows=(16,),
-            stride=16,
-            event_filter=a_reads,
-            provenance="hypothesis",
-            description=(
-                "eight consecutive k steps from both A row streams used by "
-                "one lane; a temporal-reuse neighborhood hypothesis"
-            ),
-        ),
-        SimultaneousRegions(
-            "A.wave_neighborhood.512B",
-            512,
-            event_filter=a_reads,
-            provenance="hypothesis",
-            description="one A wave load at a broader locality scale",
-        ),
-        GroupedRegions(
-            "A.workgroup_k_column.256B",
-            256,
-            group_by=("workgroup", "step"),
-            event_filter=inner_a_reads,
-            provenance="hypothesis",
-            description=(
-                "unique A rows used across the workgroup at one k step"
-            ),
-        ),
-        TemporalWindowRegions(
-            "A.wave_k_window.4096B",
-            4096,
-            window=32,
-            stride=32,
-            event_filter=a_reads,
-            provenance="hypothesis",
-            description=(
-                "sixteen consecutive k steps from both A row streams in a "
-                "cache-scale region"
-            ),
-        ),
-        TemporalWindowRegions(
-            "A.wave_inner_phase.32768B",
-            32768,
-            window=None,
-            event_filter=a_reads,
-            provenance="hypothesis",
-            description=(
-                "one wave's complete pair of A row streams in a broad "
-                "cache-scale region"
-            ),
-        ),
-    )
-
-
-def get_component_weights(config: Config) -> dict[str, float]:
-    """Return MI300A-calibrated ``tau`` weights for score aggregation.
-
-    The N=256, 22-layout calibration retained the grounded wave term, strongly
-    weighted the finest row-j lane scope, and kept weak temporal/full-phase
-    terms to order tile sizes. Unsupported broader hypotheses remain visible
-    at weight zero. These weights are empirical rather than hardware claims.
-    """
-
-    del config
-    return {
-        "wave_load.64B": 1.0,
-        "output_store.64B": 0.0,
-        "A.row_j_lane_group.lane8.64B": 4.0,
-        "A.row_j_lane_group.lane16.128B": 0.25,
-        "A.row_j_lane_group.lane32.256B": 0.0,
-        "A.row_j_lane_group.lane64.512B": 0.0,
-        "A.paired_row_reuse.128B.window16": 0.25,
-        "A.wave_neighborhood.512B": 0.0,
-        "A.workgroup_k_column.256B": 0.0,
-        "A.wave_k_window.4096B": 0.0,
-        "A.wave_inner_phase.32768B": 1.0,
-    }

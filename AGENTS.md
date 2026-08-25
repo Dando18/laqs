@@ -23,3 +23,15 @@ If you hit any environment or system software issues, like missing software or i
 _Building and Installing:_ `.venv` has an editable install, so Python changes don't require re-installing.
 
 _Job Scripts:_ Flux, the system scheduler, copies scripts to a separate temporary directory before execution, so when editing or creating a batch script (i.e. one that will be submitted with `flux batch`) DO NOT use `$0`, `$BASH_SOURCE[0]`, etc. to reference the current file and directory. It will lead to bugs. Either (A) add a check to see if cwd is the expected place (e.g. `if [ -f ./expected-file ]; `) and early exit if it is not or (B) hard-code absolute paths in the script. (A) is preferable alongside a comment saying what the expected CWD of the script is, but (B) is also ok.
+
+## Figures
+
+When helping make plots and figures, here are a couple things to keep in mind:
+
+- Figures should be abundantly clear; most readers will only look at the figures and tables, so they should tell almost the whole story.
+- Captions should be self-contained. A reader shouldn't need to look into the text body for help understanding a figure.
+- Figures should use markers, hatching, etc. to be color-blind friendly. Bars should have outlines.
+- Y-axes should start at zero for units that start at zero, e.g. runtime. Percentages should go from 0 to 100. There are limited exceptions to these rules.
+- Titles should be descriptive and not require additional context to understand.
+- Text in figures, e.g. labels, axis tick marks, etc., should be large. The smallest text in a figure should be at least as big as the surrounding text in the paper.
+- Figure file formats should be PDF, not png or jpg. It is ok to generate png AND PDF as long as PDF is one of them.

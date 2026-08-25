@@ -1,0 +1,3112 @@
+{
+  "configuration": {
+    "arch": "gfx942",
+    "block_size": 128,
+    "block_x": 32,
+    "block_y": 32,
+    "compiler": "/opt/rocm-7.0.2/bin/hipcc",
+    "device": 0,
+    "grammar": "G_S",
+    "hardware_profile": "mi300a",
+    "hardware_profile_id": "mi300a-gfx942-universal-v1-poc",
+    "iterations": 3,
+    "kernels": [
+      "atax",
+      "gemm",
+      "gesummv",
+      "mvt",
+      "syrk"
+    ],
+    "layout_scope": "one shared full standard cut-point word across all target matrices",
+    "matrix_sizes": [
+      512,
+      1024
+    ],
+    "samples": 5,
+    "seed": 0,
+    "warmup": 2
+  },
+  "configuration_id": "f88154341145a8b1eb679b5ed23c6b16e8fd75eb2079e11ef522c7342ce2e844",
+  "experiment": "canonical-scoring-results",
+  "groups": [
+    {
+      "block": 128,
+      "display_name": "ATAX",
+      "expected_total_layouts": 146,
+      "fine_gated_5pct": {
+        "eligible_count": 36,
+        "fine_limit": 51609.600000000006,
+        "fine_minimum": 49152.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iijjjiiiiiiijjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 10.05104,
+            "hardware_peak": 0.5
+          },
+          "word": "iijjjiiiiiiijjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjiiijjjjjjjiiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 10.05104,
+            "hardware_peak": 0.5
+          },
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 15.53704,
+            "hardware_peak": 0.5
+          },
+          "word": "iijjjjjjjjjiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjiiiiiiiiijjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 15.53704,
+            "hardware_peak": 0.5
+          },
+          "word": "jjiiiiiiiiijjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjiiiiiijjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 9.11,
+            "hardware_peak": 0.5
+          },
+          "word": "iiijjjjiiiiiijjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiijjjjjjiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 9.11,
+            "hardware_peak": 0.5
+          },
+          "word": "jjjiiiijjjjjjiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjjjjjjiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 10.106,
+            "hardware_peak": 0.5
+          },
+          "word": "iiijjjjjjjjjiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiiiiiiijjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 10.106,
+            "hardware_peak": 0.5
+          },
+          "word": "jjjiiiiiiiiijjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 2,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 63.10054,
+            "hardware_peak": 1.1666666666666667
+          },
+          "word": "iiiiiiiiijjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjjjjjjjiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 2,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 63.10054,
+            "hardware_peak": 1.1666666666666667
+          },
+          "word": "jjjjjjjjjiiiiiiiii"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "atax",
+      "matrix_size": 512,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 9.11,
+                "hardware_peak": 0.5
+              },
+              "word": "iiijjjjiiiiiijjjjj"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 2
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 9.11,
+                "hardware_peak": 0.5
+              },
+              "word": "iiijjjjiiiiiijjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjiiiijjjjjjiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 9.11,
+                "hardware_peak": 0.5
+              },
+              "word": "jjjiiiijjjjjjiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjiiiiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "jjiiijjjjjjjiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "ijjjiiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 10.06904,
+                "hardware_peak": 0.5
+              },
+              "word": "ijjjiiiiiiiijjjjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjiiiiiiijjjjjj"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjiiiiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "jjiiijjjjjjjiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjjjjjjjiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 15.53704,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjjjjjjjiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "jjiiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 15.53704,
+                "hardware_peak": 0.5
+              },
+              "word": "jjiiiiiiiiijjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 2,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 63.10054,
+                "hardware_peak": 1.1666666666666667
+              },
+              "word": "jjjjjjjjjiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A"
+      ],
+      "total_layouts": 146
+    },
+    {
+      "block": 128,
+      "display_name": "ATAX",
+      "expected_total_layouts": 182,
+      "fine_gated_5pct": {
+        "eligible_count": 40,
+        "fine_limit": 103219.20000000001,
+        "fine_minimum": 98304.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iijjjiiiiiiiijjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 10.05104,
+            "hardware_peak": 0.5
+          },
+          "word": "iijjjiiiiiiiijjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjiiijjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 10.05104,
+            "hardware_peak": 0.5
+          },
+          "word": "jjiiijjjjjjjjiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjjiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 15.53704,
+            "hardware_peak": 0.5
+          },
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjiiiiiiiiiijjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 15.53704,
+            "hardware_peak": 0.5
+          },
+          "word": "jjiiiiiiiiiijjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjiiiiiiijjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 9.11,
+            "hardware_peak": 0.5
+          },
+          "word": "iiijjjjiiiiiiijjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiijjjjjjjiiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 9.11,
+            "hardware_peak": 0.5
+          },
+          "word": "jjjiiiijjjjjjjiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 10.106,
+            "hardware_peak": 0.5
+          },
+          "word": "iiijjjjjjjjjjiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiiiiiiiijjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 10.106,
+            "hardware_peak": 0.5
+          },
+          "word": "jjjiiiiiiiiiijjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iiiiiiiiiijjjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 2,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 63.10054,
+            "hardware_peak": 1.1666666666666667
+          },
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjjjjjjjjiiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 2,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 63.10054,
+            "hardware_peak": 1.1666666666666667
+          },
+          "word": "jjjjjjjjjjiiiiiiiiii"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "atax",
+      "matrix_size": 1024,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 9.11,
+                "hardware_peak": 0.5
+              },
+              "word": "iiijjjjiiiiiiijjjjjj"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 2
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 9.11,
+                "hardware_peak": 0.5
+              },
+              "word": "iiijjjjiiiiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjiiiijjjjjjjiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 9.11,
+                "hardware_peak": 0.5
+              },
+              "word": "jjjiiiijjjjjjjiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjiiiiiiiijjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjjiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "jjiiijjjjjjjjiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "ijjjiiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 10.06904,
+                "hardware_peak": 0.5
+              },
+              "word": "ijjjiiiiiiiiijjjjjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjiiiiiiiijjjjjjj"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjiiiiiiiijjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjjiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 10.05104,
+                "hardware_peak": 0.5
+              },
+              "word": "jjiiijjjjjjjjiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjjjjjjjjiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 15.53704,
+                "hardware_peak": 0.5
+              },
+              "word": "iijjjjjjjjjjiiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "jjiiiiiiiiiijjjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 15.53704,
+                "hardware_peak": 0.5
+              },
+              "word": "jjiiiiiiiiiijjjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjjiiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 2,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 63.10054,
+                "hardware_peak": 1.1666666666666667
+              },
+              "word": "jjjjjjjjjjiiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A"
+      ],
+      "total_layouts": 182
+    },
+    {
+      "block": [
+        32,
+        32,
+        1
+      ],
+      "display_name": "GEMM",
+      "expected_total_layouts": 146,
+      "fine_gated_5pct": {
+        "eligible_count": 55,
+        "fine_limit": 51744.0,
+        "fine_minimum": 49280.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "jjjjjiiiiiiiiijjjj",
+            "B": "jjjjjiiiiiiiiijjjj",
+            "C": "jjjjjiiiiiiiiijjjj"
+          },
+          "score": {
+            "codegen_runs": 9,
+            "codegen_xors": 0,
+            "fine_region_count": 49280.0,
+            "hardware_area": 0.7239775438596491,
+            "hardware_peak": 0.4980544747081712
+          },
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjjjjjjjiiiiiiiii",
+            "B": "jjjjjjjjjiiiiiiiii",
+            "C": "jjjjjjjjjiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 49280.0,
+            "hardware_area": 2.096694892787524,
+            "hardware_peak": 0.4980544747081712
+          },
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jijjjjjjjjiiiiiiii",
+            "B": "jijjjjjjjjiiiiiiii",
+            "C": "jijjjjjjjjiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 12,
+            "codegen_xors": 0,
+            "fine_region_count": 73856.0,
+            "hardware_area": 1.0415273294346978,
+            "hardware_peak": 0.26583592938733125
+          },
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjijjjjjjjiiiiiiii",
+            "B": "jjijjjjjjjiiiiiiii",
+            "C": "jjijjjjjjjiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 12,
+            "codegen_xors": 0,
+            "fine_region_count": 73856.0,
+            "hardware_area": 1.0415273294346978,
+            "hardware_peak": 0.26583592938733125
+          },
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "ijjjjjiiiiiiiijjjj",
+            "B": "ijjjjjiiiiiiiijjjj",
+            "C": "ijjjjjiiiiiiiijjjj"
+          },
+          "score": {
+            "codegen_runs": 12,
+            "codegen_xors": 0,
+            "fine_region_count": 73856.0,
+            "hardware_area": 0.6687553996101364,
+            "hardware_peak": 0.8003120124804992
+          },
+          "word": "ijjjjjiiiiiiiijjjj"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "gemm",
+      "matrix_size": 512,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "ijjjjjiiiiiiiijjjj",
+                "B": "ijjjjjiiiiiiiijjjj",
+                "C": "ijjjjjiiiiiiiijjjj"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 73856.0,
+                "hardware_area": 0.6687553996101364,
+                "hardware_peak": 0.8003120124804992
+              },
+              "word": "ijjjjjiiiiiiiijjjj"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 1
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "ijjjjjiiiiiiiijjjj",
+                "B": "ijjjjjiiiiiiiijjjj",
+                "C": "ijjjjjiiiiiiiijjjj"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 73856.0,
+                "hardware_area": 0.6687553996101364,
+                "hardware_peak": 0.8003120124804992
+              },
+              "word": "ijjjjjiiiiiiiijjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiiijjjj",
+                "B": "jjjjjiiiiiiiiijjjj",
+                "C": "jjjjjiiiiiiiiijjjj"
+              },
+              "score": {
+                "codegen_runs": 9,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 0.7239775438596491,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjiiiiiiiiijjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiijjjji",
+                "B": "jjjjjiiiiiiiijjjji",
+                "C": "jjjjjiiiiiiiijjjji"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 0.7239775438596491,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjiiiiiiiijjjji"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiijjjjii",
+                "B": "jjjjjiiiiiiijjjjii",
+                "C": "jjjjjiiiiiiijjjjii"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 0.7239775438596491,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjiiiiiiijjjjii"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiijjjjiii",
+                "B": "jjjjjiiiiiijjjjiii",
+                "C": "jjjjjiiiiiijjjjiii"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 0.7239775438596491,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjiiiiiijjjjiii"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiiijjjj",
+                "B": "jjjjjiiiiiiiiijjjj",
+                "C": "jjjjjiiiiiiiiijjjj"
+              },
+              "score": {
+                "codegen_runs": 9,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 0.7239775438596491,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjiiiiiiiiijjjj"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiiijjjj",
+                "B": "jjjjjiiiiiiiiijjjj",
+                "C": "jjjjjiiiiiiiiijjjj"
+              },
+              "score": {
+                "codegen_runs": 9,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 0.7239775438596491,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjiiiiiiiiijjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjjjjjiiiiiiiii",
+                "B": "jjjjjjjjjiiiiiiiii",
+                "C": "jjjjjjjjjiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 2.096694892787524,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjjjjjiiiiiiiii"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjiiiiiiiii",
+                "B": "jjjjjjjjjiiiiiiiii",
+                "C": "jjjjjjjjjiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 49280.0,
+                "hardware_area": 2.096694892787524,
+                "hardware_peak": 0.4980544747081712
+              },
+              "word": "jjjjjjjjjiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A",
+        "B",
+        "C"
+      ],
+      "total_layouts": 146
+    },
+    {
+      "block": [
+        32,
+        32,
+        1
+      ],
+      "display_name": "GEMM",
+      "expected_total_layouts": 182,
+      "fine_gated_5pct": {
+        "eligible_count": 71,
+        "fine_limit": 103353.6,
+        "fine_minimum": 98432.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "jjjjjiiiiiiiiiijjjjj",
+            "B": "jjjjjiiiiiiiiiijjjjj",
+            "C": "jjjjjiiiiiiiiiijjjjj"
+          },
+          "score": {
+            "codegen_runs": 9,
+            "codegen_xors": 0,
+            "fine_region_count": 98432.0,
+            "hardware_area": 0.7266311804878048,
+            "hardware_peak": 0.49902534113060426
+          },
+          "word": "jjjjjiiiiiiiiiijjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjjjjjjjjiiiiiiiiii",
+            "B": "jjjjjjjjjjiiiiiiiiii",
+            "C": "jjjjjjjjjjiiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 98432.0,
+            "hardware_area": 2.0987404487804877,
+            "hardware_peak": 0.49902534113060426
+          },
+          "word": "jjjjjjjjjjiiiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jijjjjjjjjjiiiiiiiii",
+            "B": "jijjjjjjjjjiiiiiiiii",
+            "C": "jijjjjjjjjjiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 12,
+            "codegen_xors": 0,
+            "fine_region_count": 147584.0,
+            "hardware_area": 1.0444907707317073,
+            "hardware_peak": 0.26625065002600107
+          },
+          "word": "jijjjjjjjjjiiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjijjjjjjjjiiiiiiiii",
+            "B": "jjijjjjjjjjiiiiiiiii",
+            "C": "jjijjjjjjjjiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 12,
+            "codegen_xors": 0,
+            "fine_region_count": 147584.0,
+            "hardware_area": 1.0444907707317073,
+            "hardware_peak": 0.26625065002600107
+          },
+          "word": "jjijjjjjjjjiiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "ijjjjjiiiiiiiiijjjjj",
+            "B": "ijjjjjiiiiiiiiijjjjj",
+            "C": "ijjjjjiiiiiiiiijjjjj"
+          },
+          "score": {
+            "codegen_runs": 12,
+            "codegen_xors": 0,
+            "fine_region_count": 147584.0,
+            "hardware_area": 0.6713551609756098,
+            "hardware_peak": 0.8001561280249805
+          },
+          "word": "ijjjjjiiiiiiiiijjjjj"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "gemm",
+      "matrix_size": 1024,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "ijjjjjiiiiiiiiijjjjj",
+                "B": "ijjjjjiiiiiiiiijjjjj",
+                "C": "ijjjjjiiiiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 147584.0,
+                "hardware_area": 0.6713551609756098,
+                "hardware_peak": 0.8001561280249805
+              },
+              "word": "ijjjjjiiiiiiiiijjjjj"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 1
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "ijjjjjiiiiiiiiijjjjj",
+                "B": "ijjjjjiiiiiiiiijjjjj",
+                "C": "ijjjjjiiiiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 147584.0,
+                "hardware_area": 0.6713551609756098,
+                "hardware_peak": 0.8001561280249805
+              },
+              "word": "ijjjjjiiiiiiiiijjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiiiijjjjj",
+                "B": "jjjjjiiiiiiiiiijjjjj",
+                "C": "jjjjjiiiiiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 9,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 0.7266311804878048,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjiiiiiiiiiijjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiiijjjjji",
+                "B": "jjjjjiiiiiiiiijjjjji",
+                "C": "jjjjjiiiiiiiiijjjjji"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 0.7266311804878048,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjiiiiiiiiijjjjji"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiijjjjjii",
+                "B": "jjjjjiiiiiiiijjjjjii",
+                "C": "jjjjjiiiiiiiijjjjjii"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 0.7266311804878048,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjiiiiiiiijjjjjii"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiijjjjjiii",
+                "B": "jjjjjiiiiiiijjjjjiii",
+                "C": "jjjjjiiiiiiijjjjjiii"
+              },
+              "score": {
+                "codegen_runs": 12,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 0.7266311804878048,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjiiiiiiijjjjjiii"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiiiijjjjj",
+                "B": "jjjjjiiiiiiiiiijjjjj",
+                "C": "jjjjjiiiiiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 9,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 0.7266311804878048,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjiiiiiiiiiijjjjj"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjiiiiiiiiiijjjjj",
+                "B": "jjjjjiiiiiiiiiijjjjj",
+                "C": "jjjjjiiiiiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 9,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 0.7266311804878048,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjiiiiiiiiiijjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjjjjjjjjiiiiiiiiii",
+                "B": "jjjjjjjjjjiiiiiiiiii",
+                "C": "jjjjjjjjjjiiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 2.0987404487804877,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjjjjjjiiiiiiiiii"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjjiiiiiiiiii",
+                "B": "jjjjjjjjjjiiiiiiiiii",
+                "C": "jjjjjjjjjjiiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 98432.0,
+                "hardware_area": 2.0987404487804877,
+                "hardware_peak": 0.49902534113060426
+              },
+              "word": "jjjjjjjjjjiiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A",
+        "B",
+        "C"
+      ],
+      "total_layouts": 182
+    },
+    {
+      "block": 128,
+      "display_name": "GESUMMV",
+      "expected_total_layouts": 146,
+      "fine_gated_5pct": {
+        "eligible_count": 55,
+        "fine_limit": 17203.2,
+        "fine_minimum": 16384.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iiiiiijjjjjjjjjiii",
+            "B": "iiiiiijjjjjjjjjiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 16384.0,
+            "hardware_area": 0.20508,
+            "hardware_peak": 1.0
+          },
+          "word": "iiiiiijjjjjjjjjiii"
+        },
+        {
+          "layouts": {
+            "A": "iiiiiiiiijjjjjjjjj",
+            "B": "iiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 16384.0,
+            "hardware_area": 0.70308,
+            "hardware_peak": 1.0
+          },
+          "word": "iiiiiiiiijjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijiiiiiiijjjjjjjj",
+            "B": "iijiiiiiiijjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 32768.0,
+            "hardware_area": 1.85692,
+            "hardware_peak": 0.4666666666666667
+          },
+          "word": "iijiiiiiiijjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "ijiiiiiiiijjjjjjjj",
+            "B": "ijiiiiiiiijjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 32768.0,
+            "hardware_area": 1.85692,
+            "hardware_peak": 0.4666666666666667
+          },
+          "word": "ijiiiiiiiijjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjiiiiiii",
+            "B": "iijjjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 32768.0,
+            "hardware_area": 44.52524,
+            "hardware_peak": 0.6666666666666666
+          },
+          "word": "iijjjjjjjjjiiiiiii"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "gesummv",
+      "matrix_size": 512,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjiii",
+                "B": "iiiiiijjjjjjjjjiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjiii"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 8
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjiii",
+                "B": "iiiiiijjjjjjjjjiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjiiijjjjjjj",
+                "B": "iiiiiijjiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjiiijjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjjiiijjjjjj",
+                "B": "iiiiiijjjiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjjjiiijjjjj",
+                "B": "iiiiiijjjjiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjiiijjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjiiijjjj",
+                "B": "iiiiiijjjjjiiijjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjiiijjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjiii",
+                "B": "iiiiiijjjjjjjjjiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjiii"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjiii",
+                "B": "iiiiiijjjjjjjjjiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiiiiijjjjjjjjj",
+                "B": "iiiiiiiiijjjjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 16384.0,
+                "hardware_area": 0.70308,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiiiiijjjjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjiiiiiiiii",
+                "B": "jjjjjjjjjiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 131072.0,
+                "hardware_area": 188.518,
+                "hardware_peak": 3.6666666666666665
+              },
+              "word": "jjjjjjjjjiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A",
+        "B"
+      ],
+      "total_layouts": 146
+    },
+    {
+      "block": 128,
+      "display_name": "GESUMMV",
+      "expected_total_layouts": 182,
+      "fine_gated_5pct": {
+        "eligible_count": 71,
+        "fine_limit": 34406.4,
+        "fine_minimum": 32768.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iiiiiijjjjjjjjjjiiii",
+            "B": "iiiiiijjjjjjjjjjiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 32768.0,
+            "hardware_area": 0.20508,
+            "hardware_peak": 1.0
+          },
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "layouts": {
+            "A": "iiiiiiiiiijjjjjjjjjj",
+            "B": "iiiiiiiiiijjjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 32768.0,
+            "hardware_area": 0.70308,
+            "hardware_peak": 1.0
+          },
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijiiiiiiiijjjjjjjjj",
+            "B": "iijiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 65536.0,
+            "hardware_area": 1.85692,
+            "hardware_peak": 0.4666666666666667
+          },
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "ijiiiiiiiiijjjjjjjjj",
+            "B": "ijiiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 65536.0,
+            "hardware_area": 1.85692,
+            "hardware_peak": 0.4666666666666667
+          },
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjjiiiiiiii",
+            "B": "iijjjjjjjjjjiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 65536.0,
+            "hardware_area": 44.52524,
+            "hardware_peak": 0.6666666666666666
+          },
+          "word": "iijjjjjjjjjjiiiiiiii"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "gesummv",
+      "matrix_size": 1024,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjjiiii",
+                "B": "iiiiiijjjjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjjiiii"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 9
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjjiiii",
+                "B": "iiiiiijjjjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjjiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjiiiijjjjjjjj",
+                "B": "iiiiiijjiiiijjjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjiiiijjjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjjiiiijjjjjjj",
+                "B": "iiiiiijjjiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjiiiijjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjjjiiiijjjjjj",
+                "B": "iiiiiijjjjiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjiiiijjjjj",
+                "B": "iiiiiijjjjjiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjiiiijjjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjjiiii",
+                "B": "iiiiiijjjjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjjiiii"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiiijjjjjjjjjjiiii",
+                "B": "iiiiiijjjjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.20508,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiijjjjjjjjjjiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiiiiiijjjjjjjjjj",
+                "B": "iiiiiiiiiijjjjjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 32768.0,
+                "hardware_area": 0.70308,
+                "hardware_peak": 1.0
+              },
+              "word": "iiiiiiiiiijjjjjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjjiiiiiiiiii",
+                "B": "jjjjjjjjjjiiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 262144.0,
+                "hardware_area": 188.518,
+                "hardware_peak": 3.6666666666666665
+              },
+              "word": "jjjjjjjjjjiiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A",
+        "B"
+      ],
+      "total_layouts": 182
+    },
+    {
+      "block": 128,
+      "display_name": "MVT",
+      "expected_total_layouts": 146,
+      "fine_gated_5pct": {
+        "eligible_count": 36,
+        "fine_limit": 51609.600000000006,
+        "fine_minimum": 49152.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iijjjiiiiiiijjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 22.49167845703125,
+            "hardware_peak": 1.0
+          },
+          "word": "iijjjiiiiiiijjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjiiijjjjjjjiiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 22.49167845703125,
+            "hardware_peak": 1.0
+          },
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 33.46367845703125,
+            "hardware_peak": 1.0
+          },
+          "word": "iijjjjjjjjjiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjiiiiiiiiijjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 49152.0,
+            "hardware_area": 33.46367845703125,
+            "hardware_peak": 1.0
+          },
+          "word": "jjiiiiiiiiijjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjiiiiiijjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 20.57263845703125,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "iiijjjjiiiiiijjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiijjjjjjiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 20.57263845703125,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "jjjiiiijjjjjjiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjjjjjjiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 22.56463845703125,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "iiijjjjjjjjjiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiiiiiiijjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 22.56463845703125,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "jjjiiiiiiiiijjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjjjjjjjiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 2,
+            "codegen_xors": 0,
+            "fine_region_count": 73728.0,
+            "hardware_area": 126.50420580078125,
+            "hardware_peak": 2.5
+          },
+          "word": "jjjjjjjjjiiiiiiiii"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "mvt",
+      "matrix_size": 512,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 20.57263845703125,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "iiijjjjiiiiiijjjjj"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 2
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 20.57263845703125,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "iiijjjjiiiiiijjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjiiiijjjjjjiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 20.57263845703125,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "jjjiiiijjjjjjiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 22.49167845703125,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjiiiiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 22.49167845703125,
+                "hardware_peak": 1.0
+              },
+              "word": "jjiiijjjjjjjiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "ijjjiiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 22.52767845703125,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "ijjjiiiiiiiijjjjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 22.49167845703125,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjiiiiiiijjjjjj"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 22.49167845703125,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjiiiiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 22.49167845703125,
+                "hardware_peak": 1.0
+              },
+              "word": "jjiiijjjjjjjiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjjjjjjjiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 33.46367845703125,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjjjjjjjiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "jjiiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 49152.0,
+                "hardware_area": 33.46367845703125,
+                "hardware_peak": 1.0
+              },
+              "word": "jjiiiiiiiiijjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 2,
+                "codegen_xors": 0,
+                "fine_region_count": 73728.0,
+                "hardware_area": 126.50420580078125,
+                "hardware_peak": 2.5
+              },
+              "word": "jjjjjjjjjiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A"
+      ],
+      "total_layouts": 146
+    },
+    {
+      "block": 128,
+      "display_name": "MVT",
+      "expected_total_layouts": 182,
+      "fine_gated_5pct": {
+        "eligible_count": 40,
+        "fine_limit": 103219.20000000001,
+        "fine_minimum": 98304.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iijjjiiiiiiiijjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 22.553764228515625,
+            "hardware_peak": 1.0
+          },
+          "word": "iijjjiiiiiiiijjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjiiijjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 22.553764228515625,
+            "hardware_peak": 1.0
+          },
+          "word": "jjiiijjjjjjjjiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjjiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 33.52576422851563,
+            "hardware_peak": 1.0
+          },
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjiiiiiiiiiijjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 98304.0,
+            "hardware_area": 33.52576422851563,
+            "hardware_peak": 1.0
+          },
+          "word": "jjiiiiiiiiiijjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjiiiiiiijjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 20.634724228515626,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "iiijjjjiiiiiiijjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiijjjjjjjiiiiii"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 20.634724228515626,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "jjjiiiijjjjjjjiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iiijjjjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 22.626724228515624,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "iiijjjjjjjjjjiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jjjiiiiiiiiiijjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 3,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 22.626724228515624,
+            "hardware_peak": 1.3333333333333333
+          },
+          "word": "jjjiiiiiiiiiijjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "jjjjjjjjjjiiiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 2,
+            "codegen_xors": 0,
+            "fine_region_count": 147456.0,
+            "hardware_area": 126.56677790039062,
+            "hardware_peak": 2.5
+          },
+          "word": "jjjjjjjjjjiiiiiiiiii"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "mvt",
+      "matrix_size": 1024,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 20.634724228515626,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "iiijjjjiiiiiiijjjjjj"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 2
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiijjjjiiiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 20.634724228515626,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "iiijjjjiiiiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjjiiiijjjjjjjiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 20.634724228515626,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "jjjiiiijjjjjjjiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 22.553764228515625,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjiiiiiiiijjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjjiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 22.553764228515625,
+                "hardware_peak": 1.0
+              },
+              "word": "jjiiijjjjjjjjiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "ijjjiiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 22.589764228515627,
+                "hardware_peak": 1.3333333333333333
+              },
+              "word": "ijjjiiiiiiiiijjjjjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 22.553764228515625,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjiiiiiiiijjjjjjj"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iijjjiiiiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 22.553764228515625,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjiiiiiiiijjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "jjiiijjjjjjjjiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 22.553764228515625,
+                "hardware_peak": 1.0
+              },
+              "word": "jjiiijjjjjjjjiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iijjjjjjjjjjiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 33.52576422851563,
+                "hardware_peak": 1.0
+              },
+              "word": "iijjjjjjjjjjiiiiiiii"
+            },
+            {
+              "layouts": {
+                "A": "jjiiiiiiiiiijjjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 3,
+                "codegen_xors": 0,
+                "fine_region_count": 98304.0,
+                "hardware_area": 33.52576422851563,
+                "hardware_peak": 1.0
+              },
+              "word": "jjiiiiiiiiiijjjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjjiiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 2,
+                "codegen_xors": 0,
+                "fine_region_count": 147456.0,
+                "hardware_area": 126.56677790039062,
+                "hardware_peak": 2.5
+              },
+              "word": "jjjjjjjjjjiiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A"
+      ],
+      "total_layouts": 182
+    },
+    {
+      "block": [
+        32,
+        32,
+        1
+      ],
+      "display_name": "SYRK",
+      "expected_total_layouts": 146,
+      "fine_gated_5pct": {
+        "eligible_count": 55,
+        "fine_limit": 43545.6,
+        "fine_minimum": 41472.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iiiiijjjjjjjjjiiii",
+            "C": "iiiiijjjjjjjjjiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 41472.0,
+            "hardware_area": 0.5884626900584795,
+            "hardware_peak": 0.9961089494163424
+          },
+          "word": "iiiiijjjjjjjjjiiii"
+        },
+        {
+          "layouts": {
+            "A": "iiiiiiiiijjjjjjjjj",
+            "C": "iiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 41472.0,
+            "hardware_area": 2.042840857699805,
+            "hardware_peak": 0.9961089494163424
+          },
+          "word": "iiiiiiiiijjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijiiiiiiijjjjjjjj",
+            "C": "iijiiiiiiijjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 73984.0,
+            "hardware_area": 0.8929311500974658,
+            "hardware_peak": 0.4594871794871795
+          },
+          "word": "iijiiiiiiijjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "ijiiiiiiiijjjjjjjj",
+            "C": "ijiiiiiiiijjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 73984.0,
+            "hardware_area": 0.8929311500974658,
+            "hardware_peak": 0.4594871794871795
+          },
+          "word": "ijiiiiiiiijjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjiiiiiii",
+            "C": "iijjjjjjjjjiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 73984.0,
+            "hardware_area": 7.4133097855750485,
+            "hardware_peak": 0.5327102803738318
+          },
+          "word": "iijjjjjjjjjiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jiiiiijjjjjjjjiiii",
+            "C": "jiiiiijjjjjjjjiiii"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 73984.0,
+            "hardware_area": 0.49686097465886936,
+            "hardware_peak": 0.7987519500780031
+          },
+          "word": "jiiiiijjjjjjjjiiii"
+        },
+        {
+          "layouts": {
+            "A": "jiiiiiiiiijjjjjjjj",
+            "C": "jiiiiiiiiijjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 73984.0,
+            "hardware_area": 0.8929311500974658,
+            "hardware_peak": 0.7987519500780031
+          },
+          "word": "jiiiiiiiiijjjjjjjj"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "syrk",
+      "matrix_size": 512,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jiiiiijjjjjjjjiiii",
+                "C": "jiiiiijjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 73984.0,
+                "hardware_area": 0.49686097465886936,
+                "hardware_peak": 0.7987519500780031
+              },
+              "word": "jiiiiijjjjjjjjiiii"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 1
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jiiiiijjjjjjjjiiii",
+                "C": "jiiiiijjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 73984.0,
+                "hardware_area": 0.49686097465886936,
+                "hardware_peak": 0.7987519500780031
+              },
+              "word": "jiiiiijjjjjjjjiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjjjjjjjiiii",
+                "C": "iiiiijjjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 41472.0,
+                "hardware_area": 0.5884626900584795,
+                "hardware_peak": 0.9961089494163424
+              },
+              "word": "iiiiijjjjjjjjjiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjiiiijjjjjj",
+                "C": "iiiiijjjiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 41472.0,
+                "hardware_area": 0.5884626900584795,
+                "hardware_peak": 0.9961089494163424
+              },
+              "word": "iiiiijjjiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjjiiiijjjjj",
+                "C": "iiiiijjjjiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 41472.0,
+                "hardware_area": 0.5884626900584795,
+                "hardware_peak": 0.9961089494163424
+              },
+              "word": "iiiiijjjjiiiijjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjjjiiiijjjj",
+                "C": "iiiiijjjjjiiiijjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 41472.0,
+                "hardware_area": 0.5884626900584795,
+                "hardware_peak": 0.9961089494163424
+              },
+              "word": "iiiiijjjjjiiiijjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiijjjjjjjjjiiii",
+                "C": "iiiiijjjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 41472.0,
+                "hardware_area": 0.5884626900584795,
+                "hardware_peak": 0.9961089494163424
+              },
+              "word": "iiiiijjjjjjjjjiiii"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiijjjjjjjjjiiii",
+                "C": "iiiiijjjjjjjjjiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 41472.0,
+                "hardware_area": 0.5884626900584795,
+                "hardware_peak": 0.9961089494163424
+              },
+              "word": "iiiiijjjjjjjjjiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiiiiijjjjjjjjj",
+                "C": "iiiiiiiiijjjjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 41472.0,
+                "hardware_area": 2.042840857699805,
+                "hardware_peak": 0.9961089494163424
+              },
+              "word": "iiiiiiiiijjjjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjiiiiiiiii",
+                "C": "jjjjjjjjjiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 278656.0,
+                "hardware_area": 31.832775360623778,
+                "hardware_peak": 2.1931464174454827
+              },
+              "word": "jjjjjjjjjiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A",
+        "C"
+      ],
+      "total_layouts": 146
+    },
+    {
+      "block": [
+        32,
+        32,
+        1
+      ],
+      "display_name": "SYRK",
+      "expected_total_layouts": 182,
+      "fine_gated_5pct": {
+        "eligible_count": 71,
+        "fine_limit": 86553.6,
+        "fine_minimum": 82432.0
+      },
+      "frontier": [
+        {
+          "layouts": {
+            "A": "iiiiijjjjjjjjjjiiiii",
+            "C": "iiiiijjjjjjjjjjiiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 82432.0,
+            "hardware_area": 0.5728241170731707,
+            "hardware_peak": 0.9980506822612085
+          },
+          "word": "iiiiijjjjjjjjjjiiiii"
+        },
+        {
+          "layouts": {
+            "A": "iiiiiiiiiijjjjjjjjjj",
+            "C": "iiiiiiiiiijjjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 4,
+            "codegen_xors": 0,
+            "fine_region_count": 82432.0,
+            "hardware_area": 1.9858036292682928,
+            "hardware_peak": 0.9980506822612085
+          },
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijiiiiiiiijjjjjjjjj",
+            "C": "iijiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 147712.0,
+            "hardware_area": 0.8659993756097562,
+            "hardware_peak": 0.4630490956072351
+          },
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "ijiiiiiiiiijjjjjjjjj",
+            "C": "ijiiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 147712.0,
+            "hardware_area": 0.8659993756097562,
+            "hardware_peak": 0.4630490956072351
+          },
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "layouts": {
+            "A": "iijjjjjjjjjjiiiiiiii",
+            "C": "iijjjjjjjjjjiiiiiiii"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 147712.0,
+            "hardware_area": 7.421008624390244,
+            "hardware_peak": 0.5330213208528342
+          },
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jiiiiijjjjjjjjjiiiii",
+            "C": "jiiiiijjjjjjjjjiiiii"
+          },
+          "score": {
+            "codegen_runs": 8,
+            "codegen_xors": 0,
+            "fine_region_count": 147712.0,
+            "hardware_area": 0.4812032780487805,
+            "hardware_peak": 0.7993754879000781
+          },
+          "word": "jiiiiijjjjjjjjjiiiii"
+        },
+        {
+          "layouts": {
+            "A": "jiiiiiiiiiijjjjjjjjj",
+            "C": "jiiiiiiiiiijjjjjjjjj"
+          },
+          "score": {
+            "codegen_runs": 6,
+            "codegen_xors": 0,
+            "fine_region_count": 147712.0,
+            "hardware_area": 0.8659993756097562,
+            "hardware_peak": 0.7993754879000781
+          },
+          "word": "jiiiiiiiiiijjjjjjjjj"
+        }
+      ],
+      "frontier_objectives": [
+        "fine_region_count",
+        "hardware_peak",
+        "hardware_area",
+        "codegen_runs",
+        "codegen_xors"
+      ],
+      "grammar": "G_S",
+      "kernel": "syrk",
+      "matrix_size": 1024,
+      "selection_mechanisms": [
+        {
+          "definition": "minimum J_area; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jiiiiijjjjjjjjjiiiii",
+                "C": "jiiiiijjjjjjjjjiiiii"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 147712.0,
+                "hardware_area": 0.4812032780487805,
+                "hardware_peak": 0.7993754879000781
+              },
+              "word": "jiiiiijjjjjjjjjiiiii"
+            }
+          ],
+          "name": "lowest_hardware_area",
+          "score_tie_count": 1
+        },
+        {
+          "definition": "five lowest J_area layouts; ties break by fewer codegen runs then canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jiiiiijjjjjjjjjiiiii",
+                "C": "jiiiiijjjjjjjjjiiiii"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 147712.0,
+                "hardware_area": 0.4812032780487805,
+                "hardware_peak": 0.7993754879000781
+              },
+              "word": "jiiiiijjjjjjjjjiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjjjjjjjjiiiii",
+                "C": "iiiiijjjjjjjjjjiiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 82432.0,
+                "hardware_area": 0.5728241170731707,
+                "hardware_peak": 0.9980506822612085
+              },
+              "word": "iiiiijjjjjjjjjjiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjiiiiijjjjjjj",
+                "C": "iiiiijjjiiiiijjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 82432.0,
+                "hardware_area": 0.5728241170731707,
+                "hardware_peak": 0.9980506822612085
+              },
+              "word": "iiiiijjjiiiiijjjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjjiiiiijjjjjj",
+                "C": "iiiiijjjjiiiiijjjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 82432.0,
+                "hardware_area": 0.5728241170731707,
+                "hardware_peak": 0.9980506822612085
+              },
+              "word": "iiiiijjjjiiiiijjjjjj"
+            },
+            {
+              "layouts": {
+                "A": "iiiiijjjjjiiiiijjjjj",
+                "C": "iiiiijjjjjiiiiijjjjj"
+              },
+              "score": {
+                "codegen_runs": 8,
+                "codegen_xors": 0,
+                "fine_region_count": 82432.0,
+                "hardware_area": 0.5728241170731707,
+                "hardware_peak": 0.9980506822612085
+              },
+              "word": "iiiiijjjjjiiiiijjjjj"
+            }
+          ],
+          "name": "top5_hardware_area"
+        },
+        {
+          "definition": "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiijjjjjjjjjjiiiii",
+                "C": "iiiiijjjjjjjjjjiiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 82432.0,
+                "hardware_area": 0.5728241170731707,
+                "hardware_peak": 0.9980506822612085
+              },
+              "word": "iiiiijjjjjjjjjjiiiii"
+            }
+          ],
+          "name": "lexicographic_five_cost"
+        },
+        {
+          "definition": "Q_fine <= 1.05 Q_fine*, then Pareto over (J_peak, J_area, runs, XORs)",
+          "members": [
+            {
+              "layouts": {
+                "A": "iiiiijjjjjjjjjjiiiii",
+                "C": "iiiiijjjjjjjjjjiiiii"
+              },
+              "score": {
+                "codegen_runs": 6,
+                "codegen_xors": 0,
+                "fine_region_count": 82432.0,
+                "hardware_area": 0.5728241170731707,
+                "hardware_peak": 0.9980506822612085
+              },
+              "word": "iiiiijjjjjjjjjjiiiii"
+            },
+            {
+              "layouts": {
+                "A": "iiiiiiiiiijjjjjjjjjj",
+                "C": "iiiiiiiiiijjjjjjjjjj"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 82432.0,
+                "hardware_area": 1.9858036292682928,
+                "hardware_peak": 0.9980506822612085
+              },
+              "word": "iiiiiiiiiijjjjjjjjjj"
+            }
+          ],
+          "name": "fine_gated_5pct_frontier"
+        },
+        {
+          "definition": "complete row-major canonical word",
+          "members": [
+            {
+              "layouts": {
+                "A": "jjjjjjjjjjiiiiiiiiii",
+                "C": "jjjjjjjjjjiiiiiiiiii"
+              },
+              "score": {
+                "codegen_runs": 4,
+                "codegen_xors": 0,
+                "fine_region_count": 557184.0,
+                "hardware_area": 31.86334392195122,
+                "hardware_peak": 2.1965678627145087
+              },
+              "word": "jjjjjjjjjjiiiiiiiiii"
+            }
+          ],
+          "name": "row_major_baseline"
+        }
+      ],
+      "target_arrays": [
+        "A",
+        "C"
+      ],
+      "total_layouts": 182
+    }
+  ],
+  "schema_version": 1
+}

@@ -8,7 +8,7 @@ The library takes:
 - metadata for one or more dense arrays;
 - logical memory events with lane identities, sites, kinds, local groups, order, weights, and arbitrary metadata;
 - local ordered event sequences;
-- explicit scope/granularity objective builders; and
+- a universal access-scope construction and hardware response profile; and
 - a layout-search configuration.
 
 It returns:
@@ -50,28 +50,37 @@ Run tests:
 The public scorer evaluates concrete layouts without running layout search. It
 reports each objective's weighted aligned-region count, its capacity-only
 packing lower bound, and its normalized excess over that bound. It also
-reports per-array and total address-code run/XOR costs, and supports three
+reports per-array and total address-code run/XOR costs, and supports five
 explicitly named scalar locality costs:
 
 - `weighted-region-count`;
-- `peak-normalized-excess`; and
-- `weighted-normalized-excess`.
+- `peak-normalized-excess`;
+- `weighted-normalized-excess`;
+- `hardware-peak`; and
+- `hardware-area`.
 
 For example, score a globally row-major layout for every GEMM operand:
 
 ```bash
 .venv/bin/python bin/score_layout.py kernels/gemm/problem.py \
   --layout all=row-major \
-  --score-mode weighted-normalized-excess
+  --score-mode hardware-area
 ```
 
-Each kernel problem supplies explicit default component weights (the notes'
-`tau` values). Use `--json` for a machine-readable report,
-`--component-weight NAME=VALUE` to override one default, and
+The selected hardware profile supplies the global byte-scale ladder, `tau`
+weights, and peak tolerances; `mi300a` is the current default. Use
+`--hardware-profile` to select it, `--json` for a machine-readable report,
+`--component-weight NAME=VALUE` to override one profile weight, and
 `--problem-option problem_size=512` to pass a JSON-valued option into the
 problem's `build_config` routine. See
 [Scoring realized layouts](docs/scoring.md) for the formulas, API, complete
 layout-word convention, CLI contract, and JSON fields.
+
+The universal scope grammar, MI300A proof-of-concept response, calibration
+metrics, and distinction between representation and compression misses are
+documented in [Universal access scopes and hardware profiles](docs/hardware_profiles.md).
+The compact calibration, transfer, and solver-search scorecard is
+[Universal edge construction and MI300A profile: proof of concept](results/edge_construction_mi300a_poc.md).
 
 ## Benchmark solver frontiers
 
@@ -81,8 +90,9 @@ affine-access `G_A` dynamic program for all five kernels. It benchmarks every
 retained layout in their ordinary five-cost Pareto frontiers, selects the
 fastest measured member, and plots speedup over full row-major layouts. The
 `G_OC` bound is controlled by `--goc-max-inner-bits` and defaults to four.
-`G_A` is reported as not applicable when the access lattice is not
-distributive, as happens for the current SYRK model:
+`G_A` is reported as not applicable when active edges are not affine cosets or
+the access lattice is not distributive. Under the current universal scopes,
+MVT and SYRK contain active non-affine temporal-window edges:
 
 ```bash
 .venv/bin/python experiments/solver_frontier.py \
@@ -101,6 +111,56 @@ The current N=1024 MI300A results and complete workflow are documented in
 The final plot is
 [`results/solver_frontier_speedup.png`](results/solver_frontier_speedup.png),
 with exact frontiers and raw timing samples retained in the adjacent JSON.
+
+## Exhaustive canonical scoring results
+
+`experiments/scoring_results.py` builds a paper-oriented JSONL corpus for all
+five kernels at N=512 and N=1024. It applies one full `G_C` word uniformly to
+every target matrix, computes the exact five-cost frontier, and records scalar,
+top-5, lexicographic, fine-gated, and row-major comparison selections. A true
+runtime oracle is available only after every canonical word has been timed.
+
+There are 48,620 words at N=512 and 184,756 at N=1024, or 1,166,880 separate
+evaluator runs for the complete five-kernel suite. Prepare the analytical plan
+on a CPU node and seed the compatible full-word measurements first:
+
+```bash
+.venv/bin/python experiments/scoring_results.py \
+  --prepare-only \
+  --seed-timings results/layout_ranking.json
+```
+
+Then resume bounded chunks in single-GPU allocations:
+
+```bash
+module load rocm/7.0.2
+flux run -n1 -g1 -t 5m -q pdebug \
+  .venv/bin/python experiments/scoring_results.py \
+  --resume --max-benchmarks 40 \
+  --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942
+```
+
+The compact `results/canonical_scoring_mi300a.jsonl` has one record per
+kernel/size. The append-only `.raw.jsonl` file is the timing checkpoint and the
+`.plan.json` file retains exact analytical selections. See
+[`docs/scoring-results.md`](docs/scoring-results.md) for the schema, scope, and
+resume workflow.
+
+For the much smaller shared `G_S` experiment, select the standard grammar and
+use separate result paths:
+
+```bash
+.venv/bin/python experiments/scoring_results.py \
+  --grammar standard --prepare-only \
+  --seed-timings results/layout_ranking.json \
+  --output results/standard_scoring_mi300a.jsonl \
+  --raw-output results/standard_scoring_mi300a.raw.jsonl \
+  --plan results/standard_scoring_mi300a.plan.json
+```
+
+Resume inside a GPU allocation with the same grammar and paths. The implemented
+four-form cut-point grammar contains 146 shared layouts at N=512 and 182 at
+N=1024.
 
 ## Compare score and runtime ranks
 
@@ -156,10 +216,12 @@ The default kernel set contains all five kernels, and the default size set is
 the exact layout set, variation-aware rank formula, timing boundary, options,
 checkpoint/resume workflow, output fields, and interpretation limits.
 
-The kernel problem files distinguish traced, `grounded` wave scopes from
-`hypothesis` reuse and cache-neighborhood scopes. The latter are modeling
-assumptions, not claims about a particular cache implementation. Reports list
-the provenance, region size, meaning, and applied `tau` for every objective.
+The kernel problem files describe only matrices, accesses, and schedule
+boundaries. The hardware-independent universal builder derives a common scope
+grammar from every trace, while the selected device profile supplies the byte
+scales, `tau` response, and peak tolerances. Reports list the universal family,
+region size, dynamic multiplicity, and applied profile response for every
+objective.
 The five-kernel `N=256` MI300A measurements before objective calibration are
 in
 [`results/layout_ranking_five_kernel_baseline.md`](results/layout_ranking_five_kernel_baseline.md).
@@ -169,7 +231,8 @@ in
 The corresponding JSON files retain complete components, raw samples, and
 commands.
 
-The current combined result is
+The reusable 1,095-timing corpus, together with its historical per-kernel
+objective analysis, is
 [`results/layout_ranking.md`](results/layout_ranking.md). It contains fresh
 post-calibration MI300A measurements for all five kernels at N=256, 512, and
 1024. The current experiment family has 73 layouts per group,
@@ -202,9 +265,10 @@ variation-aware metric is designed to represent.
 
 ## Kernel problem/evaluator pairs
 
-Each non-trivial kernel has a `problem.py` that constructs its representative
-trace and labeled objectives, plus an `evaluate.py` that generates, validates,
-and times a matching HIP implementation:
+Each non-trivial kernel has a `problem.py` that constructs its matrix and
+representative trace/schedule facts, plus an `evaluate.py` that generates,
+validates, and times a matching HIP implementation. The universal scope
+builder applies the same objective types to every trace:
 
 | Kernel | Operation | Layout targets | Workgroup option |
 | --- | --- | --- | --- |
@@ -228,10 +292,9 @@ y[i] = alpha * sum_j A[i,j] * x[j] + beta * sum_j B[i,j] * x[j]
 
 as one complete representative workgroup trace. A and B are independently
 scored layout targets; x and y are fixed contiguous context vectors. The
-grounded objectives score traced wave loads and the output store. Explicitly
-hypothetical objectives encode 16-access per-lane reuse, nested lane groups,
-the two-wave panel reused at each inner-loop step, and broader wave/cache
-neighborhoods.
+universal builder derives issue, lane/SIMD temporal-window, workgroup-step,
+workgroup-window, and phase families from those facts, then evaluates every
+realized family across the selected hardware profile's byte scales.
 
 For example, score column-major A and row-major B on a small problem:
 
@@ -344,6 +407,11 @@ This first implementation treats aligned regions from separate allocations as se
 - arbitrary string metadata.
 
 `EventSequence` stores a local program-order sequence of event ids. It is used for temporal windows. The library never invents a global order among independent waves.
+
+Universal-v1 traces are complete: their sequences collectively contain every
+event exactly once in nondecreasing local order. Sequence weights are one, and
+compressed events use one common multiplicity across the trace. This keeps the
+kernel-byte denominator and every scope family on the same exposure scale.
 
 For regular events, `lane_event(...)`, `lane_accesses(...)`, and `sequence(...)` are shorter convenience constructors. `MemoryEvent.make(...)` remains the more general form and permits accesses to several arrays in one declared event.
 

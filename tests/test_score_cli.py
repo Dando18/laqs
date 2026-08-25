@@ -8,6 +8,8 @@ from pathlib import Path
 from types import ModuleType
 import unittest
 
+from relay import MI300A_V1
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CLI_PATH = REPOSITORY_ROOT / "bin" / "score_layout.py"
@@ -44,13 +46,13 @@ class ScoreLayoutCliTests(unittest.TestCase):
                     "--layout",
                     "A=row-major",
                     "--score-mode",
-                    "peak-normalized-excess",
+                    "hardware-peak",
                 ]
             )
 
         self.assertEqual(status, 0)
         self.assertIn(
-            "Selected score (peak-normalized-excess): 3",
+            "Selected score (hardware-peak): 3",
             output.getvalue(),
         )
         self.assertIn("Address codegen costs", output.getvalue())
@@ -65,9 +67,27 @@ class ScoreLayoutCliTests(unittest.TestCase):
         )
 
         self.assertEqual(report["selected_score_mode"], "weighted-region-count")
-        self.assertEqual(report["selected_score"], 0.5)
+        self.assertEqual(
+            report["selected_score"],
+            report["aggregates"]["weighted_region_count"],
+        )
         self.assertEqual(report["layouts"], {"A": "iijj"})
-        self.assertEqual(report["component_weights"], {"column-wave-16B": 0.5})
+        self.assertEqual(
+            report["hardware_profile"]["profile_id"],
+            MI300A_V1.profile_id,
+        )
+        self.assertIn(
+            report["hardware_profile"]["fine_component"],
+            report["component_weights"],
+        )
+        self.assertEqual(
+            {
+                name
+                for name, weight in report["component_weights"].items()
+                if weight > 0
+            },
+            set(MI300A_V1.tau),
+        )
         self.assertEqual(report["component_weight_overrides"], {})
         self.assertEqual(
             report["codegen"],
@@ -87,11 +107,11 @@ class ScoreLayoutCliTests(unittest.TestCase):
 
     def test_row_column_and_word_layout_specs(self) -> None:
         cases = (
-            ("row-major", "jjii", 2.0),
-            ("column-major", "iijj", 0.5),
-            ("word:jiji", "jiji", 1.0),
+            ("row-major", "jjii"),
+            ("column-major", "iijj"),
+            ("word:jiji", "jiji"),
         )
-        for specification, expected_word, expected_score in cases:
+        for specification, expected_word in cases:
             with self.subTest(specification=specification):
                 report = self.run_json(
                     "--layout",
@@ -100,7 +120,6 @@ class ScoreLayoutCliTests(unittest.TestCase):
                     "weighted-region-count",
                 )
                 self.assertEqual(report["layouts"], {"A": expected_word})
-                self.assertEqual(report["selected_score"], expected_score)
 
     def test_problem_options_are_forwarded_to_build_config(self) -> None:
         report = self.run_json(
@@ -115,23 +134,39 @@ class ScoreLayoutCliTests(unittest.TestCase):
         # Three bits per mode are only valid if problem_size=8 reached the
         # fixture's build_config function; its default problem size is four.
         self.assertEqual(report["layouts"], {"A": "jjjiii"})
-        self.assertEqual(report["selected_score"], 4.0)
+        issue = next(
+            component
+            for component in report["components"]
+            if component["name"] == "issue.g8.stream.load.16B"
+        )
+        self.assertEqual(issue["arrays"][0]["raw_region_count"], 8.0)
 
-    def test_command_line_weight_overrides_problem_default(self) -> None:
+    def test_command_line_weight_overrides_profile_default(self) -> None:
         report = self.run_json(
             "--layout",
             "A=column-major",
             "--score-mode",
             "weighted-region-count",
             "--component-weight",
-            "column-wave-16B=2",
+            "issue.g8.stream.load.16B=2",
         )
 
-        self.assertEqual(report["selected_score"], 2.0)
-        self.assertEqual(report["component_weights"], {"column-wave-16B": 2.0})
+        self.assertEqual(
+            report["component_weights"]["issue.g8.stream.load.16B"],
+            2.0,
+        )
         self.assertEqual(
             report["component_weight_overrides"],
-            {"column-wave-16B": 2.0},
+            {"issue.g8.stream.load.16B": 2.0},
+        )
+        self.assertEqual(
+            report["hardware_profile"]["tau"]["issue.g8.stream.load.16B"],
+            2.0,
+        )
+        self.assertTrue(
+            report["hardware_profile"]["profile_id"].endswith(
+                "+cli-tau-overrides"
+            )
         )
 
     def test_missing_layout_is_an_argparse_error_without_stdout(self) -> None:

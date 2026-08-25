@@ -2,11 +2,11 @@
 """Score concrete layouts for a Python RELAY problem description.
 
 A problem module must provide ``build_config(**options)``,
-``get_matrices(config)``, ``get_events_and_sequences(config)``, and
-``get_objectives(config)``, and ``get_component_weights(config)``.  Layouts
-are supplied as ``ARRAY=SPEC``.  A spec is ``row-major``, ``column-major``, or
-a canonical word whose symbols list physical element-address bits from least
-significant to most significant.
+``get_matrices(config)``, and ``get_events_and_sequences(config)``. Universal
+access scopes and device weights come from the selected hardware profile.
+Layouts are supplied as ``ARRAY=SPEC``. A spec is ``row-major``,
+``column-major``, or a canonical word whose symbols list physical
+element-address bits from least significant to most significant.
 
 Examples:
 
@@ -15,7 +15,7 @@ Examples:
 
     .venv/bin/python bin/score_layout.py kernels/gemm/problem.py \
         --layout A=jjjiii --layout B=jjjiii --layout C=jjjiii \
-        --score-mode weighted-normalized-excess --json
+        --score-mode hardware-area --json
 """
 
 from __future__ import annotations
@@ -28,13 +28,17 @@ from types import ModuleType
 from typing import Mapping
 
 from relay import (
+    HARDWARE_PROFILES,
     SCORE_MODES,
     CanonicalLayout,
+    HardwareProfile,
     LayoutScore,
     RelayProblem,
     ScoreMode,
+    UniversalScopeObjectives,
     canonical_layout_from_word,
     column_major_layout,
+    get_hardware_profile,
     row_major_layout,
     score_problem,
     score_to_dict,
@@ -59,28 +63,22 @@ def _load_module(path: Path) -> ModuleType:
 
 
 def load_problem(
-    path: Path, options: Mapping[str, object]
-) -> tuple[RelayProblem, dict[str, float]]:
-    """Load the small Python problem protocol used by ``kernels/gemm``."""
+    path: Path,
+    options: Mapping[str, object],
+    hardware_profile: HardwareProfile,
+) -> RelayProblem:
+    """Load kernel facts and attach the universal objective construction."""
 
     module = _load_module(path)
     config = module.build_config(**options)
     matrices = tuple(module.get_matrices(config))
     events, sequences = module.get_events_and_sequences(config)
-    objectives = tuple(module.get_objectives(config))
-    weights = {
-        str(name): float(weight)
-        for name, weight in module.get_component_weights(config).items()
-    }
-    return (
-        RelayProblem(
-            matrices=matrices,
-            events=tuple(events),
-            sequences=tuple(sequences),
-            objectives=objectives,
-            name=path.stem,
-        ),
-        weights,
+    return RelayProblem(
+        matrices=matrices,
+        events=tuple(events),
+        sequences=tuple(sequences),
+        objectives=(UniversalScopeObjectives(hardware_profile.byte_scales),),
+        name=path.stem,
     )
 
 
@@ -108,6 +106,24 @@ def _parse_weights(values: list[str]) -> dict[str, float]:
                 f"--component-weight value for {name!r} must be a number"
             ) from error
     return weights
+
+
+def _with_tau_overrides(
+    hardware_profile: HardwareProfile,
+    overrides: Mapping[str, float],
+) -> HardwareProfile:
+    """Return a profile-shaped response with command-line tau overrides."""
+
+    if not overrides:
+        return hardware_profile
+    return HardwareProfile(
+        profile_id=f"{hardware_profile.profile_id}+cli-tau-overrides",
+        device=hardware_profile.device,
+        byte_scales=hardware_profile.byte_scales,
+        fine_component=hardware_profile.fine_component,
+        tau={**hardware_profile.tau, **overrides},
+        kappa=hardware_profile.kappa,
+    )
 
 
 def _layout_from_spec(matrix, text: str) -> Layout:
@@ -187,6 +203,8 @@ def _print_score(
     print(f"  weighted-region-count:       {score.weighted_region_count:g}")
     print(f"  peak-normalized-excess:      {score.peak_normalized_excess:g}")
     print(f"  weighted-normalized-excess:  {score.weighted_normalized_excess:g}")
+    print(f"  hardware-peak:               {score.hardware_peak:g}")
+    print(f"  hardware-area:               {score.hardware_area:g}")
     print(f"\nSelected score ({mode}): {score.value(mode):g}")
 
 
@@ -194,7 +212,9 @@ def parse_arguments(
     argv: list[str] | None = None,
 ) -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("problem_file", type=Path, help="Python RELAY problem module")
+    parser.add_argument(
+        "problem_file", type=Path, help="Python RELAY problem module"
+    )
     parser.add_argument(
         "--layout",
         action="append",
@@ -206,9 +226,15 @@ def parse_arguments(
         ),
     )
     parser.add_argument(
+        "--hardware-profile",
+        choices=tuple(HARDWARE_PROFILES),
+        default="mi300a",
+        help="global hardware response used for scoring (default: %(default)s)",
+    )
+    parser.add_argument(
         "--score-mode",
         choices=SCORE_MODES,
-        default="weighted-normalized-excess",
+        default="hardware-area",
         help="scalar aggregate selected for the final score (default: %(default)s)",
     )
     parser.add_argument(
@@ -217,8 +243,8 @@ def parse_arguments(
         default=[],
         metavar="OBJECTIVE=WEIGHT",
         help=(
-            "override the problem-provided tau for one objective; zero excludes "
-            "it from aggregates"
+            "override the selected hardware profile's tau for one objective; "
+            "zero excludes it from tau-weighted aggregates"
         ),
     )
     parser.add_argument(
@@ -241,12 +267,24 @@ def run(argv: list[str] | None = None) -> int:
     try:
         options = _parse_problem_options(args.problem_option)
         weight_overrides = _parse_weights(args.component_weight)
-        problem, default_weights = load_problem(
-            args.problem_file.resolve(), options
+        hardware_profile = get_hardware_profile(args.hardware_profile)
+        effective_profile = _with_tau_overrides(hardware_profile, weight_overrides)
+        problem = load_problem(
+            args.problem_file.resolve(), options, hardware_profile
         )
-        weights = {**default_weights, **weight_overrides}
         layouts = parse_layouts(problem, args.layout)
-        score = score_problem(problem, layouts, component_weights=weights)
+        score = score_problem(
+            problem,
+            layouts,
+            hardware_profile=effective_profile,
+        )
+        component_names = {component.name for component in score.components}
+        unknown_overrides = sorted(set(weight_overrides) - component_names)
+        if unknown_overrides:
+            raise ValueError(
+                "weights were supplied for unknown objective components: "
+                + ", ".join(unknown_overrides)
+            )
     except (AttributeError, ImportError, OSError, TypeError, ValueError) as error:
         parser.error(str(error))
 
@@ -269,6 +307,7 @@ def run(argv: list[str] | None = None) -> int:
                 },
                 "selected_score_mode": mode,
                 "selected_score": score.value(mode),
+                "hardware_profile": effective_profile.to_dict(),
                 "component_weights": {
                     component.name: component.weight
                     for component in score.components
