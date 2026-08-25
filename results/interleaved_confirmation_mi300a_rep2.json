@@ -1,0 +1,3647 @@
+{
+  "configuration": {
+    "arch": "gfx942",
+    "compiler": "/opt/rocm-7.0.2/bin/hipcc",
+    "device": 0,
+    "flux_job_id": "f3UPFSjSKais",
+    "host": "tuolumne1039",
+    "immediate_warmup_launches": 5,
+    "input": "/g/g16/dnicho/record-replay/relay/results/standard_scoring_mi300a.jsonl",
+    "instances": [
+      [
+        "gemm",
+        512
+      ],
+      [
+        "gesummv",
+        1024
+      ]
+    ],
+    "iterations_per_burst": 50,
+    "oracle_top": 3,
+    "order": "seeded shuffled cyclic blocks balanced by position",
+    "priming_cycles": 2,
+    "rounds": 24,
+    "seed": 20260828
+  },
+  "experiment": "interleaved-gs-confirmation",
+  "groups": [
+    {
+      "analysis": {
+        "best_frontier_median_ms": 0.28322149799999996,
+        "best_frontier_word": "ijjjjjiiiiiiiijjjj",
+        "confirmed_oracle_median_ms": 0.262771845,
+        "confirmed_oracle_word": "jjjjiiijjjjjiiiiii",
+        "frontier_paired_vs_confirmed_oracle": {
+          "bootstrap_95pct_mean_regret": [
+            0.06517294690021648,
+            0.08794522418445323
+          ],
+          "faster_rounds": 0,
+          "mean_regret": 0.07638407683166519,
+          "median_regret": 0.07764003655768514,
+          "round_count": 24,
+          "tied_rounds": 0
+        },
+        "frontier_regret": 0.07782284665999883,
+        "layout_summaries": [
+          {
+            "maximum_ms": 0.262972176,
+            "mean_ms": 0.26276190954166667,
+            "median_ms": 0.262771845,
+            "minimum_ms": 0.262567908,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.0,
+                0.0
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.0,
+              "median_regret": 0.0,
+              "round_count": 24,
+              "tied_rounds": 24
+            },
+            "roles": [
+              "oracle_top_3"
+            ],
+            "sd_ms": 9.963353230463615e-05,
+            "sweep_time_ms": 0.263427,
+            "word": "jjjjiiijjjjjiiiiii"
+          },
+          {
+            "maximum_ms": 0.263083369,
+            "mean_ms": 0.26290396845833336,
+            "median_ms": 0.26291289949999996,
+            "minimum_ms": 0.262568593,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.000331361756153864,
+                0.0007320318704316006
+              ],
+              "faster_rounds": 4,
+              "mean_regret": 0.0005407306618754095,
+              "median_regret": 0.0005145659225633814,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "oracle_top_1"
+            ],
+            "sd_ms": 0.0001190342947529431,
+            "sweep_time_ms": 0.263214,
+            "word": "jjiiijjjjjjjiiiiii"
+          },
+          {
+            "maximum_ms": 0.263375372,
+            "mean_ms": 0.263065836,
+            "median_ms": 0.26306378799999997,
+            "minimum_ms": 0.262777418,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.000953742499397577,
+                0.0013598817615416425
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.001156724946268432,
+              "median_regret": 0.0011248545929570808,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "oracle_top_2"
+            ],
+            "sd_ms": 0.00013732516704006783,
+            "sweep_time_ms": 0.26336,
+            "word": "jjiiiiiijjjjjjjiii"
+          },
+          {
+            "maximum_ms": 0.2945548,
+            "mean_ms": 0.28283367666666664,
+            "median_ms": 0.28322149799999996,
+            "minimum_ms": 0.269760221,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.06517294690021648,
+                0.08794522418445323
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.07638407683166519,
+              "median_regret": 0.07764003655768514,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.007677377005426911,
+            "sweep_time_ms": 0.308734,
+            "word": "ijjjjjiiiiiiiijjjj"
+          },
+          {
+            "maximum_ms": 0.30268842,
+            "mean_ms": 0.3005654899583333,
+            "median_ms": 0.30082638549999996,
+            "minimum_ms": 0.29783234,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.1422079958470336,
+                0.14541072025526428
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.14387049209279382,
+              "median_regret": 0.14481851685403413,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.0010217554370749032,
+            "sweep_time_ms": 0.309654,
+            "word": "jijjjjjjjjiiiiiiii"
+          },
+          {
+            "maximum_ms": 0.307621092,
+            "mean_ms": 0.306168028375,
+            "median_ms": 0.306144297,
+            "minimum_ms": 0.304857224,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.16437963108283474,
+                0.1660599553805158
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.1651918006975899,
+              "median_regret": 0.16500729021576732,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.0005730843013981317,
+            "sweep_time_ms": 0.303921,
+            "word": "jjijjjjjjjiiiiiiii"
+          },
+          {
+            "maximum_ms": 0.318286031,
+            "mean_ms": 0.3176888251666667,
+            "median_ms": 0.31772403400000004,
+            "minimum_ms": 0.31703645,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.20849820369452485,
+                0.2095699593795246
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.2090369384704582,
+              "median_regret": 0.20911253627157245,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.00034524954807364333,
+            "sweep_time_ms": 0.318494,
+            "word": "jjjjjiiiiiiiiijjjj"
+          },
+          {
+            "maximum_ms": 0.318615496,
+            "mean_ms": 0.31825039545833333,
+            "median_ms": 0.318262935,
+            "minimum_ms": 0.317899674,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.21080395345107464,
+                0.21155371349983265
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.2111743077094604,
+              "median_regret": 0.21111633496967253,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.0001659898697935554,
+            "sweep_time_ms": 0.320228,
+            "word": "jjjjjjjjjiiiiiiiii"
+          }
+        ],
+        "sweep_frontier_best_ms": 0.303921,
+        "sweep_frontier_regret": 0.15465362784654313,
+        "sweep_panel_oracle_ms": 0.263214
+      },
+      "candidates": [
+        {
+          "roles": [
+            "oracle_top_1"
+          ],
+          "sweep_time_ms": 0.263214,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "roles": [
+            "oracle_top_2"
+          ],
+          "sweep_time_ms": 0.26336,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "roles": [
+            "oracle_top_3"
+          ],
+          "sweep_time_ms": 0.263427,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.318494,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.320228,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.309654,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.303921,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.308734,
+          "word": "ijjjjjiiiiiiiijjjj"
+        }
+      ],
+      "device": "AMD Radeon Graphics",
+      "kernel": "gemm",
+      "matrix_size": 512,
+      "measurements": [
+        {
+          "case": 0,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.262568593,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.262777418,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 2,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.262575805,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.299244016,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.317487329,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.306155294,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.272834301,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 4,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.318499327,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.26283747,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 2,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.262736678,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.300244898,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.317171395,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.305676132,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.274697572,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 4,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.317993015,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.262727916,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.262567908,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.300263524,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.317916423,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.305309951,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.286594629,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 4,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.318615496,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.262959987,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.262964755,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.301012993,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.317734718,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.306029856,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.282033712,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 4,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.318385154,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.263063192,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.263203233,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 2,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.262786418,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.317552328,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.307621092,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.28986901,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 4,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.318296373,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.262884855,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.263036847,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 2,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.262700051,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.30094108,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.306541085,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.293438643,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 4,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.318171591,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.262892067,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.263197631,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 2,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.262825668,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.299797088,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.318286031,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.276372164,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 4,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.318253219,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.263079256,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.263094485,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 2,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.262811273,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.300788313,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.317712426,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.306289166,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.318434834,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.262919277,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.262944877,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 2,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.262748897,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.300911546,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.31703645,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.306507558,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.275540173,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 6,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.305943578,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.262982488,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.318287671,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.262828916,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 3,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.317982852,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.279040217,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.262725711,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.300028354,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.262906522,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.317899674,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.263138533,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 3,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.318193287,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.287107497,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.262922525,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.29783234,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.306270808,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.318258882,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.263008922,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 3,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.317882091,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.288256466,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.262759507,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.300978959,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.307336628,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.262972116,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.26309374,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 3,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.318243682,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.293669134,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.262785733,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.301038772,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.305569232,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.262924939,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.318264514,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.317794085,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.28976351,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.262863338,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.301497191,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.306189209,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.262957752,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.318315715,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.263253748,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 7,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.273561805,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.262808144,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.30268842,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.306259632,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.262901753,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.318342924,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.262972951,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 3,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.317860514,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.262899369,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.300147593,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.306669265,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.262663364,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.318012536,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.26303938,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 3,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.317964524,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.284146696,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 5,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.301712424,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.306757271,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.262876153,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.31826371,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.263375372,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 3,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.317608535,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 7,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.287773103,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.262785763,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.31785652,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.262841761,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.262591392,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.263018548,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.300044417,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.318450958,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.304857224,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.275249034,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.263024151,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.26280579,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.263200939,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.300398827,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.318256527,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.305842042,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.269760221,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 3,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.317604572,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 2,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.262696981,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.26319617,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.299857229,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.318126172,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.306098074,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.272753835,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 3,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.317119718,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.262956977,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.263060182,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.301442027,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.318012536,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.306040466,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.277962685,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 3,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.317081332,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.262830585,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.262784183,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.300864458,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.318180561,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.306064457,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.2822963,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 3,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.31762135,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.262847394,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.262732983,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.263135374,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 4,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.31826216,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.305665284,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.294380397,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 3,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.317310929,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.263083369,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.262972176,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.263067394,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.298789203,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.3061333,
+          "word": "jjijjjjjjjiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.2945548,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 3,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.31771335,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.262886584,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.262755364,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.263010591,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.301109225,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.318324566,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 7,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.286352336,
+          "word": "ijjjjjiiiiiiiijjjj"
+        },
+        {
+          "case": 3,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.317797363,
+          "word": "jjjjjiiiiiiiiijjjj"
+        },
+        {
+          "case": 0,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.262944192,
+          "word": "jjiiijjjjjjjiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.262644172,
+          "word": "jjjjiiijjjjjiiiiii"
+        },
+        {
+          "case": 1,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.263122588,
+          "word": "jjiiiiiijjjjjjjiii"
+        },
+        {
+          "case": 5,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.301938862,
+          "word": "jijjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.318101376,
+          "word": "jjjjjjjjjiiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.306206077,
+          "word": "jjijjjjjjjiiiiiiii"
+        }
+      ]
+    },
+    {
+      "analysis": {
+        "best_frontier_median_ms": 0.15049696,
+        "best_frontier_word": "ijiiiiiiiiijjjjjjjjj",
+        "confirmed_oracle_median_ms": 0.13235317200000002,
+        "confirmed_oracle_word": "jjiiiiiiiijjjjjjjjii",
+        "frontier_paired_vs_confirmed_oracle": {
+          "bootstrap_95pct_mean_regret": [
+            0.13625338692111166,
+            0.1378739013083031
+          ],
+          "faster_rounds": 0,
+          "mean_regret": 0.1370973546563891,
+          "median_regret": 0.13721556425606252,
+          "round_count": 24,
+          "tied_rounds": 0
+        },
+        "frontier_regret": 0.13708615914396072,
+        "layout_summaries": [
+          {
+            "maximum_ms": 0.13299042,
+            "mean_ms": 0.13239341245833333,
+            "median_ms": 0.13235317200000002,
+            "minimum_ms": 0.131976858,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.0,
+                0.0
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.0,
+              "median_regret": 0.0,
+              "round_count": 24,
+              "tied_rounds": 24
+            },
+            "roles": [
+              "oracle_top_1"
+            ],
+            "sd_ms": 0.00018837924296105852,
+            "sweep_time_ms": 0.12728,
+            "word": "jjiiiiiiiijjjjjjjjii"
+          },
+          {
+            "maximum_ms": 0.133440077,
+            "mean_ms": 0.133026575625,
+            "median_ms": 0.13298846050000002,
+            "minimum_ms": 0.132745504,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.004038691733757603,
+                0.0054900526640371166
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.004784305747184396,
+              "median_regret": 0.004854227021931501,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "oracle_top_3"
+            ],
+            "sd_ms": 0.00016716007908135208,
+            "sweep_time_ms": 0.127826,
+            "word": "jjiiiiiiiiijjjjjjjji"
+          },
+          {
+            "maximum_ms": 0.134259999,
+            "mean_ms": 0.13401581729166667,
+            "median_ms": 0.1340156495,
+            "minimum_ms": 0.133742377,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.011493370975973813,
+                0.012970267420261675
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.01225674282168652,
+              "median_regret": 0.012264363929121003,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "oracle_top_2"
+            ],
+            "sd_ms": 0.0001152557208545717,
+            "sweep_time_ms": 0.127306,
+            "word": "jjiiiiiijjjjjjjjiiii"
+          },
+          {
+            "maximum_ms": 0.150930554,
+            "mean_ms": 0.15054388345833333,
+            "median_ms": 0.15049696,
+            "minimum_ms": 0.150369599,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.13625338692111166,
+                0.1378739013083031
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.1370973546563891,
+              "median_regret": 0.13721556425606252,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.00015418716892762,
+            "sweep_time_ms": 0.155067,
+            "word": "ijiiiiiiiiijjjjjjjjj"
+          },
+          {
+            "maximum_ms": 0.153414667,
+            "mean_ms": 0.15289036566666667,
+            "median_ms": 0.1528334025,
+            "minimum_ms": 0.152683303,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.15400317351064263,
+                0.15563155938657408
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.1548208269708888,
+              "median_regret": 0.1549589125851627,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.0001594139360754108,
+            "sweep_time_ms": 0.153854,
+            "word": "iijiiiiiiiijjjjjjjjj"
+          },
+          {
+            "maximum_ms": 0.157293096,
+            "mean_ms": 0.157065129,
+            "median_ms": 0.1570606235,
+            "minimum_ms": 0.156901598,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.1855682456661136,
+                0.18702907296670415
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.18635387505864096,
+              "median_regret": 0.1865907072591012,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 9.974630454724875e-05,
+            "sweep_time_ms": 0.156654,
+            "word": "iijjjjjjjjjjiiiiiiii"
+          },
+          {
+            "maximum_ms": 0.186101139,
+            "mean_ms": 0.18573710520833334,
+            "median_ms": 0.1857584045,
+            "minimum_ms": 0.185320333,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                0.4019379518686375,
+                0.40385821489439716
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 0.4029204576939979,
+              "median_regret": 0.40330959591007,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.00022834589624532546,
+            "sweep_time_ms": 0.187467,
+            "word": "iiiiiijjjjjjjjjjiiii"
+          },
+          {
+            "maximum_ms": 0.292087525,
+            "mean_ms": 0.2915516384166667,
+            "median_ms": 0.29153585400000004,
+            "minimum_ms": 0.291067541,
+            "paired_vs_confirmed_oracle": {
+              "bootstrap_95pct_mean_regret": [
+                1.200764824643267,
+                1.2034921638233895
+              ],
+              "faster_rounds": 0,
+              "mean_regret": 1.202165357240416,
+              "median_regret": 1.2024002308049078,
+              "round_count": 24,
+              "tied_rounds": 0
+            },
+            "roles": [
+              "analytical_frontier"
+            ],
+            "sd_ms": 0.00023810770264593982,
+            "sweep_time_ms": 0.298963,
+            "word": "iiiiiiiiiijjjjjjjjjj"
+          }
+        ],
+        "sweep_frontier_best_ms": 0.153854,
+        "sweep_frontier_regret": 0.2087837837837836,
+        "sweep_panel_oracle_ms": 0.12728
+      },
+      "candidates": [
+        {
+          "roles": [
+            "oracle_top_1"
+          ],
+          "sweep_time_ms": 0.12728,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "roles": [
+            "oracle_top_2"
+          ],
+          "sweep_time_ms": 0.127306,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "roles": [
+            "oracle_top_3"
+          ],
+          "sweep_time_ms": 0.127826,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.187467,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.298963,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.153854,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.155067,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "roles": [
+            "analytical_frontier"
+          ],
+          "sweep_time_ms": 0.156654,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        }
+      ],
+      "device": "AMD Radeon Graphics",
+      "kernel": "gesummv",
+      "matrix_size": 1024,
+      "measurements": [
+        {
+          "case": 0,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.13299042,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.133891225,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.133007228,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.152959362,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.185989946,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 6,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.150412142,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.15694657,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 0,
+          "time_ms": 0.29152146,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.133871883,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.132957473,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.152803183,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.185784936,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 6,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.150410369,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.156901598,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.291297555,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 1,
+          "time_ms": 0.13226153,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.132745504,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.152786419,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.18546018,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 6,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.150369599,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.156908855,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.291405112,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.131976858,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 2,
+          "time_ms": 0.134060875,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.15300262,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.185422003,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 6,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.150407374,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.157082647,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.291832328,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.132657677,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.133949682,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 3,
+          "time_ms": 0.133115277,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 3,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.185730815,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 6,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.1504962,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.156953037,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.291575313,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.132335961,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.133742377,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.133041576,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 4,
+          "time_ms": 0.152875304,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.150508106,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.157140121,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.291374534,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.132300779,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.13415283,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.133010402,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.152683303,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 5,
+          "time_ms": 0.185925901,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.157228932,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 4,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.291321725,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.132370383,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.134259999,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.133039191,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.152738526,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.18553552,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 6,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 6,
+          "time_ms": 0.150579304,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.291555375,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.132507205,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.133972824,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.13291043,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.153032139,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.185320333,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 6,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.150529712,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 7,
+          "time_ms": 0.157038569,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 6,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.150409713,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.132267222,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 4,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.291543394,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.134015217,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 3,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.186047539,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.156969756,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.132852823,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 8,
+          "time_ms": 0.153020948,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.13238962,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 4,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.291613817,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.134038419,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 3,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.186101139,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.156993777,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.132876813,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.15271616,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 9,
+          "time_ms": 0.15060094,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.291586637,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.134084046,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 3,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.185711563,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.157052204,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.133176044,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.152746558,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.150402531,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 10,
+          "time_ms": 0.132604033,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.133976862,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 3,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.185781181,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.157112986,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.132922441,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.153036982,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.15049614,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.13237685,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 4,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 11,
+          "time_ms": 0.291938663,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 3,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.186013982,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.157180995,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.13317205,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.152980149,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.150700957,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.132272065,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 4,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.291306674,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 12,
+          "time_ms": 0.134256855,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.157113016,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.13297607,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.152772993,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.150930554,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.132524863,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 4,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.291477084,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.134068057,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 3,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 13,
+          "time_ms": 0.1860708,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.132992059,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.152821779,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.15049696,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.132272869,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 4,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.291763484,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.133944884,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 3,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.185489193,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 14,
+          "time_ms": 0.157092214,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 5,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.152771384,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.15049696,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 0,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.132410467,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 4,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.291955471,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 1,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.13407287,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 3,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.185477197,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 7,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.157169014,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 2,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 15,
+          "time_ms": 0.132984862,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 3,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.185909197,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 0,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.13245526,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.133440077,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 1,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.134016082,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.152956203,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.291293919,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.150424197,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 16,
+          "time_ms": 0.157055423,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 0,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.132307261,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.133064881,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 1,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.13394168,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.152959406,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.291528314,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.150423378,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.157065824,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 17,
+          "time_ms": 0.185540423,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 2,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.13288407,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 1,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.133892074,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.152836204,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.291661084,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.150588974,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.157165021,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.185735628,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 0,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 18,
+          "time_ms": 0.132559285,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 1,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.134087279,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.152830601,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.291446716,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.150537789,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.157293096,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.185799688,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 0,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.132257745,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 19,
+          "time_ms": 0.133376941,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 5,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.152736261,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.29135564,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.15066427,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.157121837,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.185890824,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 0,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.132485673,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.132864088,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 1,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 20,
+          "time_ms": 0.134057701,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 4,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.291729957,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.150452971,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.156969085,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.185892493,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 0,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.132304922,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.132920921,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 1,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.133913711,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 21,
+          "time_ms": 0.153414667,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.150788248,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.156974673,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.185579628,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 0,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.132255271,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.133336082,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 1,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.134011284,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.153081015,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 22,
+          "time_ms": 0.292087525,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 7,
+          "position": 0,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.157033846,
+          "word": "iijjjjjjjjjjiiiiiiii"
+        },
+        {
+          "case": 3,
+          "position": 1,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.185480416,
+          "word": "iiiiiijjjjjjjjjjiiii"
+        },
+        {
+          "case": 0,
+          "position": 2,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.13229768,
+          "word": "jjiiiiiiiijjjjjjjjii"
+        },
+        {
+          "case": 2,
+          "position": 3,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.132970512,
+          "word": "jjiiiiiiiiijjjjjjjji"
+        },
+        {
+          "case": 1,
+          "position": 4,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.134100899,
+          "word": "jjiiiiiijjjjjjjjiiii"
+        },
+        {
+          "case": 5,
+          "position": 5,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.15280661,
+          "word": "iijiiiiiiiijjjjjjjjj"
+        },
+        {
+          "case": 4,
+          "position": 6,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.291067541,
+          "word": "iiiiiiiiiijjjjjjjjjj"
+        },
+        {
+          "case": 6,
+          "position": 7,
+          "record_type": "measurement",
+          "round": 23,
+          "time_ms": 0.150925815,
+          "word": "ijiiiiiiiiijjjjjjjjj"
+        }
+      ]
+    }
+  ],
+  "schema_version": 1
+}
