@@ -112,6 +112,56 @@ The final plot is
 [`results/solver_frontier_speedup.png`](results/solver_frontier_speedup.png),
 with exact frontiers and raw timing samples retained in the adjacent JSON.
 
+## Exhaustive canonical scoring results
+
+`experiments/scoring_results.py` builds a paper-oriented JSONL corpus for all
+five kernels at N=512 and N=1024. It applies one full `G_C` word uniformly to
+every target matrix, computes the exact five-cost frontier, and records scalar,
+top-5, lexicographic, fine-gated, and row-major comparison selections. A true
+runtime oracle is available only after every canonical word has been timed.
+
+There are 48,620 words at N=512 and 184,756 at N=1024, or 1,166,880 separate
+evaluator runs for the complete five-kernel suite. Prepare the analytical plan
+on a CPU node and seed the compatible full-word measurements first:
+
+```bash
+.venv/bin/python experiments/scoring_results.py \
+  --prepare-only \
+  --seed-timings results/layout_ranking.json
+```
+
+Then resume bounded chunks in single-GPU allocations:
+
+```bash
+module load rocm/7.0.2
+flux run -n1 -g1 -t 5m -q pdebug \
+  .venv/bin/python experiments/scoring_results.py \
+  --resume --max-benchmarks 40 \
+  --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942
+```
+
+The compact `results/canonical_scoring_mi300a.jsonl` has one record per
+kernel/size. The append-only `.raw.jsonl` file is the timing checkpoint and the
+`.plan.json` file retains exact analytical selections. See
+[`docs/scoring-results.md`](docs/scoring-results.md) for the schema, scope, and
+resume workflow.
+
+For the much smaller shared `G_S` experiment, select the standard grammar and
+use separate result paths:
+
+```bash
+.venv/bin/python experiments/scoring_results.py \
+  --grammar standard --prepare-only \
+  --seed-timings results/layout_ranking.json \
+  --output results/standard_scoring_mi300a.jsonl \
+  --raw-output results/standard_scoring_mi300a.raw.jsonl \
+  --plan results/standard_scoring_mi300a.plan.json
+```
+
+Resume inside a GPU allocation with the same grammar and paths. The implemented
+four-form cut-point grammar contains 146 shared layouts at N=512 and 182 at
+N=1024.
+
 ## Compare score and runtime ranks
 
 The combined experiment scores global, square-tiled, rectangular-tiled, and
