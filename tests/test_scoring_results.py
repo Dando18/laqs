@@ -10,11 +10,13 @@ from experiments.layout_ranking import KERNEL_SPECS
 from experiments.scoring_results import (
     _configuration,
     _configuration_id,
+    _append_raw,
     _initialize_raw,
     build_group_plan,
     canonical_words,
     expand_canonical_descriptor,
     import_seed_timings,
+    import_raw_timings,
     load_raw,
     parse_arguments,
     run,
@@ -176,8 +178,85 @@ class ScoringResultPlanTests(unittest.TestCase):
             self.assertEqual(summary["grammar"], "G_S")
             self.assertEqual(summary["layout_count"], len(standard_words(8)))
 
+    def test_flag_fiber_plan_records_identity_realizations_at_small_width(self) -> None:
+        _, args = parse_arguments(
+            [
+                "--kernel",
+                "atax",
+                "--size",
+                "8",
+                "--grammar",
+                "standard",
+                "--fiber-max-xors",
+                "1",
+                "--prepare-only",
+            ]
+        )
+
+        group = build_group_plan(KERNEL_SPECS["atax"], 8, args)
+
+        self.assertTrue(group["flag_fiber"]["enabled"])
+        self.assertEqual(group["flag_fiber"]["max_xors"], 1)
+        self.assertEqual(group["flag_fiber"]["destination_bits"], [])
+        self.assertEqual(
+            group["flag_fiber"]["evaluated_materializations"],
+            len(standard_words(8)),
+        )
+        self.assertTrue(
+            all("flag_word" in member for member in group["frontier"])
+        )
+
 
 class SeedTimingTests(unittest.TestCase):
+    def test_identity_timings_can_seed_a_fiber_checkpoint(self) -> None:
+        _, source_args = parse_arguments(
+            ["--kernel", "atax", "--size", "8", "--grammar", "standard"]
+        )
+        _, target_args = parse_arguments(
+            [
+                "--kernel",
+                "atax",
+                "--size",
+                "8",
+                "--grammar",
+                "standard",
+                "--fiber-max-xors",
+                "1",
+            ]
+        )
+        source_configuration = _configuration(source_args, ["atax"], [8])
+        target_configuration = _configuration(target_args, ["atax"], [8])
+        word = standard_words(8)[0]
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source_path = root / "source.raw.jsonl"
+            target_path = root / "target.raw.jsonl"
+            _initialize_raw(source_path, source_configuration)
+            _append_raw(
+                source_path,
+                {
+                    "record_type": "timing",
+                    "configuration_id": _configuration_id(source_configuration),
+                    "kernel": "atax",
+                    "matrix_size": 8,
+                    "word": word,
+                    "timing": fake_timing(1.0),
+                },
+            )
+            _initialize_raw(target_path, target_configuration)
+            records = {}
+
+            imported = import_raw_timings(
+                source_path,
+                target_path,
+                target_configuration,
+                records,
+            )
+
+            self.assertEqual(imported, 1)
+            loaded = load_raw(target_path, target_configuration)
+            self.assertEqual(loaded[("atax", 8, word)]["timing"], fake_timing(1.0))
+
     def test_only_exact_full_word_layout_ranking_timings_are_seeded(self) -> None:
         _, args = parse_arguments(
             ["--kernel", "atax", "--size", "4", "--prepare-only"]

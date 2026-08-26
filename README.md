@@ -165,6 +165,24 @@ Resume inside a GPU allocation with the same grammar and paths. The implemented
 four-form cut-point grammar contains 146 shared layouts at N=512 and 182 at
 N=1024.
 
+The flag-fiber extension materializes each `G_S` flag with sparse
+unit-upper-triangular `T_ij` shears. It preserves every original locality score
+while selecting physical resource placement with `J_place`. Seed it from the
+completed canonical-representative checkpoint so only new swizzled selections
+need GPU measurements:
+
+```bash
+.venv/bin/python experiments/scoring_results.py \
+  --grammar standard --fiber-max-xors 1 --prepare-only \
+  --seed-raw results/standard_scoring_mi300a.raw.jsonl \
+  --output results/standard_fiber_scoring_mi300a.jsonl \
+  --raw-output results/standard_fiber_scoring_mi300a.raw.jsonl \
+  --plan results/standard_fiber_scoring_mi300a.plan.json
+```
+
+The measured one-shear results, paired confirmation, and comparison figure are
+summarized in [`docs/scoring-results.md`](docs/scoring-results.md).
+
 ## Compare score and runtime ranks
 
 The combined experiment scores global, square-tiled, rectangular-tiled, and
@@ -527,6 +545,11 @@ For selected tile shapes, the solver:
 4. enumerates all subspaces rank by rank when the active rank is small;
 5. runs exact cover-edge dynamic programming; and
 6. lifts the chosen flag back into an invertible inner matrix `A_in`.
+
+After materialization, `enumerate_flag_preserving_swizzles` can search sparse
+`y_i <- y_i XOR y_j` transformations with `i < j`. These transformations
+change the realized `A_in` and hardware colors while leaving every low-address
+prefix subspace—and therefore every LAQS quotient cardinality—unchanged.
 
 The default exact active-rank limit is seven. This implementation intentionally returns no approximate general-linear answer above that limit rather than silently switching to a beam.
 

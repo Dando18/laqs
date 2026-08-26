@@ -177,6 +177,18 @@ def select_candidates(
             "roles": [f"oracle_top_{rank}"],
             "time": float(layout["timing"]["median_ms"]),
         }
+    base_frontier = record.get("base_colored_frontier")
+    if isinstance(base_frontier, dict):
+        for layout in base_frontier.get("layouts", ()):
+            word = str(layout["word"])
+            entry = ordered.setdefault(
+                word,
+                {
+                    "roles": [],
+                    "time": float(layout["timing"]["median_ms"]),
+                },
+            )
+            entry["roles"].append("base_colored_frontier")
     for layout in frontier["layouts"]:
         word = str(layout["word"])
         entry = ordered.setdefault(
@@ -698,6 +710,11 @@ def analyze_measurements(
         item for item in summaries if "analytical_frontier" in item["roles"]
     ]
     best_frontier = min(frontier, key=lambda item: item["median_ms"])
+    base_frontier = [
+        item
+        for item in summaries
+        if "base_colored_frontier" in item["roles"]
+    ]
     sweep_oracle = min(
         item.sweep_time_ms
         for item in candidates
@@ -708,7 +725,7 @@ def analyze_measurements(
         for item in candidates
         if "analytical_frontier" in item.roles
     )
-    return {
+    result = {
         "layout_summaries": summaries,
         "confirmed_oracle_word": reference["word"],
         "confirmed_oracle_median_ms": reference["median_ms"],
@@ -722,6 +739,31 @@ def analyze_measurements(
         "sweep_frontier_best_ms": sweep_frontier,
         "sweep_frontier_regret": sweep_frontier / sweep_oracle - 1.0,
     }
+    if base_frontier:
+        best_base = min(base_frontier, key=lambda item: item["median_ms"])
+        base_rounds = by_word[str(best_base["word"])]
+        fiber_vs_base = [
+            by_word[str(best_frontier["word"])][round_index]
+            / base_rounds[round_index]
+            - 1.0
+            for round_index in sorted(base_rounds)
+        ]
+        lower, upper = bootstrap_mean_interval(fiber_vs_base, seed + len(summaries))
+        result.update(
+            {
+                "best_base_frontier_word": best_base["word"],
+                "best_base_frontier_median_ms": best_base["median_ms"],
+                "fiber_paired_vs_base_frontier": {
+                    "mean_change": statistics.fmean(fiber_vs_base),
+                    "median_change": statistics.median(fiber_vs_base),
+                    "bootstrap_95pct_mean_change": [lower, upper],
+                    "faster_rounds": sum(value < 0.0 for value in fiber_vs_base),
+                    "tied_rounds": sum(value == 0.0 for value in fiber_vs_base),
+                    "round_count": len(fiber_vs_base),
+                },
+            }
+        )
+    return result
 
 
 def atomic_write_json(path: Path, value: object) -> None:
@@ -801,7 +843,13 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(
             f"{key[0]} N={key[1]}: sweep frontier regret "
             f"{100 * analysis['sweep_frontier_regret']:.3f}%, interleaved paired "
-            f"{100 * paired['mean_regret']:.3f}%",
+            f"{100 * paired['mean_regret']:.3f}%"
+            + (
+                ", fiber vs base frontier "
+                f"{100 * analysis['fiber_paired_vs_base_frontier']['mean_change']:.3f}%"
+                if "fiber_paired_vs_base_frontier" in analysis
+                else ""
+            ),
             flush=True,
         )
 

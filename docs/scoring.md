@@ -100,6 +100,22 @@ transactions, and an eight-color 4 KiB HBM-stack interleave sketch. Its robust
 phase policy maximizes contention over relative allocation colors because raw
 timing records do not expose physical allocation bases.
 
+## Flag-preserving materialization
+
+`enumerate_flag_preserving_swizzles` turns a canonical or `LinearInnerLayout`
+representative into the sparse unit-upper-triangular fiber
+
+```text
+A' = T_ij A,  T_ij: y_i <- y_i XOR y_j,  i < j.
+```
+
+The inverse basis is updated consistently, and `low_address_flag` exposes every
+prefix subspace for exact invariant checks. `resource_color_destination_bits`
+restricts enumeration to physical rows that directly feed the configured
+resource-color masks. The scoring experiment searches identity plus bounded
+shear sequences, evaluates only `J_place` and XOR cost within each flag, and
+reuses the flag's unchanged `Q_fine`, `J_peak`, and `J_area` values.
+
 ## Pareto frontiers
 
 `pareto_frontier` compares several named `LayoutScore` objects over any ordered

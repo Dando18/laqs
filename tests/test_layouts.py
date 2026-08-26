@@ -1,8 +1,17 @@
 from __future__ import annotations
 
 import unittest
+from itertools import product
 
-from relay import MatrixSpec, canonical_layout_from_word
+from relay import (
+    MatrixSpec,
+    ResourceMap,
+    apply_flag_preserving_shears,
+    canonical_layout_from_word,
+    enumerate_flag_preserving_swizzles,
+    low_address_flag,
+    resource_color_destination_bits,
+)
 
 
 class CanonicalLayoutWordTests(unittest.TestCase):
@@ -46,6 +55,63 @@ class CanonicalLayoutWordTests(unittest.TestCase):
             with self.subTest(word=word):
                 with self.assertRaisesRegex(ValueError, message):
                     canonical_layout_from_word(self.matrix, word)
+
+
+class FlagFiberLayoutTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.matrix = MatrixSpec("A", (8, 4), 4, ("i", "j"))
+        self.layout = canonical_layout_from_word(self.matrix, "jijii")
+
+    def test_upper_triangular_shear_preserves_every_flag_prefix(self) -> None:
+        identity = apply_flag_preserving_shears(
+            self.matrix, self.layout, ()
+        )
+        swizzled = apply_flag_preserving_shears(
+            self.matrix, self.layout, ((1, 4),)
+        )
+
+        self.assertEqual(
+            low_address_flag(self.matrix, identity),
+            low_address_flag(self.matrix, swizzled),
+        )
+        self.assertEqual(
+            swizzled.basis_columns[4],
+            identity.basis_columns[4] ^ identity.basis_columns[1],
+        )
+        for coord in product(range(8), range(4)):
+            original = self.layout.offset(self.matrix, coord)
+            expected = original ^ (((original >> 4) & 1) << 1)
+            self.assertEqual(swizzled.offset(self.matrix, coord), expected)
+
+    def test_sparse_enumeration_targets_only_resource_color_rows(self) -> None:
+        resource_map = ResourceMap(
+            "test_color",
+            8,
+            (1 << 3,),
+            "simd_window.t4.cohort.load",
+        )
+        destinations = resource_color_destination_bits(
+            (resource_map,), self.matrix.element_bytes, self.matrix.total_bits
+        )
+        seeds = enumerate_flag_preserving_swizzles(
+            self.matrix,
+            self.layout,
+            max_xors=1,
+            destination_bits=destinations,
+        )
+
+        self.assertEqual(destinations, (1,))
+        self.assertEqual(
+            [seed.shears for seed in seeds],
+            [(), ((1, 2),), ((1, 3),), ((1, 4),)],
+        )
+        self.assertEqual(len({seed.layout.a_rows for seed in seeds}), 4)
+
+    def test_non_flag_preserving_shear_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "i < j"):
+            apply_flag_preserving_shears(
+                self.matrix, self.layout, ((3, 1),)
+            )
 
 
 if __name__ == "__main__":

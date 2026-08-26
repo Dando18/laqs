@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from math import inf
-from typing import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 
 from .gf2 import (
     codimension_one_subspaces,
@@ -10,7 +10,9 @@ from .gf2 import (
     coordinate_map,
     enumerate_subspace_layers,
     invert_matrix_from_columns,
+    invert_matrix_rows,
     lift_coordinate,
+    matrix_rows_from_columns,
     new_direction,
     reduce_vector,
     rref_basis,
@@ -18,6 +20,9 @@ from .gf2 import (
 from .layouts import CanonicalLayout, LinearInnerLayout, Layout
 from .model import MatrixSpec
 from .objectives import Hyperedge, ObjectiveComponent
+
+if TYPE_CHECKING:
+    from .hardware import ResourceMap
 
 
 Score = dict[str, float]
@@ -71,6 +76,220 @@ class LayoutSeed:
     exact: bool
     search_stats: SearchStats
     note: str = ""
+
+
+@dataclass(frozen=True)
+class FlagFiberSeed:
+    """One sparse unit-upper-triangular realization of a locality flag."""
+
+    layout: LinearInnerLayout
+    shears: tuple[tuple[int, int], ...]
+
+    @property
+    def swizzle_xors(self) -> int:
+        return len(self.shears)
+
+
+def _linear_flag_representative(
+    matrix: MatrixSpec,
+    layout: Layout,
+) -> LinearInnerLayout:
+    if isinstance(layout, LinearInnerLayout):
+        layout.validate(matrix)
+        rows = layout.a_rows
+        basis_columns = _inverse_columns(rows)
+        return LinearInnerLayout(
+            layout.name,
+            layout.matrix_name,
+            layout.tile_exponents,
+            rows,
+            layout.outer_order,
+            basis_columns,
+            layout.active_rank,
+            layout.outer_word,
+        )
+    if not isinstance(layout, CanonicalLayout):
+        raise TypeError(
+            "flag-fiber materialization requires a canonical or linear-inner layout"
+        )
+    layout.validate(matrix)
+    offsets = matrix.bit_offsets(layout.tile_exponents)
+    used = [0] * matrix.rank
+    rows = []
+    for mode in layout.word:
+        rows.append(1 << (offsets[mode] + used[mode]))
+        used[mode] += 1
+    representative = LinearInnerLayout(
+        layout.name,
+        layout.matrix_name,
+        layout.tile_exponents,
+        tuple(rows),
+        layout.outer_order,
+        _inverse_columns(rows),
+        len(rows),
+    )
+    representative.validate(matrix)
+    return representative
+
+
+def _inverse_columns(rows: Sequence[int]) -> tuple[int, ...]:
+    width = len(rows)
+    inverse_rows = invert_matrix_rows(rows, width)
+    return matrix_rows_from_columns(inverse_rows, width)
+
+
+def apply_flag_preserving_shears(
+    matrix: MatrixSpec,
+    layout: Layout,
+    shears: Sequence[tuple[int, int]],
+    *,
+    name: str | None = None,
+) -> LinearInnerLayout:
+    r"""Return ``S A`` for sparse shears ``y_i <- y_i XOR y_j``, ``i < j``.
+
+    Unit-upper-triangular ``S`` preserves every standard low-address subspace,
+    so the returned layout realizes exactly the same locality flag as ``A``.
+    """
+
+    base = _linear_flag_representative(matrix, layout)
+    rows = list(base.a_rows)
+    normalized = tuple(tuple(shear) for shear in shears)
+    width = len(rows)
+    for shear in normalized:
+        if len(shear) != 2:
+            raise ValueError("a flag-preserving shear must contain (i, j)")
+        destination, source = shear
+        if (
+            isinstance(destination, bool)
+            or isinstance(source, bool)
+            or not isinstance(destination, int)
+            or not isinstance(source, int)
+        ):
+            raise TypeError("flag-preserving shear indices must be integers")
+        if not 0 <= destination < source < width:
+            raise ValueError(
+                f"flag-preserving shear requires 0 <= i < j < {width}; "
+                f"got ({destination}, {source})"
+            )
+        rows[destination] ^= rows[source]
+    suffix = "identity" if not normalized else "_".join(
+        f"t{destination}_{source}" for destination, source in normalized
+    )
+    result = LinearInnerLayout(
+        name or f"{layout.name}.fiber_{suffix}",
+        base.matrix_name,
+        base.tile_exponents,
+        tuple(rows),
+        base.outer_order,
+        _inverse_columns(rows),
+        base.active_rank,
+        base.outer_word,
+    )
+    result.validate(matrix)
+    return result
+
+
+def low_address_flag(
+    matrix: MatrixSpec, layout: Layout
+) -> tuple[tuple[int, ...], ...]:
+    """Return the complete low-address prefix flag induced by ``layout``."""
+
+    representative = _linear_flag_representative(matrix, layout)
+    return tuple(
+        rref_basis(representative.basis_columns[:dimension])
+        for dimension in range(representative.inner_bits + 1)
+    )
+
+
+def enumerate_flag_preserving_swizzles(
+    matrix: MatrixSpec,
+    layout: Layout,
+    *,
+    max_xors: int = 1,
+    destination_bits: Sequence[int] | None = None,
+) -> tuple[FlagFiberSeed, ...]:
+    """Enumerate distinct flag realizations with at most ``max_xors`` shears."""
+
+    if isinstance(max_xors, bool) or not isinstance(max_xors, int):
+        raise TypeError("max_xors must be an integer")
+    if max_xors < 0:
+        raise ValueError("max_xors must be nonnegative")
+    base = _linear_flag_representative(matrix, layout)
+    width = base.inner_bits
+    if destination_bits is None:
+        destinations = tuple(range(max(0, width - 1)))
+    else:
+        destinations = tuple(sorted(set(destination_bits)))
+        if any(
+            isinstance(bit, bool)
+            or not isinstance(bit, int)
+            or not 0 <= bit < width
+            for bit in destinations
+        ):
+            raise ValueError(
+                f"destination bits must be integers in [0, {width})"
+            )
+    elementary = tuple(
+        (destination, source)
+        for destination in destinations
+        for source in range(destination + 1, width)
+    )
+    identity = FlagFiberSeed(
+        apply_flag_preserving_shears(matrix, base, ()), ()
+    )
+    result = [identity]
+    layer = [identity]
+    seen = {identity.layout.a_rows}
+    for _depth in range(max_xors):
+        next_layer: list[FlagFiberSeed] = []
+        for seed in layer:
+            for shear in elementary:
+                shears = (*seed.shears, shear)
+                candidate = FlagFiberSeed(
+                    apply_flag_preserving_shears(
+                        matrix, seed.layout, (shear,),
+                        name=(
+                            f"{layout.name}.fiber_"
+                            + "_".join(
+                                f"t{destination}_{source}"
+                                for destination, source in shears
+                            )
+                        ),
+                    ),
+                    shears,
+                )
+                if candidate.layout.a_rows in seen:
+                    continue
+                seen.add(candidate.layout.a_rows)
+                next_layer.append(candidate)
+        result.extend(next_layer)
+        layer = next_layer
+        if not layer:
+            break
+    return tuple(result)
+
+
+def resource_color_destination_bits(
+    resource_maps: Sequence["ResourceMap"],
+    element_bytes: int,
+    inner_bits: int,
+) -> tuple[int, ...]:
+    """Return element-offset bits that directly feed a resource color map."""
+
+    if element_bytes <= 0 or element_bytes & (element_bytes - 1):
+        raise ValueError("element_bytes must be a positive power of two")
+    if inner_bits < 0:
+        raise ValueError("inner_bits must be nonnegative")
+    byte_shift = element_bytes.bit_length() - 1
+    selected = 0
+    for resource_map in resource_maps:
+        for mask in resource_map.xor_masks:
+            selected |= mask
+    return tuple(
+        bit
+        for bit in range(inner_bits)
+        if selected & (1 << (bit + byte_shift))
+    )
 
 
 @dataclass(frozen=True)

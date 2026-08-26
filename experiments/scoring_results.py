@@ -7,6 +7,11 @@ correctness-checks and times every word to obtain a genuine runtime oracle.
 Raw timing records are append-only JSONL checkpoints; the compact JSONL output
 contains one plot-oriented summary record per kernel and matrix size.
 
+With ``--fiber-max-xors``, each canonical flag representative is expanded by
+sparse unit-upper-triangular shears. Existing identity timings can be imported
+with ``--seed-raw``; the exhaustive oracle then remains explicitly scoped to
+the canonical representatives rather than the enlarged fiber grammar.
+
 Prepare the analytical plan on a login node, optionally seeding the existing
 73-layout corpus::
 
@@ -24,7 +29,7 @@ Resume a bounded timing chunk inside an MI300A allocation::
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 from itertools import combinations
 import json
@@ -50,10 +55,14 @@ from relay import (
     HARDWARE_PROFILES,
     CanonicalLayout,
     UniversalScopeObjectives,
+    apply_flag_preserving_shears,
     build_resource_cohorts,
     canonical_layout_from_word,
     compress_resource_cohorts,
+    enumerate_flag_preserving_swizzles,
     get_hardware_profile,
+    low_address_flag,
+    resource_color_destination_bits,
     score_resource_placement,
 )
 from relay.objectives import build_objectives
@@ -81,15 +90,21 @@ GRAMMARS = {
 
 @dataclass(frozen=True)
 class ScoredWord:
-    """One shared canonical word and its analytical costs."""
+    """One shared flag realization and its analytical costs."""
 
     word: str
     cost: FrontierCost
     hardware_place: float
+    flag_word: str | None = None
+    shears: tuple[tuple[int, int], ...] = ()
 
     @property
     def frontier_values(self) -> tuple[float, ...]:
         return (*self.cost.values, self.hardware_place)
+
+    @property
+    def base_word(self) -> str:
+        return self.word if self.flag_word is None else self.flag_word
 
 
 def positive_integer(value: str) -> int:
@@ -133,6 +148,16 @@ def parse_arguments(
         choices=tuple(GRAMMARS),
         default="canonical",
         help="layout grammar to enumerate exhaustively (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--fiber-max-xors",
+        type=nonnegative_integer,
+        default=0,
+        metavar="COUNT",
+        help=(
+            "realize each retained G_S flag with unit-upper-triangular swizzles "
+            "using at most COUNT XORs (default: disabled)"
+        ),
     )
     parser.add_argument(
         "--samples",
@@ -225,6 +250,17 @@ def parse_arguments(
         help=(
             "import compatible full-word timings from a completed multi-kernel "
             "layout-ranking JSON report"
+        ),
+    )
+    parser.add_argument(
+        "--seed-raw",
+        type=Path,
+        action="append",
+        default=None,
+        metavar="JSONL",
+        help=(
+            "import compatible identity-layout timings from another canonical "
+            "scoring raw checkpoint"
         ),
     )
     parser.add_argument(
@@ -334,7 +370,12 @@ def _configuration(
         if args.grammar == "canonical"
         else "one shared full standard cut-point word across all target matrices"
     )
-    return {
+    if args.fiber_max_xors:
+        layout_scope += (
+            "; one shared sparse flag-preserving swizzle is then applied to "
+            "every target matrix"
+        )
+    configuration = {
         "kernels": list(kernel_names),
         "matrix_sizes": list(sizes),
         "grammar": grammar,
@@ -352,6 +393,9 @@ def _configuration(
         "arch": args.arch,
         "seed": args.seed,
     }
+    if args.fiber_max_xors:
+        configuration["fiber_max_xors"] = args.fiber_max_xors
+    return configuration
 
 
 def _configuration_id(configuration: Mapping[str, object]) -> str:
@@ -371,11 +415,16 @@ def _cost_dict(item: ScoredWord) -> dict[str, object]:
 
 
 def _member_dict(item: ScoredWord, target_names: Sequence[str]) -> dict[str, object]:
-    return {
+    result = {
         "word": item.word,
         "layouts": {name: item.word for name in target_names},
         "score": _cost_dict(item),
     }
+    if item.flag_word is not None:
+        result["flag_word"] = item.flag_word
+        result["shears"] = [list(shear) for shear in item.shears]
+        result["swizzle_xors"] = len(item.shears)
+    return result
 
 
 def _problem_inputs(
@@ -450,9 +499,13 @@ def build_group_plan(
     }
 
     scored: list[ScoredWord] = []
+    base_scored: list[ScoredWord] = []
+    materialization_count = 0
+    retained_materialization_count = 0
+    fiber_destination_bits: tuple[int, ...] = ()
     for word in grammar_words(n, args.grammar):
         raw_scores = dict(context_scores)
-        layouts = dict(context_layouts)
+        base_layouts = dict(context_layouts)
         for matrix in target_matrices:
             layout = canonical_layout_from_word(
                 matrix,
@@ -461,32 +514,123 @@ def build_group_plan(
             )
             if not isinstance(layout, CanonicalLayout):
                 raise RuntimeError("canonical word produced a noncanonical layout")
-            layouts[matrix.name] = layout
+            base_layouts[matrix.name] = layout
             raw_scores = _add_scores(raw_scores, scorers[matrix.name](layout))
-        placement_scores = score_resource_placement(
+        base_cost = _raw_cost(
+            raw_scores,
+            matrices_tuple,
+            components,
+            weights,
+            peak_tolerances,
+            profile.fine_component,
+        )
+        base_placement = score_resource_placement(
             matrices,
-            layouts,
+            base_layouts,
             resource_cohorts,
             profile.resource_maps,
         )
-        scored.append(
-            ScoredWord(
-                word,
-                _raw_cost(
-                    raw_scores,
-                    matrices_tuple,
-                    components,
-                    weights,
-                    peak_tolerances,
-                    profile.fine_component,
-                ),
-                sum(score.weighted_contention for score in placement_scores),
-            )
+        base_item = ScoredWord(
+            word,
+            base_cost,
+            sum(score.weighted_contention for score in base_placement),
+            word if args.fiber_max_xors else None,
         )
+        base_scored.append(base_item)
+        if not args.fiber_max_xors:
+            scored.append(base_item)
+            materialization_count += 1
+            retained_materialization_count += 1
+            continue
 
-    locality_frontier = _pareto(scored, lambda item: item.cost.values)
+        first_matrix = target_matrices[0]
+        first_layout = base_layouts[first_matrix.name]
+        inner_bits = sum(first_layout.tile_exponents)
+        destination_bits = resource_color_destination_bits(
+            profile.resource_maps,
+            first_matrix.element_bytes,
+            inner_bits,
+        )
+        fiber_destination_bits = destination_bits
+        for matrix in target_matrices[1:]:
+            if (
+                matrix.element_bytes != first_matrix.element_bytes
+                or sum(base_layouts[matrix.name].tile_exponents) != inner_bits
+            ):
+                raise ValueError(
+                    "shared flag-fiber scoring requires equal target layout widths "
+                    "and element sizes"
+                )
+        fiber_seeds = enumerate_flag_preserving_swizzles(
+            first_matrix,
+            first_layout,
+            max_xors=args.fiber_max_xors,
+            destination_bits=destination_bits,
+        )
+        expected_flag = low_address_flag(first_matrix, first_layout)
+        fiber_items: list[ScoredWord] = []
+        for seed in fiber_seeds:
+            layouts = dict(context_layouts)
+            descriptors = set()
+            for matrix in target_matrices:
+                swizzled = apply_flag_preserving_shears(
+                    matrix,
+                    base_layouts[matrix.name],
+                    seed.shears,
+                )
+                if low_address_flag(matrix, swizzled) != low_address_flag(
+                    matrix, base_layouts[matrix.name]
+                ):
+                    raise RuntimeError(
+                        f"flag-fiber transformation changed the locality flag for "
+                        f"{matrix.name}"
+                    )
+                layouts[matrix.name] = swizzled
+                descriptors.add(swizzled.evaluator_descriptor(matrix))
+            if len(descriptors) != 1:
+                raise ValueError(
+                    "shared flag-fiber scoring produced distinct target descriptors"
+                )
+            if low_address_flag(first_matrix, layouts[first_matrix.name]) != expected_flag:
+                raise RuntimeError("flag-fiber enumeration changed its source flag")
+            placement_scores = score_resource_placement(
+                matrices,
+                layouts,
+                resource_cohorts,
+                profile.resource_maps,
+            )
+            fiber_items.append(
+                ScoredWord(
+                    next(iter(descriptors)),
+                    replace(
+                        base_cost,
+                        codegen_runs=sum(layout.runs for layout in layouts.values()),
+                        codegen_xors=sum(
+                            layout.xor_count for layout in layouts.values()
+                        ),
+                    ),
+                    sum(
+                        score.weighted_contention
+                        for score in placement_scores
+                    ),
+                    word,
+                    seed.shears,
+                )
+            )
+        materialization_count += len(fiber_items)
+        retained = _pareto(
+            fiber_items,
+            lambda item: (item.hardware_place, float(len(item.shears))),
+        )
+        retained_materialization_count += len(retained)
+        scored.extend(retained)
+
+    locality_frontier = _pareto(base_scored, lambda item: item.cost.values)
+    base_colored_frontier = _pareto(
+        base_scored, lambda item: item.frontier_values
+    )
     frontier = _pareto(scored, lambda item: item.frontier_values)
-    fine_minimum = min(item.cost.fine_region_count for item in scored)
+    fine_minimum = min(item.cost.fine_region_count for item in base_scored)
     fine_limit = 1.05 * fine_minimum
     fine_eligible = [
         item for item in scored if item.cost.fine_region_count <= fine_limit
@@ -512,7 +656,11 @@ def build_group_plan(
         ),
     )
     row_major_word = "j" * (n.bit_length() - 1) + "i" * (n.bit_length() - 1)
-    row_major = next(item for item in scored if item.word == row_major_word)
+    row_major = next(
+        item
+        for item in scored
+        if item.base_word == row_major_word and not item.shears
+    )
 
     mechanisms = [
         {
@@ -567,7 +715,7 @@ def build_group_plan(
         ],
         "target_arrays": list(target_names),
         "block": list(block) if isinstance(block, tuple) else block,
-        "total_layouts": len(scored),
+        "total_layouts": len(base_scored),
         "expected_total_layouts": (
             comb(2 * (n.bit_length() - 1), n.bit_length() - 1)
             if args.grammar == "canonical"
@@ -587,7 +735,21 @@ def build_group_plan(
         "locality_frontier": [
             _member_dict(item, target_names) for item in locality_frontier
         ],
+        "base_colored_frontier": [
+            _member_dict(item, target_names)
+            for item in base_colored_frontier
+        ],
         "frontier": [_member_dict(item, target_names) for item in frontier],
+        "flag_fiber": {
+            "enabled": bool(args.fiber_max_xors),
+            "max_xors": args.fiber_max_xors,
+            "destination_bits": list(fiber_destination_bits),
+            "evaluated_materializations": materialization_count,
+            "retained_within_flags": retained_materialization_count,
+            "locality_invariance": (
+                "verified by equality of every low-address prefix subspace"
+            ),
+        },
         "fine_gated_5pct": {
             "fine_minimum": fine_minimum,
             "fine_limit": fine_limit,
@@ -731,6 +893,90 @@ def load_raw(
                 raise ValueError(f"{path}:{line_number}: conflicting duplicate {key}")
             records[key] = record
     return records
+
+
+def import_raw_timings(
+    path: Path,
+    raw_path: Path,
+    configuration: Mapping[str, object],
+    records: dict[tuple[str, int, str], dict[str, object]],
+) -> int:
+    """Import compatible canonical representatives from another checkpoint."""
+
+    with path.open() as stream:
+        try:
+            metadata = json.loads(stream.readline())
+        except json.JSONDecodeError as error:
+            raise ValueError(f"{path}: invalid raw timing metadata") from error
+    source_configuration = metadata.get("configuration")
+    if (
+        metadata.get("record_type") != "metadata"
+        or metadata.get("experiment") != EXPERIMENT_NAME
+        or not isinstance(source_configuration, dict)
+    ):
+        raise ValueError(f"{path}: expected a canonical scoring raw checkpoint")
+    required_equal = (
+        "grammar",
+        "samples",
+        "iterations",
+        "warmup",
+        "device",
+        "block_size",
+        "block_x",
+        "block_y",
+        "compiler",
+        "arch",
+    )
+    mismatched = [
+        name
+        for name in required_equal
+        if source_configuration.get(name) != configuration.get(name)
+    ]
+    if mismatched:
+        raise ValueError(
+            f"{path}: timing configuration differs in: "
+            + ", ".join(mismatched)
+        )
+    selected_kernels = set(configuration["kernels"])
+    selected_sizes = {int(value) for value in configuration["matrix_sizes"]}
+    if not selected_kernels <= set(source_configuration.get("kernels", ())):
+        raise ValueError(f"{path}: source checkpoint omits a selected kernel")
+    if not selected_sizes <= {
+        int(value) for value in source_configuration.get("matrix_sizes", ())
+    }:
+        raise ValueError(f"{path}: source checkpoint omits a selected matrix size")
+
+    source_records = load_raw(path, source_configuration)
+    grammar_name = (
+        "canonical" if configuration["grammar"] == "G_C" else "standard"
+    )
+    configuration_id = _configuration_id(configuration)
+    imported = 0
+    for (kernel, n, word), source_record in source_records.items():
+        if kernel not in selected_kernels or n not in selected_sizes:
+            continue
+        if word not in set(grammar_words(n, grammar_name)):
+            continue
+        key = (kernel, n, word)
+        if key in records:
+            continue
+        record = {
+            "record_type": "timing",
+            "configuration_id": configuration_id,
+            "kernel": kernel,
+            "matrix_size": n,
+            "word": word,
+            "timing": source_record["timing"],
+            "source": {
+                "type": "seeded_raw_checkpoint",
+                "checkpoint": str(path.resolve()),
+                "configuration_id": metadata.get("configuration_id"),
+            },
+        }
+        _append_raw(raw_path, record)
+        records[key] = record
+        imported += 1
+    return imported
 
 
 def _validate_seed_configuration(
@@ -896,7 +1142,22 @@ def summary_records(
             )
         )
         total_layouts = int(group["total_layouts"])
-        oracle_complete = len(group_records) == total_layouts
+        grammar_name = (
+            "canonical" if configuration["grammar"] == "G_C" else "standard"
+        )
+        base_words = set(grammar_words(n, grammar_name))
+        base_records = [
+            record
+            for record in group_records
+            if str(record["word"]) in base_words
+        ]
+        base_records.sort(
+            key=lambda record: (
+                float(record["timing"]["median_ms"]),
+                str(record["word"]),
+            )
+        )
+        oracle_complete = len(base_records) == total_layouts
         observed_top = [
             {
                 "word": record["word"],
@@ -905,21 +1166,21 @@ def summary_records(
                 },
                 "timing": record["timing"],
             }
-            for record in group_records[:5]
+            for record in base_records[:5]
         ]
         best_observed_layouts = (
             [
                 layout
-                for layout, record in zip(observed_top, group_records[:5])
+                for layout, record in zip(observed_top, base_records[:5])
                 if float(record["timing"]["median_ms"])
-                == float(group_records[0]["timing"]["median_ms"])
+                == float(base_records[0]["timing"]["median_ms"])
             ]
-            if group_records
+            if base_records
             else []
         )
         oracle_best = (
-            float(group_records[0]["timing"]["median_ms"])
-            if oracle_complete and group_records
+            float(base_records[0]["timing"]["median_ms"])
+            if oracle_complete and base_records
             else None
         )
         oracle_layouts = best_observed_layouts if oracle_complete else []
@@ -947,6 +1208,22 @@ def summary_records(
                 raw_records.get((kernel, n, str(member["word"]))),
             )
             for member in locality_members
+        ]
+        base_colored_members = group["base_colored_frontier"]
+        assert isinstance(base_colored_members, list)
+        (
+            base_colored_complete,
+            base_colored_best,
+            base_colored_best_layouts,
+        ) = _best_timed(
+            base_colored_members, raw_records, kernel, n
+        )
+        base_colored_layouts = [
+            _timed_member(
+                member,
+                raw_records.get((kernel, n, str(member["word"]))),
+            )
+            for member in base_colored_members
         ]
         selection_records = []
         for mechanism in group["selection_mechanisms"]:
@@ -1018,26 +1295,58 @@ def summary_records(
                 "complete": oracle_complete,
                 "layout_count": total_layouts,
                 "timed_layout_count": len(group_records),
+                "base_timed_layout_count": len(base_records),
                 "oracle": {
                     "definition": (
                         "minimum median kernel time over every shared-word "
-                        f"{configuration['grammar']} layout"
+                        f"{configuration['grammar']} canonical flag representative; "
+                        "fiber materializations are excluded"
                     ),
                     "complete": oracle_complete,
                     "best_time_ms": oracle_best,
                     "best_layouts": oracle_layouts,
                     "top_layouts": observed_top if oracle_complete else [],
                     "best_observed_time_ms": (
-                        float(group_records[0]["timing"]["median_ms"])
-                        if group_records
+                        float(base_records[0]["timing"]["median_ms"])
+                        if base_records
                         else None
                     ),
                     "best_observed_layouts": best_observed_layouts,
                     "top_observed_layouts": observed_top,
                 },
+                "flag_fiber": group["flag_fiber"],
+                "base_colored_frontier": {
+                    "definition": (
+                        f"exact Pareto frontier over {configuration['grammar']} flag "
+                        "representatives before fiber materialization"
+                    ),
+                    "objectives": group["frontier_objectives"],
+                    "size": len(base_colored_members),
+                    "complete": base_colored_complete,
+                    "best_time_ms": (
+                        base_colored_best if base_colored_complete else None
+                    ),
+                    "regret": (
+                        base_colored_best / oracle_best - 1.0
+                        if base_colored_complete
+                        and base_colored_best is not None
+                        and oracle_best is not None
+                        else None
+                    ),
+                    "best_layouts": (
+                        base_colored_best_layouts
+                        if base_colored_complete
+                        else []
+                    ),
+                    "layouts": base_colored_layouts,
+                },
                 "frontier": {
                     "definition": (
                         "exact Pareto frontier over "
+                        "(Q_fine, J_peak, J_area, J_place) after sparse "
+                        "flag-fiber materialization"
+                        if group["flag_fiber"]["enabled"]
+                        else "exact Pareto frontier over "
                         "(Q_fine, J_peak, J_area, J_place)"
                     ),
                     "objectives": group["frontier_objectives"],
@@ -1093,6 +1402,10 @@ def _write_summaries(
 
 def _priority_words(group: Mapping[str, object]) -> list[str]:
     words = [str(member["word"]) for member in group["frontier"]]
+    words.extend(
+        str(member["word"])
+        for member in group["base_colored_frontier"]
+    )
     words.extend(
         str(member["word"]) for member in group["locality_frontier"]
     )
@@ -1160,6 +1473,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         for value in _deduplicated(args.kernel or list(KERNEL_SPECS))
     ]
     sizes = [int(value) for value in _deduplicated(args.size or list(DEFAULT_SIZES))]
+    if args.fiber_max_xors and args.grammar != "standard":
+        parser.error("--fiber-max-xors currently requires --grammar standard")
     try:
         for n in sizes:
             validate_matrix_size(n)
@@ -1200,6 +1515,17 @@ def run(argv: Sequence[str] | None = None) -> int:
             _initialize_raw(raw_output, configuration)
             records = {}
 
+        for seed_path in args.seed_raw or ():
+            imported = import_raw_timings(
+                seed_path.expanduser().resolve(),
+                raw_output,
+                configuration,
+                records,
+            )
+            print(
+                f"Imported {imported} identity timings from {seed_path}",
+                flush=True,
+            )
         for seed_path in args.seed_timings or ():
             imported = import_seed_timings(
                 seed_path.expanduser().resolve(),
@@ -1231,7 +1557,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             timing, command, _stdout, _stderr = benchmark_case(
                 spec,
                 n,
-                LayoutCase(f"shared_G_C_{word}", word),
+                LayoutCase(f"shared_{configuration['grammar']}_{word}", word),
                 args,
             )
             record = {

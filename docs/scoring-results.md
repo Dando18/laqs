@@ -83,6 +83,65 @@ The result supports placement as a useful missing signal, but the unchanged
 20.878% GESUMMV-1024 regret and larger candidate sets show that this initial
 HBM-stack sketch is not yet sufficient.
 
+## Sparse flag-fiber materialization
+
+The follow-up run uses `--fiber-max-xors 1`. For every shared `G_S` flag, it
+constructs the canonical representative and every color-relevant elementary
+shear
+
+```text
+T_ij: y_i <- y_i XOR y_j, i < j.
+```
+
+Only destination bits that feed the resource map are searched: element-offset
+bits 9, 10, and 11 for the current MI300A sketch. Each candidate's complete
+low-address prefix flag is compared with the source flag. All 41,540 tested
+materializations preserve every prefix subspace exactly. Candidates are first
+Pareto-filtered within a flag over `(J_place, swizzle XORs)` and then globally
+over `(Q_fine, J_peak, J_area, J_place)`.
+
+The base oracle remains the exhaustive 146/182 canonical-representative `G_S`
+sweep. Negative percentages therefore mean that the enlarged fiber grammar
+found a layout faster than every canonical representative; they are not
+negative regret against an exhaustive oracle for the enlarged grammar.
+
+| Kernel | N | Base colored regret | Fiber vs. base oracle | Frontier size |
+| --- | ---: | ---: | ---: | ---: |
+| ATAX | 512 | 0.802% | -4.191% | 18 -> 56 |
+| ATAX | 1024 | 1.169% | -3.777% | 32 -> 94 |
+| GEMM | 512 | 0.147% | -0.887% | 16 -> 27 |
+| GEMM | 1024 | 0.204% | -1.690% | 26 -> 41 |
+| GESUMMV | 512 | 4.667% | -1.241% | 23 -> 40 |
+| GESUMMV | 1024 | 20.878% | 10.172% | 34 -> 54 |
+| MVT | 512 | 0.539% | -4.643% | 13 -> 23 |
+| MVT | 1024 | 0.000% | -5.742% | 15 -> 17 |
+| SYRK | 512 | 0.596% | -0.554% | 27 -> 48 |
+| SYRK | 1024 | 2.507% | -1.087% | 41 -> 95 |
+
+All ten selected times improve, by 4.281% on average relative to the selected
+canonical colored frontier. The mean value relative to the canonical `G_S`
+oracle changes from 3.151% to -1.364%; nine of ten cases are within 1%. The
+main remaining failure is GESUMMV-1024, reduced from 20.878% to 10.172%.
+Mean frontier size grows from 24.5 to 49.5 layouts.
+
+Because the canonical timings and fiber timings were collected in separate
+sweeps, GEMM-512 and GESUMMV-1024 were also rerun in randomized paired panels.
+The fiber winner improved over the best base-colored candidate in all 24
+rounds: 0.652% for GEMM-512 (95% bootstrap interval 0.629--0.677%) and 5.499%
+for GESUMMV-1024 (5.427--5.565%). Relative to the paired canonical oracle,
+their mean differences were -0.538% and 9.197%, respectively. This confirms
+that the important improvements are not merely cross-run device drift.
+
+The checked-in artifacts are:
+
+- `results/standard_fiber_scoring_mi300a.plan.json`: analytical fiber search;
+- `results/standard_fiber_scoring_mi300a.raw.jsonl`: 1,640 imported identity
+  timings plus 347 new selected-fiber measurements;
+- `results/standard_fiber_scoring_mi300a.jsonl`: compact summary;
+- `results/standard_fiber_interleaved_confirmation_mi300a.json`: randomized
+  paired confirmation; and
+- `results/plots/gs_flag_fiber_comparison.pdf`: base/fiber comparison figure.
+
 ## Files
 
 The default outputs separate compact paper data from the much larger timing
@@ -99,8 +158,10 @@ checkpoint:
   rebuilding every score.
 
 The summary's `complete` and `oracle.complete` fields become true only when
-`timed_layout_count == layout_count`. `best_observed_*` and
-`top_observed_layouts` expose partial progress without labeling it an oracle.
+`base_timed_layout_count == layout_count`. Without a fiber search this is also
+`timed_layout_count == layout_count`; fiber runs may contain additional timed
+descriptors. `best_observed_*` and `top_observed_layouts` expose partial
+progress without labeling it an oracle.
 The `frontier.layouts` and every selection's `layouts` contain their analytical
 score and their timing when available.
 
@@ -174,3 +235,20 @@ flux run -n1 -g1 -t 5m -q pdebug \
   --plan results/standard_scoring_mi300a.plan.json \
   --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942
 ```
+
+To extend that completed canonical-representative sweep with one sparse
+flag-preserving shear, seed a separate checkpoint from the exhaustive raw
+timings:
+
+```bash
+.venv/bin/python experiments/scoring_results.py \
+  --grammar standard --fiber-max-xors 1 --prepare-only \
+  --seed-raw results/standard_scoring_mi300a.raw.jsonl \
+  --output results/standard_fiber_scoring_mi300a.jsonl \
+  --raw-output results/standard_fiber_scoring_mi300a.raw.jsonl \
+  --plan results/standard_fiber_scoring_mi300a.plan.json
+```
+
+Resume it under Flux with the same three paths and both grammar options. The
+runner benchmarks selected swizzled descriptors first; it does not claim an
+exhaustive runtime oracle over the enlarged fiber grammar.

@@ -89,6 +89,33 @@ class InterleavedConfirmationTests(unittest.TestCase):
         self.assertAlmostEqual(paired["mean_regret"], 0.1)
         self.assertEqual(paired["round_count"], 3)
 
+    def test_analysis_compares_fiber_and_base_frontiers_in_the_same_rounds(self) -> None:
+        panel = (
+            Candidate("jjii", ("oracle_top_1",), 1.0),
+            Candidate("jiji", ("base_colored_frontier",), 1.2),
+            Candidate("linear:2,2:1,2,5,8", ("analytical_frontier",), 1.1),
+        )
+        measurements = []
+        for round_index, scale in enumerate((1.0, 1.2, 0.8)):
+            for word, ratio in (
+                ("jjii", 1.0),
+                ("jiji", 1.2),
+                ("linear:2,2:1,2,5,8", 1.1),
+            ):
+                measurements.append(
+                    {
+                        "word": word,
+                        "round": round_index,
+                        "time_ms": ratio * scale,
+                    }
+                )
+
+        analysis = analyze_measurements(panel, measurements, seed=3)
+
+        comparison = analysis["fiber_paired_vs_base_frontier"]
+        self.assertAlmostEqual(comparison["mean_change"], 1.1 / 1.2 - 1.0)
+        self.assertEqual(comparison["faster_rounds"], 3)
+
 
 if __name__ == "__main__":
     unittest.main()
