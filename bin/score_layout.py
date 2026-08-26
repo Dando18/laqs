@@ -123,6 +123,7 @@ def _with_tau_overrides(
         fine_component=hardware_profile.fine_component,
         tau={**hardware_profile.tau, **overrides},
         kappa=hardware_profile.kappa,
+        resource_maps=hardware_profile.resource_maps,
     )
 
 
@@ -205,6 +206,15 @@ def _print_score(
     print(f"  weighted-normalized-excess:  {score.weighted_normalized_excess:g}")
     print(f"  hardware-peak:               {score.hardware_peak:g}")
     print(f"  hardware-area:               {score.hardware_area:g}")
+    print(f"  hardware-place:              {score.hardware_place:g}")
+    if score.placements:
+        print("\nResource placement")
+        for placement in score.placements:
+            print(
+                f"  {placement.name}: {placement.weighted_contention:g} "
+                f"({placement.color_count} colors, "
+                f"{placement.phase_policy} phase)"
+            )
     print(f"\nSelected score ({mode}): {score.value(mode):g}")
 
 

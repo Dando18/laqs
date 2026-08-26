@@ -277,8 +277,7 @@ class CombinedExperimentTests(unittest.TestCase):
                         f"{group['fine_component']}.raw-region-count",
                         "hardware-peak",
                         "hardware-area",
-                        "codegen-runs",
-                        "codegen-xors",
+                        "hardware-place",
                     ],
                 )
                 member_names = {

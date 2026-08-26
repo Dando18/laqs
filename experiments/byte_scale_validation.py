@@ -2,7 +2,7 @@
 """Validate one hardware profile across FP16, FP32, and FP64 storage.
 
 The experiment scores the complete 73-layout canonical corpus at each element
-width, forms the ordinary five-cost frontier with one unchanged hardware
+width, forms the ordinary memory-score frontier with one unchanged hardware
 profile, and benchmarks a compact panel: the union of those dtype-specific
 frontiers plus row- and column-major controls. Runtime regret is therefore
 reported against the measured panel, not against every canonical layout.

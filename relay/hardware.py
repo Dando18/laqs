@@ -7,9 +7,103 @@ from dataclasses import dataclass, field
 from math import isfinite
 from numbers import Real
 from types import MappingProxyType
-from typing import Any
+from typing import Any, Literal
 
+from .gf2 import rank
 from .objectives import ObjectiveComponent
+
+
+PhasePolicy = Literal["controlled", "observed", "robust"]
+
+
+@dataclass(frozen=True)
+class ResourceMap:
+    """A small address-to-resource color sketch.
+
+    Each mask defines one output bit as the parity of selected byte-address
+    bits. Transactions are deduplicated before colors are counted. ``robust``
+    phase policy maximizes contention over every relative allocation color;
+    the other policies use caller-supplied allocation base addresses.
+    """
+
+    name: str
+    transaction_bytes: int
+    xor_masks: tuple[int, ...]
+    cohort_family: str
+    phase_policy: PhasePolicy = "robust"
+    weight: float = 1.0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.name, str) or not self.name.strip():
+            raise ValueError("resource map name must be a nonempty string")
+        if (
+            isinstance(self.transaction_bytes, bool)
+            or not isinstance(self.transaction_bytes, int)
+            or self.transaction_bytes <= 0
+            or self.transaction_bytes & (self.transaction_bytes - 1)
+        ):
+            raise ValueError(
+                "resource transaction_bytes must be a positive power of two"
+            )
+        try:
+            masks = tuple(self.xor_masks)
+        except TypeError as error:
+            raise TypeError(
+                "resource xor_masks must be an iterable of integers"
+            ) from error
+        if not masks:
+            raise ValueError("resource xor_masks must be nonempty")
+        if any(isinstance(mask, bool) or not isinstance(mask, int) for mask in masks):
+            raise TypeError("resource xor_masks must contain only integers")
+        if any(mask <= 0 for mask in masks):
+            raise ValueError("resource xor_masks must be positive")
+        if len(set(masks)) != len(masks) or rank(masks) != len(masks):
+            raise ValueError("resource xor_masks must be linearly independent")
+        transaction_bits = self.transaction_bytes.bit_length() - 1
+        if any(mask & ((1 << transaction_bits) - 1) for mask in masks):
+            raise ValueError(
+                "resource xor_masks cannot select bits within a transaction"
+            )
+        if not isinstance(self.cohort_family, str) or not self.cohort_family.strip():
+            raise ValueError("resource cohort_family must be a nonempty string")
+        if self.phase_policy not in ("controlled", "observed", "robust"):
+            raise ValueError(f"unknown resource phase policy {self.phase_policy!r}")
+        if (
+            isinstance(self.weight, bool)
+            or not isinstance(self.weight, Real)
+            or not isfinite(float(self.weight))
+            or self.weight < 0
+        ):
+            raise ValueError("resource map weight must be finite and nonnegative")
+        object.__setattr__(self, "xor_masks", masks)
+        object.__setattr__(self, "weight", float(self.weight))
+
+    @property
+    def color_count(self) -> int:
+        return 1 << len(self.xor_masks)
+
+    def color(self, byte_address: int) -> int:
+        """Return the resource color of one aligned byte address."""
+
+        if isinstance(byte_address, bool) or not isinstance(byte_address, int):
+            raise TypeError("byte address must be an integer")
+        if byte_address < 0:
+            raise ValueError("byte address must be nonnegative")
+        return sum(
+            ((byte_address & mask).bit_count() & 1) << bit
+            for bit, mask in enumerate(self.xor_masks)
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "transaction_bytes": self.transaction_bytes,
+            "xor_masks": list(self.xor_masks),
+            "cohort_family": self.cohort_family,
+            "phase_policy": self.phase_policy,
+            "weight": self.weight,
+            "color_count": self.color_count,
+        }
 
 
 def _component_scale(name: str) -> int:
@@ -118,6 +212,7 @@ class HardwareProfile:
     fine_component: str
     tau: Mapping[str, float] = field(default_factory=dict)
     kappa: Mapping[str, float] = field(default_factory=dict)
+    resource_maps: tuple[ResourceMap, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.profile_id, str) or not self.profile_id.strip():
@@ -172,6 +267,19 @@ class HardwareProfile:
                 positive=True,
             ),
         )
+        try:
+            resource_maps = tuple(self.resource_maps)
+        except TypeError as error:
+            raise TypeError("hardware resource_maps must be an iterable") from error
+        if any(
+            not isinstance(resource_map, ResourceMap)
+            for resource_map in resource_maps
+        ):
+            raise TypeError("hardware resource_maps must contain ResourceMap values")
+        resource_names = [resource_map.name for resource_map in resource_maps]
+        if len(resource_names) != len(set(resource_names)):
+            raise ValueError("hardware resource map names must be unique")
+        object.__setattr__(self, "resource_maps", resource_maps)
 
     def _validated_components(
         self, components: Sequence[ObjectiveComponent]
@@ -237,4 +345,7 @@ class HardwareProfile:
             "fine_component": self.fine_component,
             "tau": dict(sorted(self.tau.items())),
             "kappa": dict(sorted(self.kappa.items())),
+            "resource_maps": [
+                resource_map.to_dict() for resource_map in self.resource_maps
+            ],
         }

@@ -4,7 +4,7 @@ import json
 import math
 import unittest
 
-from relay.hardware import HardwareProfile
+from relay.hardware import HardwareProfile, ResourceMap
 from relay.objectives import ObjectiveComponent
 
 
@@ -84,6 +84,7 @@ class HardwareProfileTests(unittest.TestCase):
                 "fine_component",
                 "tau",
                 "kappa",
+                "resource_maps",
             ],
         )
         self.assertEqual(
@@ -91,6 +92,7 @@ class HardwareProfileTests(unittest.TestCase):
             sorted((self.issue64, self.window128)),
         )
         self.assertEqual(description["byte_scales"], [64, 128, 256])
+        self.assertEqual(description["resource_maps"], [])
         self.assertEqual(
             json.loads(json.dumps(description, allow_nan=False)), description
         )
@@ -207,6 +209,55 @@ class HardwareProfileTests(unittest.TestCase):
                 {"clock": math.nan},
                 (64,),
                 self.issue64,
+            )
+
+    def test_resource_map_uses_independent_address_parity_masks(self) -> None:
+        resource_map = ResourceMap(
+            "partition",
+            64,
+            ((1 << 6) | (1 << 12), 1 << 7),
+            "simd_window.t4.cohort.load",
+        )
+
+        self.assertEqual(resource_map.color_count, 4)
+        self.assertEqual(resource_map.color(0), 0)
+        self.assertEqual(resource_map.color(1 << 6), 1)
+        self.assertEqual(resource_map.color((1 << 6) | (1 << 12)), 0)
+        self.assertEqual(resource_map.to_dict()["phase_policy"], "robust")
+
+    def test_resource_map_rejects_invalid_transaction_and_color_maps(self) -> None:
+        valid = {
+            "name": "partition",
+            "transaction_bytes": 64,
+            "xor_masks": (1 << 6,),
+            "cohort_family": "simd_window.t4.cohort.load",
+        }
+        cases = (
+            ({"transaction_bytes": 96}, "power of two"),
+            ({"xor_masks": ()}, "nonempty"),
+            ({"xor_masks": (1 << 5,)}, "within a transaction"),
+            ({"xor_masks": (1 << 6, 1 << 6)}, "independent"),
+            ({"phase_policy": "guess"}, "phase policy"),
+        )
+        for overrides, message in cases:
+            with self.subTest(overrides=overrides):
+                with self.assertRaisesRegex(ValueError, message):
+                    ResourceMap(**(valid | overrides))
+
+    def test_hardware_profile_rejects_duplicate_resource_names(self) -> None:
+        resource_map = ResourceMap(
+            "partition",
+            64,
+            (1 << 6,),
+            "simd_window.t4.cohort.load",
+        )
+        with self.assertRaisesRegex(ValueError, "names must be unique"):
+            HardwareProfile(
+                "test",
+                {},
+                (64,),
+                self.issue64,
+                resource_maps=(resource_map, resource_map),
             )
 
 

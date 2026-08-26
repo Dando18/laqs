@@ -10,7 +10,9 @@ All scores in this module are costs: lower values are better.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
+from itertools import product
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -20,6 +22,8 @@ from typing import (
     Sequence,
 )
 
+from .access_scopes import ResourceCohort, build_resource_cohorts
+from .hardware import ResourceMap
 from .layouts import Layout
 from .model import Coord, MatrixSpec
 from .objectives import Hyperedge, ObjectiveComponent, build_objectives
@@ -35,6 +39,7 @@ ScoreMode = Literal[
     "weighted-normalized-excess",
     "hardware-peak",
     "hardware-area",
+    "hardware-place",
 ]
 
 SCORE_MODES: tuple[ScoreMode, ...] = (
@@ -43,6 +48,7 @@ SCORE_MODES: tuple[ScoreMode, ...] = (
     "weighted-normalized-excess",
     "hardware-peak",
     "hardware-area",
+    "hardware-place",
 )
 
 
@@ -138,6 +144,25 @@ class CodegenCost:
 
 
 @dataclass(frozen=True)
+class ResourcePlacementScore:
+    """Normalized excess pair contention for one resource map."""
+
+    name: str
+    cohort_family: str
+    transaction_bytes: int
+    color_count: int
+    phase_policy: str
+    weight: float
+    cohort_count: int
+    cohort_weight: float
+    normalized_contention: float
+
+    @property
+    def weighted_contention(self) -> float:
+        return self.weight * self.normalized_contention
+
+
+@dataclass(frozen=True)
 class LayoutScore:
     """Detailed locality scores, codegen costs, and scalar aggregates."""
 
@@ -148,6 +173,8 @@ class LayoutScore:
     weighted_normalized_excess: float
     hardware_peak: float = 0.0
     hardware_area: float = 0.0
+    placements: tuple[ResourcePlacementScore, ...] = ()
+    hardware_place: float = 0.0
 
     def value(self, mode: ScoreMode) -> float:
         """Return one explicitly named scalar score; lower is better."""
@@ -162,6 +189,8 @@ class LayoutScore:
             return self.hardware_peak
         if mode == "hardware-area":
             return self.hardware_area
+        if mode == "hardware-place":
+            return self.hardware_place
         raise ValueError(
             f"unknown score mode {mode!r}; expected one of {', '.join(SCORE_MODES)}"
         )
@@ -210,21 +239,17 @@ def pareto_frontier(
     Every objective is minimized. A score is dominated when another score is
     no greater in every objective and strictly smaller in at least one.
     Objective order follows the supplied mapping; when omitted, all public
-    aggregate score modes followed by codegen runs and XORs are used. Exact
-    ties remain as distinct frontier members.
+    aggregate score modes are used. Code-generation costs remain annotations,
+    not dominance coordinates. Exact ties remain as distinct frontier members.
     """
 
     if objectives is None:
-        objective_items: tuple[tuple[str, ScoreExtractor], ...] = (
-            *tuple(
-                (
-                    mode,
-                    lambda score, selected_mode=mode: score.value(selected_mode),
-                )
-                for mode in SCORE_MODES
-            ),
-            ("codegen-runs", lambda score: float(score.codegen.runs)),
-            ("codegen-xors", lambda score: float(score.codegen.xors)),
+        objective_items: tuple[tuple[str, ScoreExtractor], ...] = tuple(
+            (
+                mode,
+                lambda score, selected_mode=mode: score.value(selected_mode),
+            )
+            for mode in SCORE_MODES
         )
     else:
         objective_items = tuple(objectives.items())
@@ -280,6 +305,17 @@ def quotient_region_count(
     are exactly the physical region identifiers from the project notes.
     """
 
+    return len(transaction_region_ids(matrix, layout, edge, region_bytes))
+
+
+def transaction_region_ids(
+    matrix: MatrixSpec,
+    layout: Layout,
+    edge: Hyperedge,
+    region_bytes: int,
+) -> frozenset[int]:
+    """Return the concrete quotient-class identifiers for one hyperedge."""
+
     if region_bytes % matrix.element_bytes:
         raise ValueError(
             f"{region_bytes} B is not divisible by {matrix.name}'s "
@@ -290,7 +326,180 @@ def quotient_region_count(
         raise ValueError(
             f"region capacity must be a positive power of two in elements; got {capacity}"
         )
-    return len({layout.offset(matrix, point) // capacity for point in edge.points})
+    return frozenset(
+        layout.offset(matrix, point) // capacity for point in edge.points
+    )
+
+
+def balanced_pair_count(transaction_count: int, color_count: int) -> int:
+    """Return the minimum same-color pair count under balanced placement."""
+
+    if transaction_count < 0:
+        raise ValueError("transaction_count must be nonnegative")
+    if color_count <= 0:
+        raise ValueError("color_count must be positive")
+    quotient, remainder = divmod(transaction_count, color_count)
+    return (
+        remainder * (quotient + 1) * quotient // 2
+        + (color_count - remainder) * quotient * (quotient - 1) // 2
+    )
+
+
+def normalized_pair_contention(occupancies: Sequence[int]) -> float:
+    """Return normalized excess same-color pairs for one occupancy vector."""
+
+    if not occupancies:
+        raise ValueError("resource occupancies must be nonempty")
+    if any(count < 0 for count in occupancies):
+        raise ValueError("resource occupancies must be nonnegative")
+    transaction_count = sum(occupancies)
+    balanced = balanced_pair_count(transaction_count, len(occupancies))
+    pairs = sum(count * (count - 1) // 2 for count in occupancies)
+    denominator = max(
+        transaction_count * (transaction_count - 1) // 2 - balanced,
+        1,
+    )
+    return (pairs - balanced) / denominator
+
+
+def _robust_contention(
+    histograms: Mapping[str, Counter[int]], color_count: int
+) -> float:
+    arrays = tuple(sorted(histograms))
+    if not arrays:
+        return 0.0
+    assignment_count = color_count ** max(0, len(arrays) - 1)
+    if assignment_count > 65_536:
+        raise ValueError(
+            "robust resource phase ensemble exceeds 65536 assignments"
+        )
+    best = 0.0
+    for tail_phases in product(
+        range(color_count), repeat=max(0, len(arrays) - 1)
+    ):
+        phases = (0, *tail_phases)
+        occupancy = [0] * color_count
+        for array, phase in zip(arrays, phases):
+            for color, count in histograms[array].items():
+                occupancy[color ^ phase] += count
+        best = max(best, normalized_pair_contention(occupancy))
+    return best
+
+
+def score_resource_placement(
+    matrices: Mapping[str, MatrixSpec],
+    layouts: Mapping[str, Layout],
+    cohorts_by_family: Mapping[str, Sequence[ResourceCohort]],
+    resource_maps: Sequence[ResourceMap],
+    *,
+    allocation_bases: Mapping[str, int] | None = None,
+    offset_cache_by_array: Mapping[str, dict[Coord, int]] | None = None,
+) -> tuple[ResourcePlacementScore, ...]:
+    """Score deduplicated cross-allocation transactions by resource color."""
+
+    caches = (
+        {name: offset_cache_by_array[name] for name in layouts}
+        if offset_cache_by_array is not None
+        else {name: {} for name in layouts}
+    )
+    scores: list[ResourcePlacementScore] = []
+    for resource_map in resource_maps:
+        if resource_map.cohort_family not in cohorts_by_family:
+            raise ValueError(
+                f"no cohorts supplied for {resource_map.cohort_family!r}"
+            )
+        if resource_map.phase_policy != "robust" and allocation_bases is None:
+            raise ValueError(
+                f"resource map {resource_map.name!r} requires allocation bases"
+            )
+        total = 0.0
+        total_weight = 0.0
+        cohorts = tuple(cohorts_by_family[resource_map.cohort_family])
+        for cohort in cohorts:
+            transactions: dict[str, set[int]] = {}
+            for access in cohort.accesses:
+                if access.array not in matrices:
+                    raise ValueError(
+                        f"resource cohort {cohort.source}: unknown array "
+                        f"{access.array!r}"
+                    )
+                if access.array not in layouts:
+                    raise ValueError(
+                        f"resource cohort {cohort.source}: no layout supplied for "
+                        f"{access.array!r}"
+                    )
+                matrix = matrices[access.array]
+                layout = layouts[access.array]
+                offset = caches[access.array].get(access.coord)
+                if offset is None:
+                    offset = layout.offset(matrix, access.coord)
+                    caches[access.array][access.coord] = offset
+                transactions.setdefault(access.array, set()).add(
+                    offset * matrix.element_bytes // resource_map.transaction_bytes
+                )
+
+            if resource_map.phase_policy == "robust":
+                histograms = {
+                    array: Counter(
+                        resource_map.color(
+                            transaction * resource_map.transaction_bytes
+                        )
+                        for transaction in array_transactions
+                    )
+                    for array, array_transactions in transactions.items()
+                }
+                contention = _robust_contention(
+                    histograms, resource_map.color_count
+                )
+            else:
+                assert allocation_bases is not None
+                occupancy = [0] * resource_map.color_count
+                for array, array_transactions in transactions.items():
+                    if array not in allocation_bases:
+                        raise ValueError(
+                            f"no allocation base supplied for array {array!r}"
+                        )
+                    base = allocation_bases[array]
+                    if (
+                        isinstance(base, bool)
+                        or not isinstance(base, int)
+                        or base < 0
+                    ):
+                        raise ValueError(
+                            f"allocation base for {array!r} must be a "
+                            "nonnegative integer"
+                        )
+                    if base % resource_map.transaction_bytes:
+                        raise ValueError(
+                            f"allocation base for {array!r} must be aligned to "
+                            f"{resource_map.transaction_bytes} bytes"
+                        )
+                    for transaction in array_transactions:
+                        byte_address = (
+                            base
+                            + transaction * resource_map.transaction_bytes
+                        )
+                        aligned_address = (
+                            byte_address // resource_map.transaction_bytes
+                        ) * resource_map.transaction_bytes
+                        occupancy[resource_map.color(aligned_address)] += 1
+                contention = normalized_pair_contention(occupancy)
+            total += cohort.weight * contention
+            total_weight += cohort.weight
+        scores.append(
+            ResourcePlacementScore(
+                name=resource_map.name,
+                cohort_family=resource_map.cohort_family,
+                transaction_bytes=resource_map.transaction_bytes,
+                color_count=resource_map.color_count,
+                phase_policy=resource_map.phase_policy,
+                weight=resource_map.weight,
+                cohort_count=len(cohorts),
+                cohort_weight=total_weight,
+                normalized_contention=total,
+            )
+        )
+    return tuple(scores)
 
 
 def weighted_component_region_count(
@@ -406,6 +615,9 @@ def score_layouts(
     component_weights: Mapping[str, float] | None = None,
     peak_tolerances: Mapping[str, float] | None = None,
     hardware_profile: "HardwareProfile | None" = None,
+    resource_maps: Sequence[ResourceMap] | None = None,
+    resource_cohorts: Mapping[str, Sequence[ResourceCohort]] | None = None,
+    allocation_bases: Mapping[str, int] | None = None,
     offset_cache_by_array: Mapping[str, dict[Coord, int]] | None = None,
     array_component_cache: MutableMapping[
         tuple[str, tuple[object, ...], str], tuple[float, float]
@@ -427,17 +639,24 @@ def score_layouts(
     """
 
     if hardware_profile is not None and (
-        component_weights is not None or peak_tolerances is not None
+        component_weights is not None
+        or peak_tolerances is not None
+        or resource_maps is not None
     ):
         raise ValueError(
-            "hardware_profile cannot be combined with explicit weights or tolerances"
+            "hardware_profile cannot be combined with explicit weights, "
+            "tolerances, or resource maps"
         )
     if hardware_profile is not None:
         weights = hardware_profile.component_weights(components)
         tolerances = hardware_profile.peak_tolerances(components)
+        maps = hardware_profile.resource_maps if resource_cohorts is not None else ()
     else:
         weights = dict(component_weights or {})
         tolerances = dict(peak_tolerances or {})
+        maps = tuple(resource_maps or ())
+    if maps and resource_cohorts is None:
+        raise ValueError("resource maps require resource cohorts")
     component_names = {component.name for component in components}
     unknown_weights = sorted(set(weights) - component_names)
     if unknown_weights:
@@ -544,6 +763,14 @@ def score_layouts(
         )
 
     active = [component for component in results if component.weight > 0]
+    placement_scores = score_resource_placement(
+        matrices,
+        layouts,
+        resource_cohorts or {},
+        maps,
+        allocation_bases=allocation_bases,
+        offset_cache_by_array=offset_caches,
+    )
     return LayoutScore(
         components=tuple(results),
         codegen=layout_codegen_cost(matrices, layouts),
@@ -567,6 +794,10 @@ def score_layouts(
         hardware_area=sum(
             component.weighted_excess_footprint for component in active
         ),
+        placements=placement_scores,
+        hardware_place=sum(
+            placement.weighted_contention for placement in placement_scores
+        ),
     )
 
 
@@ -585,6 +816,13 @@ def score_problem(
     components = build_objectives(
         problem.objectives, matrices, events, problem.sequences
     )
+    resource_maps = hardware_profile.resource_maps if hardware_profile else ()
+    resource_cohorts = build_resource_cohorts(
+        matrices,
+        events,
+        problem.sequences,
+        (resource_map.cohort_family for resource_map in resource_maps),
+    )
     return score_layouts(
         matrices,
         components,
@@ -592,6 +830,7 @@ def score_problem(
         component_weights=component_weights,
         peak_tolerances=peak_tolerances,
         hardware_profile=hardware_profile,
+        resource_cohorts=resource_cohorts,
     )
 
 
@@ -618,7 +857,23 @@ def score_to_dict(score: LayoutScore) -> dict[str, object]:
             "weighted_normalized_excess": score.weighted_normalized_excess,
             "hardware_peak": score.hardware_peak,
             "hardware_area": score.hardware_area,
+            "hardware_place": score.hardware_place,
         },
+        "placements": [
+            {
+                "name": placement.name,
+                "cohort_family": placement.cohort_family,
+                "transaction_bytes": placement.transaction_bytes,
+                "color_count": placement.color_count,
+                "phase_policy": placement.phase_policy,
+                "weight": placement.weight,
+                "cohort_count": placement.cohort_count,
+                "cohort_weight": placement.cohort_weight,
+                "normalized_contention": placement.normalized_contention,
+                "weighted_contention": placement.weighted_contention,
+            }
+            for placement in score.placements
+        ],
         "components": [
             {
                 "name": component.name,

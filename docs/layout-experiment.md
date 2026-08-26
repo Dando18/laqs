@@ -83,13 +83,14 @@ For every kernel and size, the primary analytical candidate set is the exact
 frontier over
 
 ```text
-(Q_fine, J_peak_hardware, J_area_hardware, codegen runs, codegen XORs)
+(Q_fine, J_peak_hardware, J_area_hardware, J_place)
 ```
 
 where `J_area_hardware = sum(tau * x)` uses dynamic excess footprint and
-`J_peak_hardware = max(e / kappa)` has separate support. All five entries are
-minimized. Runtime and timing variation are not frontier objectives, and exact
-analytical ties remain distinct.
+`J_peak_hardware = max(e / kappa)` has separate support. `J_place` is normalized
+excess resource-color contention. All four entries are minimized. Runtime,
+timing variation, and annotated codegen costs are not frontier objectives, and
+exact analytical ties remain distinct.
 
 The report also constructs fine-locality-gated frontiers. For `delta` in 0%,
 1%, 5%, and 10%, it first restricts candidates to
@@ -98,7 +99,7 @@ The report also constructs fine-locality-gated frontiers. For `delta` in 0%,
 L_delta = { A : Q_fine(A) <= (1 + delta) Q_fine* }
 ```
 
-and then Pareto-filters over `(J_peak_hardware, J_area_hardware, runs, XORs)`.
+and then Pareto-filters over `(J_peak_hardware, J_area_hardware, J_place)`.
 Both frontier families remain independent of measured runtime.
 
 ## Frontier candidate-generation scorecard
@@ -149,22 +150,22 @@ spread(G) = max median runtime in G / min median runtime in G - 1.
 ```
 
 Large non-singleton spread identifies a runtime discriminator absent from the
-quotient/locality/codegen vector; small spread means the vector successfully
+quotient/locality/placement vector; small spread means the vector successfully
 collapses layouts that behave similarly. Singleton groups are retained in the
 JSON but excluded from the mean, median, and maximum spread summaries.
 
 ## Frontier information ladder
 
-The five-cost frontier deliberately compresses every component excess into
+The aggregate frontier deliberately compresses every component excess into
 `J_peak` and `J_area`. A completed report now tests that compression against a
 sequence of increasingly informative, runtime-independent frontiers:
 
 ```text
-F_agg     = (Q_fine, J_peak, J_area, runs, XORs)
-F_active  = (Q_fine, every x_k with tau or kappa support, runs, XORs)
-F_all     = (Q_fine, every universal x_k, runs, XORs)
+F_agg     = (Q_fine, J_peak, J_area, J_place)
+F_active  = (Q_fine, every x_k with tau or kappa support, J_place)
+F_all     = (Q_fine, every universal x_k, J_place)
 F_split   = F_all plus source-separated excess-footprint features
-F_dense-d = (every Q_s(V_d) at every feasible d, runs, XORs)
+F_dense-d = (every Q_s(V_d) at every feasible d, J_place)
 ```
 
 `F_split` retains the existing joint component and adds separate array, ATAX
@@ -197,9 +198,9 @@ screening power for empirical winner recovery.
 The tau-weight robustness ablation independently multiplies each nonzero tau
 by a uniformly selected value from `{0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5}`. Each
 trial draws one perturbed hardware profile and applies that same response to
-every selected kernel and size. It recomputes `J_area`, rebuilds the five-cost
+every selected kernel and size. It recomputes `J_area`, rebuilds the aggregate
 frontier, and reports oracle regret and retained fraction for every trial.
-`Q_fine`, `J_peak`, runs, and XORs do not depend on tau and therefore remain
+`Q_fine`, `J_peak`, and `J_place` do not depend on tau and therefore remain
 unchanged. The default is 128 global trials with seed 0; use
 `--tau-perturbation-trials` and `--tau-perturbation-seed` to change them
 reproducibly.

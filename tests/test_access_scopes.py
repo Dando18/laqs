@@ -4,11 +4,20 @@ import unittest
 
 from kernels.atax import problem as atax_problem
 from kernels.gesummv import problem as gesummv_problem
-from relay import Access, EventSequence, Hyperedge, MatrixSpec, MemoryEvent
+from relay import (
+    Access,
+    EventSequence,
+    Hyperedge,
+    MatrixSpec,
+    MemoryEvent,
+    ResourceCohort,
+)
 from relay.access_scopes import (
     UNIVERSAL_V1_BASIS,
     _compress_edges,
     build_edge_families,
+    build_resource_cohorts,
+    compress_resource_cohorts,
     materialize_edge_families,
 )
 
@@ -170,6 +179,62 @@ class UniversalAccessScopeTests(unittest.TestCase):
             {edge.points for edge in edges},
             {((0, 0), (0, 1)), ((0, 2),)},
         )
+
+    def test_resource_cohorts_retain_cross_allocation_accesses(self) -> None:
+        matrices = {
+            "A": MatrixSpec("A", (8,), 8, ("i",), target=True),
+            "x": MatrixSpec("x", (8,), 8, ("i",), target=False),
+        }
+        event_items = (
+            MemoryEvent.make(
+                "a0", "A.load", (Access("A", (0,), lane=0),), order=0
+            ),
+            MemoryEvent.make(
+                "x0", "x.load", (Access("x", (0,), lane=0),), order=1
+            ),
+            MemoryEvent.make(
+                "a1", "A.load", (Access("A", (1,), lane=0),), order=2
+            ),
+        )
+        events = {event.id: event for event in event_items}
+        sequences = (EventSequence.make("wave0", tuple(events)),)
+
+        cohorts = build_resource_cohorts(
+            matrices,
+            events,
+            sequences,
+            ("simd_window.t2.cohort.load",),
+        )["simd_window.t2.cohort.load"]
+
+        self.assertEqual(len(cohorts), 2)
+        self.assertEqual(
+            [access.array for access in cohorts[0].accesses],
+            ["A", "x"],
+        )
+        self.assertEqual([access.array for access in cohorts[1].accesses], ["A"])
+
+    def test_resource_cohort_xor_translations_are_compressed(self) -> None:
+        matrices = {"A": MatrixSpec("A", (8,), 8, ("i",))}
+        cohorts = (
+            ResourceCohort(
+                "simd_window.t2.cohort.load",
+                (Access("A", (0,)), Access("A", (1,))),
+                2.0,
+                "first",
+            ),
+            ResourceCohort(
+                "simd_window.t2.cohort.load",
+                (Access("A", (6,)), Access("A", (7,))),
+                3.0,
+                "second",
+            ),
+        )
+
+        compressed = compress_resource_cohorts(matrices, cohorts)
+
+        self.assertEqual(len(compressed), 1)
+        self.assertEqual(compressed[0].weight, 5.0)
+        self.assertIn("+1 XOR translations", compressed[0].source)
 
     def test_trace_contract_rejects_incomplete_and_ambiguous_traces(self) -> None:
         matrices = {

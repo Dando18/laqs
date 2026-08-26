@@ -20,7 +20,7 @@ It returns:
 - bounded joint configurations across target arrays; and
 - terminal and JSON reports explaining the search.
 
-The current implementation assumes power-of-two array extents and scalar accesses. The `relay` package deliberately leaves compilation and hardware measurement to companion scripts under `kernels/` and `experiments/`; non-power-of-two fringes and cache/channel response modeling remain out of scope.
+The current implementation assumes power-of-two array extents and scalar accesses. The `relay` package deliberately leaves compilation and hardware measurement to companion scripts under `kernels/` and `experiments/`. It includes a score-only resource-color sketch, while non-power-of-two fringes and colored layout reconstruction remain out of scope.
 
 ## Install and run
 
@@ -50,14 +50,15 @@ Run tests:
 The public scorer evaluates concrete layouts without running layout search. It
 reports each objective's weighted aligned-region count, its capacity-only
 packing lower bound, and its normalized excess over that bound. It also
-reports per-array and total address-code run/XOR costs, and supports five
+reports per-array and total address-code run/XOR costs, and supports six
 explicitly named scalar locality costs:
 
 - `weighted-region-count`;
 - `peak-normalized-excess`;
 - `weighted-normalized-excess`;
 - `hardware-peak`; and
-- `hardware-area`.
+- `hardware-area`; and
+- `hardware-place`.
 
 For example, score a globally row-major layout for every GEMM operand:
 
@@ -68,7 +69,7 @@ For example, score a globally row-major layout for every GEMM operand:
 ```
 
 The selected hardware profile supplies the global byte-scale ladder, `tau`
-weights, and peak tolerances; `mi300a` is the current default. Use
+weights, peak tolerances, and resource-color maps; `mi300a` is the current default. Use
 `--hardware-profile` to select it, `--json` for a machine-readable report,
 `--component-weight NAME=VALUE` to override one profile weight, and
 `--problem-option problem_size=512` to pass a JSON-valued option into the
@@ -87,7 +88,7 @@ The compact calibration, transfer, and solver-search scorecard is
 The solver-frontier experiment runs the `G_S` exhaustive solver, the `G_C`
 canonical dynamic program, the bounded `G_OC` exact search, and the
 affine-access `G_A` dynamic program for all five kernels. It benchmarks every
-retained layout in their ordinary five-cost Pareto frontiers, selects the
+retained layout in their ordinary three-memory-cost Pareto frontiers, selects the
 fastest measured member, and plots speedup over full row-major layouts. The
 `G_OC` bound is controlled by `--goc-max-inner-bits` and defaults to four.
 `G_A` is reported as not applicable when active edges are not affine cosets or
@@ -116,7 +117,9 @@ with exact frontiers and raw timing samples retained in the adjacent JSON.
 
 `experiments/scoring_results.py` builds a paper-oriented JSONL corpus for all
 five kernels at N=512 and N=1024. It applies one full `G_C` word uniformly to
-every target matrix, computes the exact five-cost frontier, and records scalar,
+every target matrix, computes the exact colored frontier over
+`(Q_fine, J_peak, J_area, J_place)`, and records the three-cost locality-only
+frontier for comparison alongside scalar,
 top-5, lexicographic, fine-gated, and row-major comparison selections. A true
 runtime oracle is available only after every canonical word has been timed.
 
@@ -171,7 +174,7 @@ ascending score rank to ascending median-runtime rank. Exact raw numbers and
 ranks are written to JSON and Markdown. Variation-aware metrics use observed
 timing sample ranges without changing those raw ranks. Each kernel/size report
 also includes the exact non-dominated cost frontier over
-`(Q_fine, J_peak, J_area, codegen runs, codegen XORs)`; runtime is not a Pareto
+`(Q_fine, J_peak, J_area, J_place)`; runtime and reported codegen costs are not Pareto
 objective. It also reports fine-locality-gated frontiers at 0%, 1%, 5%, and
 10% slack in `Q_fine`. Completed reports evaluate these frontiers as candidate generators
 using best-in-frontier regret, epsilon-optimal coverage, retained fraction,

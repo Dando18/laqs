@@ -10,7 +10,7 @@ the five HIP kernel evaluators. For each kernel it:
    access-block count-grid dynamic program;
 3. forms distinct joint layouts for every target matrix;
 4. retains the ordinary exact Pareto frontier over
-   `(Q_fine, J_peak, J_area, codegen runs, codegen XORs)`;
+   `(Q_fine, J_peak, J_area)`, with codegen runs/XORs reported separately;
 5. correctness-checks and times every retained frontier layout; and
 6. reports the fastest measured frontier member relative to a full row-major
    baseline.
@@ -50,8 +50,8 @@ heuristic grammar.
 
 `--frontier-type fine-gated` selects the alternative formulation from the
 notes: first require `Q_fine <= (1 + epsilon) Q_fine*`, then Pareto-filter over
-`(J_peak, J_area, runs, XORs)`. Its `epsilon` is controlled by
-`--fine-tolerance`, which defaults to 0.05. The ordinary five-cost frontier is
+`(J_peak, J_area)`. Its `epsilon` is controlled by
+`--fine-tolerance`, which defaults to 0.05. The ordinary three-cost frontier is
 the experiment default because `results/layout_ranking.md` found it to be a
 better candidate generator than the fine-locality gates.
 
@@ -95,7 +95,8 @@ The default outputs are:
 
 The checked-in report was regenerated after the universal access-scope change.
 It uses 10 samples, 5 launches per sample, 3 warmups, ROCm 7.0.2, `gfx942`,
-and the ordinary five-cost Pareto frontier. All 167 unique benchmark mappings
+and the former five-cost Pareto frontier. These checked-in measurements predate
+the memory-only dominance change and have not been rerun. All 167 unique benchmark mappings
 were freshly correctness-checked and timed on MI300A. `G_OC` retained exactly
 the same mappings as `G_C` for every applicable kernel, despite its much larger
 analytical search cost.

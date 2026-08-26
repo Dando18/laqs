@@ -2,7 +2,7 @@
 
 The utility consumes a completed universal-scope layout-ranking report.  It
 uses no numerical packages: feature columns are normalized and deduplicated,
-then a seeded random/coordinate search optimizes the resulting five-cost
+then a seeded random/coordinate search optimizes the resulting memory-score
 candidate frontiers.  The output is a recommendation for review, never an
 in-place update of a checked-in hardware profile.
 """
@@ -60,12 +60,10 @@ class _RawLayout:
     features: Mapping[str, float]
 
     @property
-    def fixed_costs(self) -> tuple[float, float, float, float]:
+    def fixed_costs(self) -> tuple[float, float]:
         return (
             self.fine_region_count,
             self.hardware_peak,
-            self.codegen_runs,
-            self.codegen_xors,
         )
 
 
@@ -107,7 +105,7 @@ class FeatureColumn:
 class _Layout:
     name: str
     runtime_ms: float
-    fixed_costs: tuple[float, float, float, float]
+    fixed_costs: tuple[float, float]
     features: tuple[float, ...]
 
 
@@ -1018,7 +1016,7 @@ def _basis_diagnostic(corpus: PreparedCorpus) -> dict[str, object]:
                 "display_name": group.display_name,
                 "matrix_size": group.matrix_size,
                 "block": group.block,
-                "objective_count": 4 + len(corpus.columns),
+                "objective_count": 2 + len(corpus.columns),
                 "frontier_size": len(frontier_indices),
                 "frontier_names": [
                     group.layouts[index].name for index in frontier_indices
@@ -1041,7 +1039,7 @@ def _basis_diagnostic(corpus: PreparedCorpus) -> dict[str, object]:
     return {
         "definition": (
             "Pareto frontier over fine Q, fixed hardware peak, every independent "
-            "normalized excess-footprint column, codegen runs, and codegen XORs"
+            "normalized excess-footprint column; codegen costs are annotations"
         ),
         "covered_instances": covered_count,
         "instance_count": len(instances),

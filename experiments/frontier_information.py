@@ -1,6 +1,6 @@
 """Information-preserving frontier diagnostics for layout experiments.
 
-The primary RELAY frontier intentionally uses a compact five-cost vector.
+The primary RELAY frontier intentionally uses a compact memory-score vector.
 This module tests how much candidate information is lost by that compression:
 it compares aggregate, componentwise, stream-partitioned, and dense-scale
 quotient signatures against the same stored runtime observations.
@@ -255,22 +255,19 @@ def representation_vectors(
             f"{fine_component}.raw-region-count",
             "hardware-peak",
             "hardware-area",
-            "codegen-runs",
-            "codegen-xors",
+            "hardware-place",
         )
     elif representation == "active-components":
         objectives = (
             f"{fine_component}.raw-region-count",
             *(f"{name}.excess-footprint" for name in active_names),
-            "codegen-runs",
-            "codegen-xors",
+            "hardware-place",
         )
     elif representation == "all-components":
         objectives = (
             f"{fine_component}.raw-region-count",
             *(f"{name}.excess-footprint" for name in component_names),
-            "codegen-runs",
-            "codegen-xors",
+            "hardware-place",
         )
     else:
         diagnostics = records[0].get("diagnostic_signatures")
@@ -285,8 +282,7 @@ def representation_vectors(
                 f"{fine_component}.raw-region-count",
                 *(f"{name}.excess-footprint" for name in component_names),
                 *(f"{name}.excess-footprint" for name in sorted(split)),
-                "codegen-runs",
-                "codegen-xors",
+                "hardware-place",
             )
         else:
             dense = diagnostics["dense_scales"]
@@ -295,8 +291,7 @@ def representation_vectors(
             assert isinstance(values, dict)
             objectives = (
                 *tuple(sorted(values)),
-                "codegen-runs",
-                "codegen-xors",
+                "hardware-place",
             )
 
     vectors = {}
@@ -305,10 +300,9 @@ def representation_vectors(
         score = record["score"]
         assert isinstance(score, dict)
         aggregates = score["aggregates"]
-        codegen = score["codegen"]
-        assert isinstance(aggregates, dict) and isinstance(codegen, dict)
+        assert isinstance(aggregates, dict)
         fine = float(components[fine_component]["raw_region_count"])
-        tail = (float(codegen["runs"]), float(codegen["xors"]))
+        tail = (float(aggregates.get("hardware_place", 0.0)),)
         if representation == "aggregate":
             vector = (
                 fine,
@@ -336,7 +330,7 @@ def representation_vectors(
             split = diagnostics["stream_split"]
             split_names = tuple(
                 name.removesuffix(".excess-footprint")
-                for name in objectives[1 + len(component_names) : -2]
+                for name in objectives[1 + len(component_names) : -1]
             )
             vector = (
                 fine,
@@ -354,7 +348,7 @@ def representation_vectors(
             diagnostics = record["diagnostic_signatures"]
             dense = diagnostics["dense_scales"]["values"]
             vector = (
-                *(float(dense[name]) for name in objectives[:-2]),
+                *(float(dense[name]) for name in objectives[:-1]),
                 *tail,
             )
         vectors[str(record["name"])] = tuple(vector)

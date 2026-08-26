@@ -70,7 +70,9 @@ from relay import (
     MatrixSpec,
     ScoreMode,
     UniversalScopeObjectives,
+    build_resource_cohorts,
     canonical_layout_from_word,
+    compress_resource_cohorts,
     get_hardware_profile,
     pareto_frontier,
     row_major_layout,
@@ -86,8 +88,7 @@ VARIATION_METHOD = "observed-sample-range-rank-bounds"
 PARETO_TAIL_OBJECTIVES = (
     "hardware-peak",
     "hardware-area",
-    "codegen-runs",
-    "codegen-xors",
+    "hardware-place",
 )
 FINE_LOCALITY_GATED_DELTAS = (0.0, 0.01, 0.05, 0.10)
 FINE_LOCALITY_GATED_OBJECTIVES = PARETO_TAIL_OBJECTIVES
@@ -452,7 +453,7 @@ def notes_pareto_frontier(
     scores: Mapping[str, LayoutScore],
     fine_component: str,
 ) -> dict[str, object]:
-    """Build the notes-aligned locality/codegen cost frontier."""
+    """Build the notes-aligned memory-score frontier."""
 
     objectives = (f"{fine_component}.raw-region-count", *PARETO_TAIL_OBJECTIVES)
     frontier = pareto_frontier(
@@ -467,8 +468,9 @@ def notes_pareto_frontier(
             objectives[2]: (
                 lambda score: score.hardware_area
             ),
-            objectives[3]: lambda score: float(score.codegen.runs),
-            objectives[4]: lambda score: float(score.codegen.xors),
+            objectives[3]: (
+                lambda score: score.hardware_place
+            ),
         },
     )
     return {
@@ -493,11 +495,7 @@ def notes_pareto_frontier(
             },
             {
                 "name": objectives[3],
-                "definition": "sum of address-expression runs over target arrays",
-            },
-            {
-                "name": objectives[4],
-                "definition": "sum of address-expression XORs over target arrays",
+                "definition": "J_place = weighted normalized excess color contention",
             },
         ],
         "members": [
@@ -539,10 +537,7 @@ def fine_locality_gated_frontiers(
                     lambda score: score.hardware_area
                 ),
                 FINE_LOCALITY_GATED_OBJECTIVES[2]: (
-                    lambda score: float(score.codegen.runs)
-                ),
-                FINE_LOCALITY_GATED_OBJECTIVES[3]: (
-                    lambda score: float(score.codegen.xors)
+                    lambda score: score.hardware_place
                 ),
             },
         )
@@ -903,6 +898,23 @@ def score_group(
     component_names = {component.name for component in components}
     default_weights = hardware_profile.component_weights(components)
     peak_tolerances = hardware_profile.peak_tolerances(components)
+    resource_cohorts = build_resource_cohorts(
+        matrices,
+        events,
+        sequences,
+        (
+            resource_map.cohort_family
+            for resource_map in hardware_profile.resource_maps
+        ),
+    )
+    if all(
+        resource_map.phase_policy == "robust"
+        for resource_map in hardware_profile.resource_maps
+    ):
+        resource_cohorts = {
+            family: compress_resource_cohorts(matrices, cohorts)
+            for family, cohorts in resource_cohorts.items()
+        }
     applicable_overrides = {
         name: weight
         for name, weight in component_weight_overrides.items()
@@ -923,6 +935,8 @@ def score_group(
             layouts,
             component_weights=applied_weights,
             peak_tolerances=peak_tolerances,
+            resource_maps=hardware_profile.resource_maps,
+            resource_cohorts=resource_cohorts,
             offset_cache_by_array=offset_caches,
         )
         diagnostic_signatures = diagnostic_layout_signature(
@@ -1346,7 +1360,7 @@ def _frontier_scorecard_markdown(
                 "### Tau-weight robustness",
                 "",
                 "Each trial independently multiplies every nonzero tau by one "
-                "of `0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5`, rebuilds the five-cost "
+                "of `0.5, 0.8, 0.9, 1, 1.1, 1.2, 1.5`, rebuilds the memory-score "
                 "frontier, and evaluates its regret and retained fraction.",
                 "",
             )
@@ -1714,7 +1728,7 @@ def markdown_report(report: Mapping[str, object]) -> str:
                 "",
                 "For each delta, candidates first satisfy `Q_fine <= "
                 "(1 + delta) Q_fine*`; the eligible set is then Pareto-"
-                "filtered over `(J_peak, J_area, runs, XORs)`.",
+                "filtered over `(J_peak, J_area, J_place)`.",
                 "",
                 _markdown_table(
                     (
@@ -1858,7 +1872,7 @@ def markdown_report(report: Mapping[str, object]) -> str:
         if isinstance(equivalence, dict):
             equivalence_rows = []
             vector_entries = [
-                ("Main five-cost", equivalence["main_frontier_vector"]),
+                ("Main memory-score", equivalence["main_frontier_vector"]),
                 *[
                     (
                         f"Gated delta={float(item['delta_percent']):.0f}%",

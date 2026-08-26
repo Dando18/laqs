@@ -31,16 +31,21 @@ For each kernel and size, the analytical plan records the exact Pareto frontier
 over ascending costs
 
 ```text
-(Q_fine, J_peak, J_area, codegen runs, codegen XORs)
+(Q_fine, J_peak, J_area, J_place)
 ```
+
+The plan also records the locality-only baseline over
+`(Q_fine, J_peak, J_area)`. Codegen runs and XORs remain annotations and
+deterministic scalar-selection tie breakers, not dominance coordinates. Exact
+memory-score ties are retained.
 
 and these additional selection mechanisms:
 
 - `lowest_hardware_area`: one minimum-`J_area` layout, with deterministic
   codegen-run and word tie breaks;
 - `top5_hardware_area`: the first five layouts under that scalar ordering;
-- `lexicographic_five_cost`: one lexicographic five-cost minimum;
-- `fine_gated_5pct_frontier`: a 5% `Q_fine` gate followed by the four-cost
+- `lexicographic_five_cost`: one lexicographic four-memory-cost minimum;
+- `fine_gated_5pct_frontier`: a 5% `Q_fine` gate followed by the three-cost
   Pareto frontier; and
 - `row_major_baseline`: the complete row-major word.
 
@@ -52,6 +57,31 @@ best selected median / exhaustive-oracle median - 1.
 
 Regret remains `null` until the exhaustive oracle is complete, so a partial
 sweep cannot accidentally be presented as oracle evidence.
+
+## Current shared-G_S colored rescore
+
+The August 26, 2026 score-only rescore reused all 1,640 existing MI300A timing
+records; it launched no new GPU measurements. The table compares the
+locality-only frontier with the same frontier plus independent `J_place`:
+
+| Kernel | N | Locality layouts | Locality regret | Colored layouts | Colored regret |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| ATAX | 512 | 4 | 0.858% | 18 | 0.802% |
+| ATAX | 1024 | 4 | 1.169% | 32 | 1.169% |
+| GEMM | 512 | 10 | 0.147% | 16 | 0.147% |
+| GEMM | 1024 | 11 | 0.204% | 26 | 0.204% |
+| GESUMMV | 512 | 10 | 13.913% | 23 | 4.667% |
+| GESUMMV | 1024 | 11 | 20.878% | 34 | 20.878% |
+| MVT | 512 | 4 | 13.077% | 13 | 0.539% |
+| MVT | 1024 | 4 | 12.522% | 15 | 0.000% |
+| SYRK | 512 | 10 | 0.663% | 27 | 0.596% |
+| SYRK | 1024 | 11 | 2.661% | 41 | 2.507% |
+
+`J_place` improves six instances and leaves four unchanged. Mean regret falls
+from 6.609% to 3.151%, while mean frontier size grows from 7.9 to 24.5 layouts.
+The result supports placement as a useful missing signal, but the unchanged
+20.878% GESUMMV-1024 regret and larger candidate sets show that this initial
+HBM-stack sketch is not yet sufficient.
 
 ## Files
 
@@ -73,6 +103,10 @@ The summary's `complete` and `oracle.complete` fields become true only when
 `top_observed_layouts` expose partial progress without labeling it an oracle.
 The `frontier.layouts` and every selection's `layouts` contain their analytical
 score and their timing when available.
+
+After changing only analytical scoring, `--rescore --prepare-only` rebuilds
+and replaces the plan and summary while reusing the append-only raw timing
+checkpoint. It never launches a benchmark.
 
 ## Cluster workflow
 

@@ -26,6 +26,12 @@ J_peak = max(e[s,b] / kappa[s,b])
 `tau` and `kappa` belong to the hardware profile. `e` is the existing relative
 normalized excess and remains useful for diagnostics and peak constraints.
 
+The profile may also contain score-only `ResourceMap` values. Each map defines
+a transaction width, sparse byte-address parity masks, a cross-allocation
+cohort family, and an allocation-phase policy. These maps produce the separate
+placement coordinate `J_place`; they do not alter the low-address objectives
+or the current layout search.
+
 ## Universal v1 schema
 
 The v1 builder uses the same typed scope grammar for every event trace:
@@ -61,6 +67,13 @@ new profile would not transform an existing 64-lane trace.
 in powers of two. Its fitted area response has five empirically distinct
 coordinates, represented by ten nonzero cells because proportional
 stream/array coordinates split each fitted response equally:
+
+The score-only resource model adds `hbm_stack_interleave_sketch`: eight colors
+selected by byte-address bits 12--14, 64-byte deduplicated transactions, the
+`simd_window.t4.cohort.load` family, and robust relative allocation phases.
+AMD documents eight HBM stacks and a 4 KiB stack switch; inaccessible physical
+page placement means this remains a sketch rather than an exact virtual-address
+channel map.
 
 | Area scope-scale response | tau per partition |
 | --- | ---: |

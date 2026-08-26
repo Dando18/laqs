@@ -61,8 +61,6 @@ FRONTIER_OBJECTIVES = (
     "fine-region-count",
     "hardware-peak",
     "hardware-area",
-    "codegen-runs",
-    "codegen-xors",
 )
 
 
@@ -101,8 +99,6 @@ class FrontierCost:
             self.fine_region_count,
             self.hardware_peak,
             self.hardware_area,
-            float(self.codegen_runs),
-            float(self.codegen_xors),
         )
 
 
@@ -1572,11 +1568,12 @@ def _final_frontier(
 def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
     """Return an exact structured-grammar joint layout frontier.
 
-    ``frontier_type='pareto'`` returns the ordinary five-cost Pareto frontier.
+    ``frontier_type='pareto'`` returns the ordinary three-cost Pareto frontier.
     ``frontier_type='fine-gated'`` first restricts layouts to
     ``Q_fine <= (1 + fine_tolerance) Q_fine*`` and then Pareto-filters over
-    ``(J_peak, J_area, runs, xors)``. Exact score ties remain as distinct
-    layouts because hardware performance may distinguish them. The
+    ``(J_peak, J_area)``. Codegen runs and XORs remain annotations, and exact
+    score ties remain as distinct layouts because hardware performance may
+    distinguish them. The
     outer-canonical grammar preserves the complete canonical tie family but
     collapses equivalent noncanonical inner realizations. The affine grammar
     likewise keeps one deterministic representative per equivalent path so
@@ -1633,7 +1630,7 @@ def simple_solve(problem: SimpleRelayProblem) -> SimpleRelayResult:
             "frontier objectives must participate in search: "
             + ", ".join(non_searchable)
         )
-    raw_order = (*sorted(raw_names), "runs", "xors")
+    raw_order = tuple(sorted(raw_names))
 
     context_layouts, context_scores = _context(
         problem.matrices, components, raw_names

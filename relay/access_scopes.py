@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from math import isfinite
+from numbers import Real
 from typing import Iterable, Mapping, Sequence
 
 from .gf2 import rank
@@ -85,6 +87,156 @@ class _Occurrence:
     points: tuple[Coord, ...]
     weight: float
     source: str
+
+
+@dataclass(frozen=True)
+class ResourceCohort:
+    """Cross-allocation accesses sharing one hardware scoring window."""
+
+    family: str
+    accesses: tuple[Access, ...]
+    weight: float
+    source: str
+
+    def __post_init__(self) -> None:
+        if not self.family:
+            raise ValueError("resource cohort family must be nonempty")
+        if not self.accesses:
+            raise ValueError("resource cohort accesses must be nonempty")
+        if (
+            isinstance(self.weight, bool)
+            or not isinstance(self.weight, Real)
+            or not isfinite(self.weight)
+            or self.weight <= 0
+        ):
+            raise ValueError("resource cohort weight must be finite and positive")
+
+
+def _parse_resource_cohort_family(name: str) -> tuple[int, str]:
+    parts = name.split(".")
+    if (
+        len(parts) != 4
+        or parts[0] != "simd_window"
+        or not parts[1].startswith("t")
+        or parts[2] != "cohort"
+        or parts[3] not in {"load", "store", "atomic"}
+    ):
+        raise ValueError(
+            f"unsupported resource cohort family {name!r}; expected "
+            "'simd_window.t<window>.cohort.<operation>'"
+        )
+    try:
+        window = int(parts[1][1:])
+    except ValueError as error:
+        raise ValueError(f"invalid resource cohort window in {name!r}") from error
+    if window <= 0 or window & (window - 1):
+        raise ValueError("resource cohort window must be a positive power of two")
+    return window, parts[3]
+
+
+def build_resource_cohorts(
+    matrices: Mapping[str, MatrixSpec],
+    events: Mapping[str, MemoryEvent],
+    sequences: Sequence[EventSequence],
+    cohort_families: Iterable[str],
+) -> dict[str, tuple[ResourceCohort, ...]]:
+    """Build hardware-only cohorts while retaining allocation identities."""
+
+    families = tuple(dict.fromkeys(cohort_families))
+    if not families:
+        return {}
+    validate_trace_contract(events, sequences)
+    result: dict[str, tuple[ResourceCohort, ...]] = {}
+    for family in families:
+        window, selected_operation = _parse_resource_cohort_family(family)
+        cohorts: list[ResourceCohort] = []
+        for sequence in sequences:
+            by_interval: dict[int, list[tuple[MemoryEvent, Access]]] = {}
+            for slot, event_id in enumerate(sequence.event_ids):
+                event = events[event_id]
+                for access in event.accesses:
+                    matrix = matrices.get(access.array)
+                    if matrix is None:
+                        raise ValueError(
+                            f"event {event.id}: unknown array {access.array}"
+                        )
+                    matrix.validate_coord(access.coord)
+                    if operation_class(access) == selected_operation:
+                        by_interval.setdefault(slot // window, []).append(
+                            (event, access)
+                        )
+            for interval, entries in sorted(by_interval.items()):
+                cohorts.append(
+                    ResourceCohort(
+                        family=family,
+                        accesses=tuple(access for _event, access in entries),
+                        weight=min(event.weight for event, _access in entries),
+                        source=(
+                            f"{sequence.name}:cohort-slots"
+                            f"[{interval * window}:{(interval + 1) * window}]"
+                        ),
+                    )
+                )
+        result[family] = tuple(cohorts)
+    return result
+
+
+def compress_resource_cohorts(
+    matrices: Mapping[str, MatrixSpec],
+    cohorts: Sequence[ResourceCohort],
+) -> tuple[ResourceCohort, ...]:
+    """Merge cohorts equivalent under independent per-array XOR translation.
+
+    This preserves colored occupancy for linear layouts when allocation color
+    phases are optimized independently, as in the robust policy. Repeated
+    dynamic windows are represented by the sum of their weights.
+    """
+
+    groups: dict[
+        tuple[tuple[str, tuple[int, ...]], ...],
+        tuple[ResourceCohort, float, int],
+    ] = {}
+    for cohort in cohorts:
+        by_array: dict[str, set[int]] = {}
+        for access in cohort.accesses:
+            matrix = matrices.get(access.array)
+            if matrix is None:
+                raise ValueError(
+                    f"resource cohort {cohort.source}: unknown array "
+                    f"{access.array!r}"
+                )
+            by_array.setdefault(access.array, set()).add(
+                matrix.coord_to_bits(access.coord)
+            )
+        signature = []
+        for array, values_set in sorted(by_array.items()):
+            values = tuple(sorted(values_set))
+            translated = min(
+                tuple(sorted(value ^ anchor for value in values))
+                for anchor in values
+            )
+            signature.append((array, translated))
+        key = tuple(signature)
+        existing = groups.get(key)
+        if existing is None:
+            groups[key] = (cohort, cohort.weight, 1)
+        else:
+            representative, weight, count = existing
+            groups[key] = (representative, weight + cohort.weight, count + 1)
+
+    return tuple(
+        ResourceCohort(
+            family=representative.family,
+            accesses=representative.accesses,
+            weight=weight,
+            source=(
+                representative.source
+                if count == 1
+                else f"{representative.source} (+{count - 1} XOR translations)"
+            ),
+        )
+        for representative, weight, count in groups.values()
+    )
 
 
 def operation_class(access: Access) -> str:

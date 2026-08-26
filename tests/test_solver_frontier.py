@@ -157,8 +157,6 @@ def exhaustive_frontier(
             score.component(problem.fine_component).raw_region_count,
             score.hardware_peak,
             score.hardware_area,
-            float(score.codegen.runs),
-            float(score.codegen.xors),
         )
         signature = tuple(zip(target_names, words))
         candidates.append((signature, cost))
@@ -365,8 +363,6 @@ class GrammarFrontierTests(unittest.TestCase):
                     score.component("fine").raw_region_count,
                     score.hardware_peak,
                     score.hardware_area,
-                    float(score.codegen.runs),
-                    float(score.codegen.xors),
                 )
             )
 
@@ -515,8 +511,6 @@ class GrammarFrontierTests(unittest.TestCase):
                     (
                         "hardware-peak",
                         "hardware-area",
-                        "codegen-runs",
-                        "codegen-xors",
                     ),
                 )
 

@@ -13,9 +13,12 @@ from relay import (
     MatrixSpec,
     MemoryEvent,
     ObjectiveComponent,
+    ResourceCohort,
+    ResourceMap,
     RelayProblem,
     SimultaneousRegions,
     column_major_layout,
+    compress_resource_cohorts,
     layout_codegen_cost,
     normalized_excess,
     pareto_frontier,
@@ -23,8 +26,10 @@ from relay import (
     row_major_layout,
     score_layouts,
     score_problem,
+    score_resource_placement,
     score_to_dict,
     weighted_component_region_count,
+    transaction_region_ids,
 )
 
 
@@ -44,6 +49,10 @@ class QuotientScoringTests(unittest.TestCase):
         self.assertEqual(
             quotient_region_count(self.matrix, self.column_major, column, 16),
             1,
+        )
+        self.assertEqual(
+            transaction_region_ids(self.matrix, self.row_major, column, 16),
+            frozenset({0, 1, 2, 3}),
         )
 
     def test_weighted_raw_count_packing_bound_and_normalized_excess(self) -> None:
@@ -140,6 +149,7 @@ class AggregateScoringTests(unittest.TestCase):
             "weighted-normalized-excess": 3.0,
             "hardware-peak": 1.5,
             "hardware-area": 3.0,
+            "hardware-place": 0.0,
         }
 
         for mode, value in expected.items():
@@ -178,8 +188,10 @@ class AggregateScoringTests(unittest.TestCase):
                 "weighted_normalized_excess": 3.0,
                 "hardware_peak": 1.5,
                 "hardware_area": 3.0,
+                "hardware_place": 0.0,
             },
         )
+        self.assertEqual(data["placements"], [])
         fine, coarse = data["components"]
         self.assertEqual(
             fine,
@@ -278,6 +290,99 @@ class ProblemScoringTests(unittest.TestCase):
         self.assertEqual(score.weighted_normalized_excess, 0.75)
 
 
+class ResourcePlacementTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.matrices = {
+            name: MatrixSpec(name, (8,), 8, ("i",))
+            for name in ("A", "B")
+        }
+        self.layouts = {
+            name: row_major_layout(matrix)
+            for name, matrix in self.matrices.items()
+        }
+        self.resource_map = ResourceMap(
+            "two_colors",
+            16,
+            (1 << 4,),
+            "simd_window.t2.cohort.load",
+        )
+
+    def test_transactions_are_deduplicated_before_coloring(self) -> None:
+        cohort = ResourceCohort(
+            self.resource_map.cohort_family,
+            (
+                Access("A", (0,)),
+                Access("A", (1,)),
+                Access("A", (4,)),
+            ),
+            1.0,
+            "window",
+        )
+
+        score = score_resource_placement(
+            self.matrices,
+            self.layouts,
+            {self.resource_map.cohort_family: (cohort,)},
+            (self.resource_map,),
+        )[0]
+
+        self.assertEqual(score.cohort_count, 1)
+        self.assertEqual(score.normalized_contention, 1.0)
+
+    def test_robust_phase_maximizes_cross_allocation_contention(self) -> None:
+        cohort = ResourceCohort(
+            self.resource_map.cohort_family,
+            (Access("A", (0,)), Access("B", (2,))),
+            2.0,
+            "window",
+        )
+
+        score = score_resource_placement(
+            self.matrices,
+            self.layouts,
+            {self.resource_map.cohort_family: (cohort,)},
+            (self.resource_map,),
+        )[0]
+
+        self.assertEqual(score.normalized_contention, 2.0)
+        self.assertEqual(score.weighted_contention, 2.0)
+
+    def test_xor_translation_compression_preserves_robust_score(self) -> None:
+        cohorts = (
+            ResourceCohort(
+                self.resource_map.cohort_family,
+                (Access("A", (0,)), Access("A", (4,))),
+                1.0,
+                "first",
+            ),
+            ResourceCohort(
+                self.resource_map.cohort_family,
+                (Access("A", (2,)), Access("A", (6,))),
+                1.0,
+                "translated",
+            ),
+        )
+        compressed = compress_resource_cohorts(self.matrices, cohorts)
+
+        uncompressed_score = score_resource_placement(
+            self.matrices,
+            self.layouts,
+            {self.resource_map.cohort_family: cohorts},
+            (self.resource_map,),
+        )[0]
+        compressed_score = score_resource_placement(
+            self.matrices,
+            self.layouts,
+            {self.resource_map.cohort_family: compressed},
+            (self.resource_map,),
+        )[0]
+
+        self.assertEqual(
+            compressed_score.normalized_contention,
+            uncompressed_score.normalized_contention,
+        )
+
+
 class ParetoFrontierTests(unittest.TestCase):
     @staticmethod
     def score(fine_q: float, peak: float, area: float) -> LayoutScore:
@@ -335,7 +440,7 @@ class ParetoFrontierTests(unittest.TestCase):
         )
         self.assertEqual(frontier.points[1].values, (2.0, 3.0, 2.0))
 
-    def test_default_objectives_include_aggregates_and_codegen_costs(self) -> None:
+    def test_default_objectives_include_aggregates_without_codegen_costs(self) -> None:
         frontier = pareto_frontier(
             {
                 "best": self.score(1.0, 1.0, 1.0),
@@ -345,7 +450,7 @@ class ParetoFrontierTests(unittest.TestCase):
 
         self.assertEqual(
             frontier.objectives,
-            (*SCORE_MODES, "codegen-runs", "codegen-xors"),
+            SCORE_MODES,
         )
         self.assertEqual(frontier.names, ("best",))
 

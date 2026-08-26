@@ -70,13 +70,17 @@ class ScoringResultPlanTests(unittest.TestCase):
         self.assertEqual(group["expected_total_layouts"], 6)
         self.assertTrue(group["frontier"])
         self.assertEqual(
+            group["locality_frontier_objectives"],
+            ["fine_region_count", "hardware_peak", "hardware_area"],
+        )
+        self.assertEqual(len(group["locality_frontier"]), group["total_layouts"])
+        self.assertEqual(
             set(group["frontier_objectives"]),
             {
                 "fine_region_count",
                 "hardware_peak",
                 "hardware_area",
-                "codegen_runs",
-                "codegen_xors",
+                "hardware_place",
             },
         )
         mechanisms = {
@@ -88,6 +92,8 @@ class ScoringResultPlanTests(unittest.TestCase):
         self.assertIn("fine_gated_5pct_frontier", mechanisms)
         for member in group["frontier"]:
             self.assertEqual(member["layouts"], {"A": member["word"]})
+            self.assertIn("codegen_runs", member["score"])
+            self.assertNotIn("codegen_runs", group["frontier_objectives"])
 
     def test_complete_summary_uses_exhaustive_oracle_for_regret(self) -> None:
         group = build_group_plan(KERNEL_SPECS["atax"], 4, self.args)

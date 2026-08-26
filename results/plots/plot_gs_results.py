@@ -23,7 +23,8 @@ KERNEL_LABELS = {
 }
 SIZE_ORDER = (512, 1024)
 METHODS = (
-    ("frontier", "Pareto frontier"),
+    ("locality_frontier", "Locality-only frontier"),
+    ("frontier", "Colored frontier"),
     ("fine_gated_5pct_frontier", "5% fine-gated frontier"),
     ("top5_hardware_area", r"Top-5 $J_{\mathrm{area}}$"),
     ("lowest_hardware_area", r"Minimum $J_{\mathrm{area}}$"),
@@ -96,8 +97,8 @@ def selection_by_name(record: Mapping[str, object]) -> dict[str, Mapping[str, ob
 
 
 def method_regret(record: Mapping[str, object], method: str) -> float:
-    if method == "frontier":
-        frontier = record["frontier"]
+    if method in {"frontier", "locality_frontier"}:
+        frontier = record[method]
         assert isinstance(frontier, dict)
         value = frontier["regret"]
     else:
@@ -259,7 +260,7 @@ def render_frontier_speedup(
     axis.axhline(1.0, color="#555555", linewidth=0.8, linestyle=(0, (3, 2)))
     axis.set_ylabel("Speedup over row-major ($\times$)")
     configure_instance_axis(axis, records)
-    axis.set_ylim(0.0, max(oracle_speedups) * 1.19)
+    axis.set_ylim(0.0, max(oracle_speedups) * 1.32)
     axis.grid(axis="y", color="#D8D8D8", linewidth=0.55)
     axis.set_axisbelow(True)
     axis.spines["top"].set_visible(False)

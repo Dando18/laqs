@@ -48,13 +48,11 @@ def _base_score_vector(
     score = record["score"]
     assert isinstance(score, dict)
     aggregates = score["aggregates"]
-    codegen = score["codegen"]
-    assert isinstance(aggregates, dict) and isinstance(codegen, dict)
+    assert isinstance(aggregates, dict)
     vector = (
         float(aggregates["hardware_peak"]),
         float(aggregates["hardware_area"]),
-        float(codegen["runs"]),
-        float(codegen["xors"]),
+        float(aggregates.get("hardware_place", 0.0)),
     )
     return (fine, *vector) if include_fine else vector
 
@@ -458,8 +456,7 @@ def analyze_score_equivalence(
         f"{fine_component}.raw-region-count",
         "hardware-peak",
         "hardware-area",
-        "codegen-runs",
-        "codegen-xors",
+        "hardware-place",
     ]
     gated_results = []
     for frontier in gated:
@@ -488,8 +485,7 @@ def analyze_score_equivalence(
                 "objectives": [
                     "hardware-peak",
                     "hardware-area",
-                    "codegen-runs",
-                    "codegen-xors",
+                    "hardware-place",
                 ],
             }
         )
@@ -509,7 +505,7 @@ def analyze_tau_weight_robustness(
     seed: int = 0,
     factors: Sequence[float] = TAU_PERTURBATION_FACTORS,
 ) -> dict[str, object]:
-    """Ablate nonzero tau weights and rebuild the five-cost frontier."""
+    """Ablate nonzero tau weights and rebuild the memory-score frontier."""
 
     if trials <= 0:
         raise ValueError("tau perturbation trials must be positive")
@@ -580,7 +576,7 @@ def analyze_tau_weight_robustness(
                 named_vectors.append(
                     (
                         str(record["name"]),
-                        (base[0], base[1], area, base[3], base[4]),
+                        (base[0], base[1], area, base[3]),
                     )
                 )
             frontier_names = _pareto_names(named_vectors)

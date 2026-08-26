@@ -50,8 +50,11 @@ from relay import (
     HARDWARE_PROFILES,
     CanonicalLayout,
     UniversalScopeObjectives,
+    build_resource_cohorts,
     canonical_layout_from_word,
+    compress_resource_cohorts,
     get_hardware_profile,
+    score_resource_placement,
 )
 from relay.objectives import build_objectives
 from relay.simple_solver import (
@@ -78,10 +81,15 @@ GRAMMARS = {
 
 @dataclass(frozen=True)
 class ScoredWord:
-    """One shared canonical word and its five analytical costs."""
+    """One shared canonical word and its analytical costs."""
 
     word: str
     cost: FrontierCost
+    hardware_place: float
+
+    @property
+    def frontier_values(self) -> tuple[float, ...]:
+        return (*self.cost.values, self.hardware_place)
 
 
 def positive_integer(value: str) -> int:
@@ -199,6 +207,14 @@ def parse_arguments(
         "--resume",
         action="store_true",
         help="resume an existing compatible plan and raw timing checkpoint",
+    )
+    parser.add_argument(
+        "--rescore",
+        action="store_true",
+        help=(
+            "rebuild and replace the analytical plan and summary while reusing "
+            "the existing raw timing checkpoint"
+        ),
     )
     parser.add_argument(
         "--seed-timings",
@@ -343,13 +359,14 @@ def _configuration_id(configuration: Mapping[str, object]) -> str:
     return sha256(encoded.encode()).hexdigest()
 
 
-def _cost_dict(cost: FrontierCost) -> dict[str, object]:
+def _cost_dict(item: ScoredWord) -> dict[str, object]:
     return {
-        "fine_region_count": cost.fine_region_count,
-        "hardware_peak": cost.hardware_peak,
-        "hardware_area": cost.hardware_area,
-        "codegen_runs": cost.codegen_runs,
-        "codegen_xors": cost.codegen_xors,
+        "fine_region_count": item.cost.fine_region_count,
+        "hardware_peak": item.cost.hardware_peak,
+        "hardware_area": item.cost.hardware_area,
+        "hardware_place": item.hardware_place,
+        "codegen_runs": item.cost.codegen_runs,
+        "codegen_xors": item.cost.codegen_xors,
     }
 
 
@@ -357,7 +374,7 @@ def _member_dict(item: ScoredWord, target_names: Sequence[str]) -> dict[str, obj
     return {
         "word": item.word,
         "layouts": {name: item.word for name in target_names},
-        "score": _cost_dict(item.cost),
+        "score": _cost_dict(item),
     }
 
 
@@ -411,7 +428,20 @@ def build_group_plan(
     context_layouts, context_scores = _context(
         matrices_tuple, components, raw_names
     )
-    del context_layouts
+    resource_cohorts = build_resource_cohorts(
+        matrices,
+        {event.id: event for event in event_items},
+        sequences,
+        (resource_map.cohort_family for resource_map in profile.resource_maps),
+    )
+    if all(
+        resource_map.phase_policy == "robust"
+        for resource_map in profile.resource_maps
+    ):
+        resource_cohorts = {
+            family: compress_resource_cohorts(matrices, cohorts)
+            for family, cohorts in resource_cohorts.items()
+        }
     target_matrices = tuple(matrix for matrix in matrices_tuple if matrix.target)
     target_names = tuple(matrix.name for matrix in target_matrices)
     scorers = {
@@ -422,6 +452,7 @@ def build_group_plan(
     scored: list[ScoredWord] = []
     for word in grammar_words(n, args.grammar):
         raw_scores = dict(context_scores)
+        layouts = dict(context_layouts)
         for matrix in target_matrices:
             layout = canonical_layout_from_word(
                 matrix,
@@ -430,7 +461,14 @@ def build_group_plan(
             )
             if not isinstance(layout, CanonicalLayout):
                 raise RuntimeError("canonical word produced a noncanonical layout")
+            layouts[matrix.name] = layout
             raw_scores = _add_scores(raw_scores, scorers[matrix.name](layout))
+        placement_scores = score_resource_placement(
+            matrices,
+            layouts,
+            resource_cohorts,
+            profile.resource_maps,
+        )
         scored.append(
             ScoredWord(
                 word,
@@ -442,10 +480,12 @@ def build_group_plan(
                     peak_tolerances,
                     profile.fine_component,
                 ),
+                sum(score.weighted_contention for score in placement_scores),
             )
         )
 
-    frontier = _pareto(scored, lambda item: item.cost.values)
+    locality_frontier = _pareto(scored, lambda item: item.cost.values)
+    frontier = _pareto(scored, lambda item: item.frontier_values)
     fine_minimum = min(item.cost.fine_region_count for item in scored)
     fine_limit = 1.05 * fine_minimum
     fine_eligible = [
@@ -453,7 +493,7 @@ def build_group_plan(
     ]
     fine_gated = _pareto(
         fine_eligible,
-        lambda item: item.cost.values[1:],
+        lambda item: item.frontier_values[1:],
     )
     scalar_order = sorted(
         scored,
@@ -463,7 +503,14 @@ def build_group_plan(
     minimum_area_ties = sum(
         item.cost.hardware_area == minimum_area for item in scored
     )
-    lexical = min(scored, key=lambda item: (item.cost.values, item.word))
+    lexical = min(
+        scored,
+        key=lambda item: (
+            item.frontier_values,
+            item.cost.codegen_runs,
+            item.word,
+        ),
+    )
     row_major_word = "j" * (n.bit_length() - 1) + "i" * (n.bit_length() - 1)
     row_major = next(item for item in scored if item.word == row_major_word)
 
@@ -489,7 +536,8 @@ def build_group_plan(
         {
             "name": "lexicographic_five_cost",
             "definition": (
-                "lexicographic minimum of (Q_fine, J_peak, J_area, runs, XORs)"
+                "lexicographic minimum of (Q_fine, J_peak, J_area, J_place); "
+                "exact ties break by fewer codegen runs then canonical word"
             ),
             "members": [_member_dict(lexical, target_names)],
         },
@@ -497,7 +545,7 @@ def build_group_plan(
             "name": "fine_gated_5pct_frontier",
             "definition": (
                 "Q_fine <= 1.05 Q_fine*, then Pareto over "
-                "(J_peak, J_area, runs, XORs)"
+                "(J_peak, J_area, J_place)"
             ),
             "members": [
                 _member_dict(item, target_names) for item in fine_gated
@@ -514,6 +562,9 @@ def build_group_plan(
         "display_name": spec.display_name,
         "matrix_size": n,
         "grammar": GRAMMARS[args.grammar],
+        "resource_maps": [
+            resource_map.to_dict() for resource_map in profile.resource_maps
+        ],
         "target_arrays": list(target_names),
         "block": list(block) if isinstance(block, tuple) else block,
         "total_layouts": len(scored),
@@ -526,8 +577,15 @@ def build_group_plan(
             "fine_region_count",
             "hardware_peak",
             "hardware_area",
-            "codegen_runs",
-            "codegen_xors",
+            "hardware_place",
+        ],
+        "locality_frontier_objectives": [
+            "fine_region_count",
+            "hardware_peak",
+            "hardware_area",
+        ],
+        "locality_frontier": [
+            _member_dict(item, target_names) for item in locality_frontier
         ],
         "frontier": [_member_dict(item, target_names) for item in frontier],
         "fine_gated_5pct": {
@@ -878,6 +936,18 @@ def summary_records(
             )
             for member in frontier_members
         ]
+        locality_members = group["locality_frontier"]
+        assert isinstance(locality_members, list)
+        locality_complete, locality_best, locality_best_layouts = _best_timed(
+            locality_members, raw_records, kernel, n
+        )
+        locality_layouts = [
+            _timed_member(
+                member,
+                raw_records.get((kernel, n, str(member["word"]))),
+            )
+            for member in locality_members
+        ]
         selection_records = []
         for mechanism in group["selection_mechanisms"]:
             members = mechanism["members"]
@@ -930,6 +1000,7 @@ def summary_records(
                     "hardware_profile_id": configuration["hardware_profile_id"],
                     "ordinal": configuration["device"],
                     "reported_names": device_names,
+                    "resource_maps": group["resource_maps"],
                 },
                 "timing_configuration": {
                     name: configuration[name]
@@ -966,8 +1037,8 @@ def summary_records(
                 },
                 "frontier": {
                     "definition": (
-                        "exact Pareto frontier over (Q_fine, J_peak, J_area, "
-                        "runs, XORs)"
+                        "exact Pareto frontier over "
+                        "(Q_fine, J_peak, J_area, J_place)"
                     ),
                     "objectives": group["frontier_objectives"],
                     "size": len(frontier_members),
@@ -985,6 +1056,27 @@ def summary_records(
                     ),
                     "layouts": frontier_layouts,
                 },
+                "locality_frontier": {
+                    "definition": (
+                        "exact Pareto frontier over "
+                        "(Q_fine, J_peak, J_area)"
+                    ),
+                    "objectives": group["locality_frontier_objectives"],
+                    "size": len(locality_members),
+                    "complete": locality_complete,
+                    "best_time_ms": locality_best if locality_complete else None,
+                    "regret": (
+                        locality_best / oracle_best - 1.0
+                        if locality_complete
+                        and locality_best is not None
+                        and oracle_best is not None
+                        else None
+                    ),
+                    "best_layouts": (
+                        locality_best_layouts if locality_complete else []
+                    ),
+                    "layouts": locality_layouts,
+                },
                 "selection_mechanisms": selection_records,
             }
         )
@@ -1001,6 +1093,9 @@ def _write_summaries(
 
 def _priority_words(group: Mapping[str, object]) -> list[str]:
     words = [str(member["word"]) for member in group["frontier"]]
+    words.extend(
+        str(member["word"]) for member in group["locality_frontier"]
+    )
     for mechanism in group["selection_mechanisms"]:
         words.extend(str(member["word"]) for member in mechanism["members"])
     return list(dict.fromkeys(words))
@@ -1058,6 +1153,8 @@ def _load_plan(path: Path, configuration: Mapping[str, object]) -> dict[str, obj
 
 def run(argv: Sequence[str] | None = None) -> int:
     parser, args = parse_arguments(argv)
+    if args.resume and args.rescore:
+        parser.error("--resume and --rescore are mutually exclusive")
     kernel_names = [
         str(value)
         for value in _deduplicated(args.kernel or list(KERNEL_SPECS))
@@ -1074,7 +1171,13 @@ def run(argv: Sequence[str] | None = None) -> int:
     plan_path = args.plan.expanduser().resolve()
 
     try:
-        if args.resume:
+        if args.rescore:
+            if not raw_output.exists():
+                raise ValueError(f"--rescore requires existing file: {raw_output}")
+            records = load_raw(raw_output, configuration)
+            plan = build_plan(args, kernel_names, sizes, configuration)
+            _atomic_write_json(plan_path, plan)
+        elif args.resume:
             missing = [path for path in (plan_path, raw_output) if not path.exists()]
             if missing:
                 raise ValueError(

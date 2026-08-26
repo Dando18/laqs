@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .hardware import HardwareProfile
+from .hardware import HardwareProfile, ResourceMap
 
 
 MI300A_V1 = HardwareProfile(
@@ -13,6 +13,13 @@ MI300A_V1 = HardwareProfile(
         "target": "gfx942",
         "simd_width": 64,
         "status": "proof-of-concept",
+        "resource_model": {
+            "kind": "HBM stack interleave sketch",
+            "stack_count": 8,
+            "interleave_bytes": 4096,
+            "source": "AMD CDNA 3 white paper, Figure 8",
+            "caveat": "physical allocation phases are not exposed to the scorer",
+        },
         "calibration": {
             "corpus": "layout_ranking.json",
             "basis": "universal-v1",
@@ -65,6 +72,21 @@ MI300A_V1 = HardwareProfile(
         "lane_window.t16.stream.load.256B": 15.0,
         "simd_window.t4.stream.load.128B": 3.0,
     },
+    resource_maps=(
+        # AMD documents eight HBM stacks with a 4 KiB stack interleave. The
+        # robust phase policy handles unknown physical allocation colors.
+        ResourceMap(
+            name="hbm_stack_interleave_sketch",
+            transaction_bytes=64,
+            xor_masks=(
+                1 << 12,
+                1 << 13,
+                1 << 14,
+            ),
+            cohort_family="simd_window.t4.cohort.load",
+            phase_policy="robust",
+        ),
+    ),
 )
 
 

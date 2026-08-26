@@ -8,7 +8,8 @@ correctness-checked and timed. The fastest measured member is the algorithm
 result, and its speedup is measured against the full row-major baseline.
 
 The default is the ordinary Pareto frontier over
-``(Q_fine, H_peak, H_area, runs, xors)`` under one selected hardware profile.
+``(Q_fine, H_peak, H_area)`` under one selected hardware profile. Codegen
+costs are reported separately.
 A fine-locality-gated frontier from ``notes/relay.tex`` remains available as
 an experiment setting. Exact analytical ties remain distinct and are all
 benchmarked.
@@ -286,13 +287,13 @@ def _configuration(
         ),
         "frontier": (
             "exact Pareto filtering over "
-            "(Q_fine, H_peak, H_area, runs, xors); compact-grammar score "
+            "(Q_fine, H_peak, H_area); compact-grammar score "
             "ties retained (including G_C inside G_OC) and noncanonical "
             "equivalent score paths represented once"
             if args.frontier_type == "pareto"
             else (
                 "Q_fine <= (1 + epsilon) Q_fine*, followed by exact Pareto "
-                "filtering over (H_peak, H_area, runs, xors); compact-grammar "
+                "filtering over (H_peak, H_area); compact-grammar "
                 "score ties retained (including G_C inside G_OC) and "
                 "noncanonical equivalent score paths represented once"
             )

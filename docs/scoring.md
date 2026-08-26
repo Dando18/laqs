@@ -62,8 +62,9 @@ component in the detailed report but removes it from weighted aggregates.
 | `weighted-normalized-excess` | `sum(tau * e)` | Legacy weighted area under normalized-excess components. |
 | `hardware-peak` | `max(e / kappa)` over profile-supported peak cells | Worst excess relative to the hardware profile's acceptable tolerance. |
 | `hardware-area` | `sum(tau * b * (Q - LB) / B_K)` | Exposure-preserving `J_area` under the hardware response. |
+| `hardware-place` | weighted normalized excess same-color pairs | Cross-allocation resource placement cost `J_place`. |
 
-The CLI always reports every component and all five aggregates. `--score-mode`
+The CLI always reports every component and all six aggregates. `--score-mode`
 only chooses the scalar printed as `Selected score` and stored as
 `selected_score` in JSON.  This keeps the underlying multi-objective vector
 visible rather than hiding it behind one unexplained label.
@@ -82,7 +83,22 @@ These costs reuse the layout grammar's code-generation definitions. Non-target
 context arrays are omitted because their layout is fixed rather than selected.
 Runs and XORs remain separate: RELAY does not assume a conversion factor
 between mask/shift work and XOR work. They are not folded into `Q`, `e`,
-`J_peak`, `J_area`, or any scalar score mode.
+`J_peak`, `J_area`, `J_place`, or any scalar score mode, and they are
+annotations rather than default dominance coordinates.
+
+## Colored quotient placement
+
+A `ResourceMap` deduplicates aligned transactions within each hardware cohort,
+maps each transaction address to a small color through sparse GF(2) parity
+masks, and counts same-color transaction pairs. `J_place` subtracts the pair
+count of an optimally balanced occupancy and normalizes by the range from
+balanced to fully contended placement. The `cohort` partition retains array
+identity, so transactions from different allocations can contend.
+
+The MI300A proof-of-concept uses `simd_window.t4.cohort.load`, 64-byte
+transactions, and an eight-color 4 KiB HBM-stack interleave sketch. Its robust
+phase policy maximizes contention over relative allocation colors because raw
+timing records do not expose physical allocation bases.
 
 ## Pareto frontiers
 
@@ -92,10 +108,9 @@ dominates point `b` exactly when `a` is no greater in every objective and is
 strictly smaller in at least one. Exact objective ties are retained as distinct
 frontier members.
 
-With no explicit extractors, the function compares all five public aggregate
-score modes followed by `codegen-runs` and `codegen-xors`. A caller can instead
-construct the multi-objective vector from the notes, including a particular
-fine-scale component and the codegen proxies:
+With no explicit extractors, the function compares all six public aggregate
+score modes. A caller can instead construct the multi-objective vector from
+the notes, including a particular fine-scale component:
 
 ```python
 from relay import pareto_frontier
@@ -114,8 +129,7 @@ frontier = pareto_frontier(
         ),
         "hardware-peak": lambda score: score.hardware_peak,
         "hardware-area": lambda score: score.hardware_area,
-        "codegen-runs": lambda score: score.codegen.runs,
-        "codegen-xors": lambda score: score.codegen.xors,
+        "hardware-place": lambda score: score.hardware_place,
     },
 )
 
@@ -134,6 +148,7 @@ does not apply epsilon tolerances or select one preferred member.
 from relay import (
     MI300A_V1,
     UniversalScopeObjectives,
+    build_resource_cohorts,
     canonical_layout_from_word,
     score_layouts,
 )
@@ -147,6 +162,12 @@ components = build_objectives(
     events,
     problem.sequences,
 )
+resource_cohorts = build_resource_cohorts(
+    matrices,
+    events,
+    problem.sequences,
+    (resource_map.cohort_family for resource_map in MI300A_V1.resource_maps),
+)
 
 layouts = {
     "A": canonical_layout_from_word(matrices["A"], "jjjiii"),
@@ -158,10 +179,12 @@ score = score_layouts(
     components,
     layouts,
     hardware_profile=MI300A_V1,
+    resource_cohorts=resource_cohorts,
 )
 
 print(score.component(MI300A_V1.fine_component).normalized_excess)
 print(score.value("hardware-area"))
+print(score.value("hardware-place"))
 ```
 
 The main public routines are:
@@ -231,8 +254,8 @@ Score one common 8x8 tiled layout and emit JSON:
   --json
 ```
 
-`--hardware-profile` selects the global byte-scale ladder, `tau` response, and
-peak tolerances. Repeated `--component-weight NAME=VALUE` options override
+`--hardware-profile` selects the global byte-scale ladder, `tau` response,
+peak tolerances, and resource maps. Repeated `--component-weight NAME=VALUE` options override
 individual profile `tau` entries for exploration. A zero override keeps the
 component detail but excludes it from weighted aggregates.
 
