@@ -27,26 +27,28 @@ used by `experiments/solver_frontier.py`. With independent words, GEMM would
 contain `|G_C|^3` joint layouts and an exhaustive runtime oracle would not be a
 practical benchmark.
 
-For each kernel and size, the analytical plan records the exact Pareto frontier
-over ascending costs
+For each kernel and size, the analytical plan records the exact locality
+frontier over ascending costs
 
 ```text
-(Q_fine, J_peak, J_area, J_place)
+(Q_fine, J_peak, J_area)
 ```
 
-The plan also records the locality-only baseline over
-`(Q_fine, J_peak, J_area)`. Codegen runs and XORs remain annotations and
-deterministic scalar-selection tie breakers, not dominance coordinates. Exact
-memory-score ties are retained.
+`J_place` is deliberately not a fourth Pareto coordinate. The plan forms a 5%
+coordinatewise locality shell around every frontier member, adds the best
+placement member from each shell bucket, and orders that bounded union by the
+selected global-phase statistic. The fixed budgets are 1, 3, 5, and 10, and
+the summary reports regret@K. Codegen runs and XORs remain annotations and
+deterministic tie breakers, not dominance coordinates. Exact locality ties are
+retained.
 
 and these additional selection mechanisms:
 
 - `lowest_hardware_area`: one minimum-`J_area` layout, with deterministic
   codegen-run and word tie breaks;
 - `top5_hardware_area`: the first five layouts under that scalar ordering;
-- `lexicographic_five_cost`: one lexicographic four-memory-cost minimum;
-- `fine_gated_5pct_frontier`: a 5% `Q_fine` gate followed by the three-cost
-  Pareto frontier; and
+- `placement_rerank_at_{1,3,5,10}`: fixed-budget corrected-`J_place`
+  recommendations from the locality shell; and
 - `row_major_baseline`: the complete row-major word.
 
 For every completed selection, its best median time is reported. Regret is
@@ -58,9 +60,70 @@ best selected median / exhaustive-oracle median - 1.
 Regret remains `null` until the exhaustive oracle is complete, so a partial
 sweep cannot accidentally be presented as oracle evidence.
 
-## Current shared-G_S colored rescore
+## Oracle primitive-feature audit
 
-The August 26, 2026 score-only rescore reused all 1,640 existing MI300A timing
+Before changing placement semantics, the complete GESUMMV-1024 `G_S` family
+was checked over `Q_fine`, every nonzero locality excess footprint, raw pair
+excess, and normalized placement. The measured oracle
+`jjiiiiiiiijjjjjjjjii` is componentwise dominated by
+`jjiiiiiiijjjjjjjjiii`. The dominator is itself only 0.482% slower than the
+oracle, but the certificate proves that no nonnegative reweighting of the old
+features can make the oracle optimal.
+
+The checked-in corrected audit expands the vector to 450 coordinates,
+including every global phase plus within-array and cross-array placement. The
+same word still dominates the oracle. This is a model-information failure, not
+a grammar-reachability or coefficient-tuning failure.
+
+Use both flags to attach the complete oracle, reranker-leader, and locality-
+frontier vectors to the scoring summary:
+
+```bash
+.venv/bin/python experiments/scoring_results.py \
+  --kernel gesummv --size 1024 --grammar standard --prepare-only \
+  --dump-oracle-components --check-oracle-feature-dominance \
+  --seed-raw results/standard_scoring_mi300a.raw.jsonl
+```
+
+## Corrected placement reranker
+
+The August 26, 2026 corrected robust rescore reused all 1,640 exhaustive MI300A
+timings and launched no GPU work. Allocation phases are global across cohorts,
+pair excess is normalized within each cohort, and within/cross placement are
+reported separately. The table reports the locality-frontier size, bounded
+pool size, and regret at each recommendation budget:
+
+| Kernel | N | Locality | Pool | @1 | @3 | @5 | @10 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ATAX | 512 | 4 | 5 | 10.644% | 6.130% | 0.858% | 0.858% |
+| ATAX | 1024 | 4 | 5 | 7.867% | 7.867% | 1.169% | 1.169% |
+| GEMM | 512 | 10 | 10 | 17.643% | 15.465% | 15.465% | 0.147% |
+| GEMM | 1024 | 11 | 11 | 1.210% | 1.210% | 0.921% | 0.501% |
+| GESUMMV | 512 | 10 | 10 | 13.913% | 13.913% | 13.913% | 13.913% |
+| GESUMMV | 1024 | 11 | 11 | 20.878% | 20.878% | 20.878% | 20.878% |
+| MVT | 512 | 4 | 4 | 13.077% | 13.077% | 13.077% | 13.077% |
+| MVT | 1024 | 4 | 4 | 12.522% | 12.522% | 12.522% | 12.522% |
+| SYRK | 512 | 10 | 10 | 1.197% | 1.161% | 0.663% | 0.663% |
+| SYRK | 1024 | 11 | 11 | 3.276% | 2.661% | 2.661% | 2.661% |
+
+Mean regret is 10.223%, 9.488%, 8.213%, and 6.639% at K=1, 3, 5, and
+10. The mean bounded pool is 8.1 candidates, versus 24.5 for the superseded
+unrestricted four-axis frontier. The corrected reranker therefore fixes the
+candidate-set architecture but does not yet have sufficient top-K precision:
+at K=5 it retains 4.8 layouts on average but is worse than the old unbounded
+frontier's 3.151% mean regret. Expected, robust, and worst-quartile CVaR give
+the same GESUMMV-1024 ordering and 20.878% regret.
+
+Corrected artifacts:
+
+- `results/standard_reranked_robust_scoring_mi300a.{plan.json,raw.jsonl,jsonl}`
+  contains the ten-case robust reranker plan, imported timings, and summary;
+- `results/gesummv1024_oracle_feature_audit_mi300a.{plan.json,raw.jsonl,jsonl}`
+  contains the 450-coordinate oracle audit and complete diagnostic panel.
+
+## Historical unrestricted colored rescore
+
+The initial August 26, 2026 mechanism rescore reused all 1,640 MI300A timing
 records; it launched no new GPU measurements. The table compares the
 locality-only frontier with the same frontier plus independent `J_place`:
 
@@ -81,11 +144,12 @@ locality-only frontier with the same frontier plus independent `J_place`:
 from 6.609% to 3.151%, while mean frontier size grows from 7.9 to 24.5 layouts.
 The result supports placement as a useful missing signal, but the unchanged
 20.878% GESUMMV-1024 regret and larger candidate sets show that this initial
-HBM-stack sketch is not yet sufficient.
+HBM-stack sketch is not yet sufficient. This four-axis policy is retained as
+historical evidence and is superseded by the bounded reranker above.
 
-## Sparse flag-fiber materialization
+## Historical sparse flag-fiber materialization
 
-The follow-up run uses `--fiber-max-xors 1`. For every shared `G_S` flag, it
+This earlier follow-up run used `--fiber-max-xors 1`. For every shared `G_S` flag, it
 constructs the canonical representative and every color-relevant elementary
 shear
 
@@ -99,6 +163,10 @@ low-address prefix flag is compared with the source flag. All 41,540 tested
 materializations preserve every prefix subspace exactly. Candidates are first
 Pareto-filtered within a flag over `(J_place, swizzle XORs)` and then globally
 over `(Q_fine, J_peak, J_area, J_place)`.
+
+That global four-axis frontier predates the bounded-reranker correction. The
+measurements remain useful, but its selection architecture is not the current
+default.
 
 The base oracle remains the exhaustive 146/182 canonical-representative `G_S`
 sweep. Negative percentages therefore mean that the enlarged fiber grammar

@@ -19,6 +19,7 @@ from relay import (
     SimultaneousRegions,
     column_major_layout,
     compress_resource_cohorts,
+    group_resource_cohorts_by_translation,
     layout_codegen_cost,
     normalized_excess,
     pareto_frontier,
@@ -346,6 +347,51 @@ class ResourcePlacementTests(unittest.TestCase):
 
         self.assertEqual(score.normalized_contention, 2.0)
         self.assertEqual(score.weighted_contention, 2.0)
+
+    def test_robust_phase_is_shared_by_every_cohort(self) -> None:
+        cohorts = (
+            ResourceCohort(
+                self.resource_map.cohort_family,
+                (Access("A", (0,)), Access("B", (0,))),
+                1.0,
+                "aligned",
+            ),
+            ResourceCohort(
+                self.resource_map.cohort_family,
+                (Access("A", (0,)), Access("B", (2,))),
+                1.0,
+                "opposed",
+            ),
+        )
+
+        score = score_resource_placement(
+            self.matrices,
+            self.layouts,
+            {self.resource_map.cohort_family: cohorts},
+            (self.resource_map,),
+        )[0]
+
+        self.assertEqual(len(score.phase_scores), 2)
+        self.assertEqual(
+            [phase.normalized_contention for phase in score.phase_scores],
+            [1.0, 1.0],
+        )
+        self.assertEqual(score.normalized_contention, 1.0)
+        self.assertEqual(score.expected_contention, 1.0)
+        self.assertEqual(score.raw_pair_excess, 1.0)
+        self.assertEqual(score.within_contention, 0.0)
+        self.assertEqual(score.cross_contention, 1.0)
+
+        grouped = group_resource_cohorts_by_translation(
+            self.matrices, cohorts
+        )
+        grouped_score = score_resource_placement(
+            self.matrices,
+            self.layouts,
+            {self.resource_map.cohort_family: grouped},
+            (self.resource_map,),
+        )[0]
+        self.assertEqual(grouped_score, score)
 
     def test_xor_translation_compression_preserves_robust_score(self) -> None:
         cohorts = (

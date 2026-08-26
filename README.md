@@ -117,11 +117,11 @@ with exact frontiers and raw timing samples retained in the adjacent JSON.
 
 `experiments/scoring_results.py` builds a paper-oriented JSONL corpus for all
 five kernels at N=512 and N=1024. It applies one full `G_C` word uniformly to
-every target matrix, computes the exact colored frontier over
-`(Q_fine, J_peak, J_area, J_place)`, and records the three-cost locality-only
-frontier for comparison alongside scalar,
-top-5, lexicographic, fine-gated, and row-major comparison selections. A true
-runtime oracle is available only after every canonical word has been timed.
+every target matrix and computes the exact locality frontier over
+`(Q_fine, J_peak, J_area)`. Corrected `J_place` is a bounded reranker: the
+runner forms a locality shell and reports regret@1, @3, @5, and @10 instead of
+adding placement as an unrestricted Pareto coordinate. A true runtime oracle
+is available only after every canonical word has been timed.
 
 There are 48,620 words at N=512 and 184,756 at N=1024, or 1,166,880 separate
 evaluator runs for the complete five-kernel suite. Prepare the analytical plan
@@ -164,6 +164,13 @@ use separate result paths:
 Resume inside a GPU allocation with the same grammar and paths. The implemented
 four-form cut-point grammar contains 146 shared layouts at N=512 and 182 at
 N=1024.
+
+`J_place` supports globally consistent expected, robust, and worst-quartile
+CVaR phase statistics. Add `--dump-oracle-components` and
+`--check-oracle-feature-dominance` to emit complete primitive diagnostics and
+test whether any reachable layout componentwise dominates the measured
+oracle. The corrected shared-`G_S` results and audit are documented in
+[`docs/scoring-results.md`](docs/scoring-results.md).
 
 The flag-fiber extension materializes each `G_S` flag with sparse
 unit-upper-triangular `T_ij` shears. It preserves every original locality score

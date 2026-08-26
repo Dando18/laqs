@@ -22,9 +22,13 @@ from typing import (
     Sequence,
 )
 
-from .access_scopes import ResourceCohort, build_resource_cohorts
+from .access_scopes import (
+    ResourceCohort,
+    ResourceCohortGroup,
+    build_resource_cohorts,
+)
 from .hardware import ResourceMap
-from .layouts import Layout
+from .layouts import CanonicalLayout, Layout, LinearInnerLayout
 from .model import Coord, MatrixSpec
 from .objectives import Hyperedge, ObjectiveComponent, build_objectives
 
@@ -144,6 +148,18 @@ class CodegenCost:
 
 
 @dataclass(frozen=True)
+class ResourcePhaseScore:
+    """Placement primitives under one global allocation-color assignment."""
+
+    allocation_phases: tuple[tuple[str, int], ...]
+    raw_pair_excess: float
+    normalized_contention: float
+    within_contention: float
+    within_by_array: tuple[tuple[str, float], ...]
+    cross_contention: float
+
+
+@dataclass(frozen=True)
 class ResourcePlacementScore:
     """Normalized excess pair contention for one resource map."""
 
@@ -155,7 +171,15 @@ class ResourcePlacementScore:
     weight: float
     cohort_count: int
     cohort_weight: float
+    raw_pair_excess: float
     normalized_contention: float
+    expected_contention: float
+    robust_contention: float
+    cvar25_contention: float
+    within_contention: float
+    within_by_array: tuple[tuple[str, float], ...]
+    cross_contention: float
+    phase_scores: tuple[ResourcePhaseScore, ...]
 
     @property
     def weighted_contention(self) -> float:
@@ -362,40 +386,259 @@ def normalized_pair_contention(occupancies: Sequence[int]) -> float:
     return (pairs - balanced) / denominator
 
 
-def _robust_contention(
-    histograms: Mapping[str, Counter[int]], color_count: int
+def _raw_pair_excess(occupancies: Sequence[int]) -> float:
+    transaction_count = sum(occupancies)
+    balanced = balanced_pair_count(transaction_count, len(occupancies))
+    return float(
+        sum(count * (count - 1) // 2 for count in occupancies) - balanced
+    )
+
+
+def _within_contention(
+    cohort_histograms: Sequence[tuple[float, Mapping[str, Counter[int]]]],
+    color_count: int,
+) -> tuple[float, tuple[tuple[str, float], ...]]:
+    arrays = sorted(
+        {
+            array
+            for _weight, histograms in cohort_histograms
+            for array in histograms
+        }
+    )
+    by_array = {array: 0.0 for array in arrays}
+    for weight, histograms in cohort_histograms:
+        for array, histogram in histograms.items():
+            by_array[array] += weight * normalized_pair_contention(
+                [histogram.get(color, 0) for color in range(color_count)]
+            )
+    items = tuple(sorted(by_array.items()))
+    return sum(value for _array, value in items), items
+
+
+def _cross_contention(
+    histograms: Mapping[str, Counter[int]],
+    phases: Mapping[str, int],
+    color_count: int,
 ) -> float:
     arrays = tuple(sorted(histograms))
+    total = 0.0
+    for left_index, left in enumerate(arrays):
+        left_count = sum(histograms[left].values())
+        for right in arrays[left_index + 1 :]:
+            right_count = sum(histograms[right].values())
+            if not left_count or not right_count:
+                continue
+            overlap = sum(
+                histograms[left].get(color ^ phases[left], 0)
+                * histograms[right].get(color ^ phases[right], 0)
+                for color in range(color_count)
+            )
+            total += overlap / (left_count * right_count)
+    return total
+
+
+def _phase_score(
+    cohort_histograms: Sequence[tuple[float, Mapping[str, Counter[int]]]],
+    phases: Mapping[str, int],
+    color_count: int,
+    within_contention: float,
+    within_by_array: tuple[tuple[str, float], ...],
+) -> ResourcePhaseScore:
+    raw_total = 0.0
+    normalized_total = 0.0
+    cross_total = 0.0
+    for weight, histograms in cohort_histograms:
+        occupancy = [0] * color_count
+        for array, histogram in histograms.items():
+            phase = phases[array]
+            for color, count in histogram.items():
+                occupancy[color ^ phase] += count
+        raw_total += weight * _raw_pair_excess(occupancy)
+        normalized_total += weight * normalized_pair_contention(occupancy)
+        cross_total += weight * _cross_contention(
+            histograms, phases, color_count
+        )
+    return ResourcePhaseScore(
+        allocation_phases=tuple(sorted(phases.items())),
+        raw_pair_excess=raw_total,
+        normalized_contention=normalized_total,
+        within_contention=within_contention,
+        within_by_array=within_by_array,
+        cross_contention=cross_total,
+    )
+
+
+def _robust_phase_scores(
+    cohort_histograms: Sequence[tuple[float, Mapping[str, Counter[int]]]],
+    color_count: int,
+) -> tuple[ResourcePhaseScore, ...]:
+    arrays = tuple(
+        sorted(
+            {
+                array
+                for _weight, histograms in cohort_histograms
+                for array in histograms
+            }
+        )
+    )
     if not arrays:
-        return 0.0
+        return ()
     assignment_count = color_count ** max(0, len(arrays) - 1)
     if assignment_count > 65_536:
         raise ValueError(
             "robust resource phase ensemble exceeds 65536 assignments"
         )
-    best = 0.0
+    within, within_by_array = _within_contention(
+        cohort_histograms, color_count
+    )
+    cohort_tables = []
+    for weight, histograms in cohort_histograms:
+        local_arrays = tuple(sorted(histograms))
+        table = {}
+        for local_tail in product(
+            range(color_count), repeat=max(0, len(local_arrays) - 1)
+        ):
+            local_phases = dict(zip(local_arrays, (0, *local_tail)))
+            occupancy = [0] * color_count
+            for array, histogram in histograms.items():
+                phase = local_phases[array]
+                for color, count in histogram.items():
+                    occupancy[color ^ phase] += count
+            table[local_tail] = (
+                _raw_pair_excess(occupancy),
+                normalized_pair_contention(occupancy),
+                _cross_contention(histograms, local_phases, color_count),
+            )
+        cohort_tables.append((weight, local_arrays, table))
+
+    scores = []
     for tail_phases in product(
         range(color_count), repeat=max(0, len(arrays) - 1)
     ):
-        phases = (0, *tail_phases)
-        occupancy = [0] * color_count
-        for array, phase in zip(arrays, phases):
-            for color, count in histograms[array].items():
-                occupancy[color ^ phase] += count
-        best = max(best, normalized_pair_contention(occupancy))
-    return best
+        phases = dict(zip(arrays, (0, *tail_phases)))
+        raw_total = 0.0
+        normalized_total = 0.0
+        cross_total = 0.0
+        for weight, local_arrays, table in cohort_tables:
+            anchor = phases[local_arrays[0]]
+            local_tail = tuple(
+                phases[array] ^ anchor for array in local_arrays[1:]
+            )
+            raw, normalized, cross = table[local_tail]
+            raw_total += weight * raw
+            normalized_total += weight * normalized
+            cross_total += weight * cross
+        scores.append(
+            ResourcePhaseScore(
+                allocation_phases=tuple(sorted(phases.items())),
+                raw_pair_excess=raw_total,
+                normalized_contention=normalized_total,
+                within_contention=within,
+                within_by_array=within_by_array,
+                cross_contention=cross_total,
+            )
+        )
+    return tuple(scores)
+
+
+def _logical_layout_rows(
+    matrix: MatrixSpec, layout: Layout
+) -> tuple[int, ...] | None:
+    if isinstance(layout, CanonicalLayout):
+        rows = layout.matrix_rows()
+    elif (
+        isinstance(layout, LinearInnerLayout)
+        and sum(layout.tile_exponents) == matrix.total_bits
+    ):
+        rows = layout.a_rows
+    else:
+        return None
+    if len(rows) != matrix.total_bits:
+        return None
+    return rows
+
+
+def _logical_resource_color_masks(
+    matrix: MatrixSpec,
+    layout: Layout,
+    resource_map: ResourceMap,
+) -> tuple[int, ...] | None:
+    if matrix.element_bytes & (matrix.element_bytes - 1):
+        return None
+    rows = _logical_layout_rows(matrix, layout)
+    if rows is None:
+        return None
+    element_bits = matrix.element_bytes.bit_length() - 1
+    logical_masks = []
+    for byte_mask in resource_map.xor_masks:
+        physical_mask = byte_mask >> element_bits
+        if physical_mask.bit_length() > len(rows):
+            return None
+        logical_mask = 0
+        for physical_bit, row in enumerate(rows):
+            if (physical_mask >> physical_bit) & 1:
+                logical_mask ^= row
+        logical_masks.append(logical_mask)
+    return tuple(logical_masks)
+
+
+def _logical_bits_offset(
+    matrix: MatrixSpec,
+    layout: Layout,
+    logical_bits: int,
+    rows: tuple[int, ...] | None,
+) -> int:
+    if rows is not None:
+        return sum(
+            ((logical_bits & row).bit_count() & 1) << physical_bit
+            for physical_bit, row in enumerate(rows)
+        )
+    offsets = matrix.bit_offsets()
+    coord = tuple(
+        (logical_bits >> offset) & (extent - 1)
+        for offset, extent in zip(offsets, matrix.shape)
+    )
+    return layout.offset(matrix, coord)
+
+
+def _logical_bits_resource_color(
+    matrix: MatrixSpec,
+    layout: Layout,
+    resource_map: ResourceMap,
+    logical_bits: int,
+    logical_masks: tuple[int, ...] | None,
+) -> int:
+    if logical_masks is not None:
+        return sum(
+            ((logical_bits & mask).bit_count() & 1) << bit
+            for bit, mask in enumerate(logical_masks)
+        )
+    offsets = matrix.bit_offsets()
+    coord = tuple(
+        (logical_bits >> offset) & (extent - 1)
+        for offset, extent in zip(offsets, matrix.shape)
+    )
+    return resource_map.color(layout.offset(matrix, coord) * matrix.element_bytes)
 
 
 def score_resource_placement(
     matrices: Mapping[str, MatrixSpec],
     layouts: Mapping[str, Layout],
-    cohorts_by_family: Mapping[str, Sequence[ResourceCohort]],
+    cohorts_by_family: Mapping[
+        str, Sequence[ResourceCohort | ResourceCohortGroup]
+    ],
     resource_maps: Sequence[ResourceMap],
     *,
     allocation_bases: Mapping[str, int] | None = None,
     offset_cache_by_array: Mapping[str, dict[Coord, int]] | None = None,
 ) -> tuple[ResourcePlacementScore, ...]:
-    """Score deduplicated cross-allocation transactions by resource color."""
+    """Score deduplicated transactions under globally consistent phases.
+
+    Robust allocation colors are shared by every execution cohort. Contention
+    is normalized within each cohort before its dynamic weight is applied.
+    Within-allocation concentration and cross-allocation overlap remain exposed
+    as separate primitive diagnostics.
+    """
 
     caches = (
         {name: offset_cache_by_array[name] for name in layouts}
@@ -412,10 +655,112 @@ def score_resource_placement(
             raise ValueError(
                 f"resource map {resource_map.name!r} requires allocation bases"
             )
-        total = 0.0
         total_weight = 0.0
         cohorts = tuple(cohorts_by_family[resource_map.cohort_family])
-        for cohort in cohorts:
+        cohort_histograms: list[tuple[float, Mapping[str, Counter[int]]]] = []
+        grouped = any(isinstance(cohort, ResourceCohortGroup) for cohort in cohorts)
+        if grouped and not all(
+            isinstance(cohort, ResourceCohortGroup) for cohort in cohorts
+        ):
+            raise ValueError("resource cohorts cannot mix groups and raw cohorts")
+        if grouped and resource_map.phase_policy != "robust":
+            raise ValueError(
+                "translation-grouped cohorts require robust XOR phase scoring"
+            )
+        if grouped:
+            grouped_histogram_weights: dict[
+                tuple[tuple[str, tuple[tuple[int, int], ...]], ...], float
+            ] = {}
+            color_masks = {
+                array: _logical_resource_color_masks(
+                    matrices[array], layouts[array], resource_map
+                )
+                for cohort_group in cohorts
+                for array, _bits in cohort_group.relative_bits
+                if isinstance(cohort_group, ResourceCohortGroup)
+            }
+            layout_rows = {
+                array: _logical_layout_rows(matrices[array], layouts[array])
+                for cohort_group in cohorts
+                for array, _bits in cohort_group.relative_bits
+                if isinstance(cohort_group, ResourceCohortGroup)
+            }
+            for cohort_group in cohorts:
+                assert isinstance(cohort_group, ResourceCohortGroup)
+                relative_transactions: dict[str, set[int]] = {}
+                for array, logical_bits in cohort_group.relative_bits:
+                    relative_transactions.setdefault(array, set()).add(
+                        _logical_bits_offset(
+                            matrices[array],
+                            layouts[array],
+                            logical_bits,
+                            layout_rows[array],
+                        )
+                        * matrices[array].element_bytes
+                        // resource_map.transaction_bytes
+                    )
+                relative_histograms = {
+                    array: Counter(
+                        resource_map.color(
+                            transaction * resource_map.transaction_bytes
+                        )
+                        for transaction in transactions
+                    )
+                    for array, transactions in relative_transactions.items()
+                }
+                realized_occurrences: dict[tuple[tuple[str, int], ...], float] = {}
+                for occurrence in cohort_group.occurrences:
+                    translations = {}
+                    for array, anchor in occurrence.anchors:
+                        matrix = matrices[array]
+                        translations[array] = _logical_bits_resource_color(
+                            matrix,
+                            layouts[array],
+                            resource_map,
+                            anchor,
+                            color_masks[array],
+                        )
+                    key = tuple(sorted(translations.items()))
+                    realized_occurrences[key] = (
+                        realized_occurrences.get(key, 0.0) + occurrence.weight
+                    )
+                    total_weight += occurrence.weight
+                for translation_items, weight in realized_occurrences.items():
+                    translations = dict(translation_items)
+                    realized_histograms = {
+                        array: Counter(
+                            {
+                                color ^ translations[array]: count
+                                for color, count in histogram.items()
+                            }
+                        )
+                        for array, histogram in relative_histograms.items()
+                    }
+                    histogram_key = tuple(
+                        (
+                            array,
+                            tuple(sorted(histogram.items())),
+                        )
+                        for array, histogram in sorted(
+                            realized_histograms.items()
+                        )
+                    )
+                    grouped_histogram_weights[histogram_key] = (
+                        grouped_histogram_weights.get(histogram_key, 0.0)
+                        + weight
+                    )
+            cohort_histograms.extend(
+                (
+                    weight,
+                    {
+                        array: Counter(dict(histogram))
+                        for array, histogram in histogram_key
+                    },
+                )
+                for histogram_key, weight in grouped_histogram_weights.items()
+            )
+        for cohort in (() if grouped else cohorts):
+            assert isinstance(cohort, ResourceCohort)
             transactions: dict[str, set[int]] = {}
             for access in cohort.accesses:
                 if access.array not in matrices:
@@ -448,12 +793,11 @@ def score_resource_placement(
                     )
                     for array, array_transactions in transactions.items()
                 }
-                contention = _robust_contention(
-                    histograms, resource_map.color_count
-                )
+                cohort_histograms.append((cohort.weight, histograms))
             else:
                 assert allocation_bases is not None
                 occupancy = [0] * resource_map.color_count
+                histograms: dict[str, Counter[int]] = {}
                 for array, array_transactions in transactions.items():
                     if array not in allocation_bases:
                         raise ValueError(
@@ -482,10 +826,60 @@ def score_resource_placement(
                         aligned_address = (
                             byte_address // resource_map.transaction_bytes
                         ) * resource_map.transaction_bytes
-                        occupancy[resource_map.color(aligned_address)] += 1
-                contention = normalized_pair_contention(occupancy)
-            total += cohort.weight * contention
+                        color = resource_map.color(aligned_address)
+                        occupancy[color] += 1
+                        histograms.setdefault(array, Counter())[color] += 1
+                cohort_histograms.append((cohort.weight, histograms))
             total_weight += cohort.weight
+
+        if resource_map.phase_policy == "robust":
+            phase_scores = _robust_phase_scores(
+                cohort_histograms, resource_map.color_count
+            )
+        else:
+            within, within_by_array = _within_contention(
+                cohort_histograms, resource_map.color_count
+            )
+            fixed_phases = {
+                array: 0
+                for _weight, histograms in cohort_histograms
+                for array in histograms
+            }
+            phase_scores = (
+                _phase_score(
+                    cohort_histograms,
+                    fixed_phases,
+                    resource_map.color_count,
+                    within,
+                    within_by_array,
+                ),
+            )
+        if phase_scores:
+            robust = max(
+                phase_scores,
+                key=lambda phase: (
+                    phase.normalized_contention,
+                    phase.raw_pair_excess,
+                    phase.allocation_phases,
+                ),
+            )
+            expected = sum(
+                phase.normalized_contention for phase in phase_scores
+            ) / len(phase_scores)
+            tail_count = max(1, (len(phase_scores) + 3) // 4)
+            cvar25 = sum(
+                sorted(
+                    (
+                        phase.normalized_contention
+                        for phase in phase_scores
+                    ),
+                    reverse=True,
+                )[:tail_count]
+            ) / tail_count
+        else:
+            robust = ResourcePhaseScore((), 0.0, 0.0, 0.0, (), 0.0)
+            expected = 0.0
+            cvar25 = 0.0
         scores.append(
             ResourcePlacementScore(
                 name=resource_map.name,
@@ -494,9 +888,25 @@ def score_resource_placement(
                 color_count=resource_map.color_count,
                 phase_policy=resource_map.phase_policy,
                 weight=resource_map.weight,
-                cohort_count=len(cohorts),
+                cohort_count=(
+                    sum(
+                        len(cohort.occurrences)
+                        for cohort in cohorts
+                        if isinstance(cohort, ResourceCohortGroup)
+                    )
+                    if grouped
+                    else len(cohorts)
+                ),
                 cohort_weight=total_weight,
-                normalized_contention=total,
+                raw_pair_excess=robust.raw_pair_excess,
+                normalized_contention=robust.normalized_contention,
+                expected_contention=expected,
+                robust_contention=robust.normalized_contention,
+                cvar25_contention=cvar25,
+                within_contention=robust.within_contention,
+                within_by_array=robust.within_by_array,
+                cross_contention=robust.cross_contention,
+                phase_scores=phase_scores,
             )
         )
     return tuple(scores)
@@ -869,8 +1279,26 @@ def score_to_dict(score: LayoutScore) -> dict[str, object]:
                 "weight": placement.weight,
                 "cohort_count": placement.cohort_count,
                 "cohort_weight": placement.cohort_weight,
+                "raw_pair_excess": placement.raw_pair_excess,
                 "normalized_contention": placement.normalized_contention,
+                "expected_contention": placement.expected_contention,
+                "robust_contention": placement.robust_contention,
+                "cvar25_contention": placement.cvar25_contention,
+                "within_contention": placement.within_contention,
+                "within_by_array": dict(placement.within_by_array),
+                "cross_contention": placement.cross_contention,
                 "weighted_contention": placement.weighted_contention,
+                "phase_scores": [
+                    {
+                        "allocation_phases": dict(phase.allocation_phases),
+                        "raw_pair_excess": phase.raw_pair_excess,
+                        "normalized_contention": phase.normalized_contention,
+                        "within_contention": phase.within_contention,
+                        "within_by_array": dict(phase.within_by_array),
+                        "cross_contention": phase.cross_contention,
+                    }
+                    for phase in placement.phase_scores
+                ],
             }
             for placement in score.placements
         ],

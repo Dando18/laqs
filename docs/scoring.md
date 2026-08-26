@@ -97,8 +97,25 @@ identity, so transactions from different allocations can contend.
 
 The MI300A proof-of-concept uses `simd_window.t4.cohort.load`, 64-byte
 transactions, and an eight-color 4 KiB HBM-stack interleave sketch. Its robust
-phase policy maximizes contention over relative allocation colors because raw
-timing records do not expose physical allocation bases.
+phase policy enumerates one relative allocation-color assignment and applies
+it to every execution cohort before taking the maximum. With allocation `A`
+fixed at phase zero, a cohort family involving `A`, `B`, and `x` has 64 global
+assignments. It does not choose a separate worst phase for each cohort.
+
+Every cohort's pair excess is normalized from zero for optimally balanced
+occupancy to one for complete concentration before its dynamic weight is
+applied. `ResourcePlacementScore` exposes three ensemble summaries:
+
+- `expected_contention`, the mean over global phases;
+- `robust_contention`, the worst global phase; and
+- `cvar25_contention`, the mean of the worst phase quartile.
+
+It also retains raw pair excess, every phase score, normalized within-array
+concentration by allocation, and cross-array distribution overlap. These are
+diagnostic primitives rather than assumed interchangeable costs. Translation-
+equivalent cohorts may share their relative transaction shape, but every
+occurrence retains its actual logical anchor so this optimization preserves
+the global phase semantics exactly.
 
 ## Flag-preserving materialization
 

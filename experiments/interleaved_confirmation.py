@@ -189,6 +189,22 @@ def select_candidates(
                 },
             )
             entry["roles"].append("base_colored_frontier")
+    reranker = record.get("placement_reranker")
+    if isinstance(reranker, dict):
+        regret_at_k = reranker.get("regret_at_k")
+        if isinstance(regret_at_k, dict) and isinstance(
+            regret_at_k.get("5"), dict
+        ):
+            for layout in regret_at_k["5"].get("layouts", ()):
+                word = str(layout["word"])
+                entry = ordered.setdefault(
+                    word,
+                    {
+                        "roles": [],
+                        "time": float(layout["timing"]["median_ms"]),
+                    },
+                )
+                entry["roles"].append("placement_rerank_at_5")
     for layout in frontier["layouts"]:
         word = str(layout["word"])
         entry = ordered.setdefault(

@@ -10,8 +10,10 @@ from experiments.layout_ranking import KERNEL_SPECS
 from experiments.scoring_results import (
     _configuration,
     _configuration_id,
+    _feature_dominators,
     _append_raw,
     _initialize_raw,
+    _placement_signature,
     build_group_plan,
     canonical_words,
     expand_canonical_descriptor,
@@ -23,6 +25,7 @@ from experiments.scoring_results import (
     standard_words,
     summary_records,
 )
+from relay import MatrixSpec, canonical_layout_from_word, get_hardware_profile
 
 
 def fake_timing(median_ms: float) -> dict[str, object]:
@@ -82,8 +85,13 @@ class ScoringResultPlanTests(unittest.TestCase):
                 "fine_region_count",
                 "hardware_peak",
                 "hardware_area",
-                "hardware_place",
             },
+        )
+        self.assertEqual(group["frontier"], group["locality_frontier"])
+        self.assertEqual(group["placement_reranker"]["budgets"], [1, 3, 5, 10])
+        self.assertLessEqual(
+            group["placement_reranker"]["pool_count"],
+            2 * len(group["locality_frontier"]),
         )
         mechanisms = {
             mechanism["name"]: mechanism
@@ -91,7 +99,7 @@ class ScoringResultPlanTests(unittest.TestCase):
         }
         self.assertEqual(len(mechanisms["lowest_hardware_area"]["members"]), 1)
         self.assertEqual(len(mechanisms["top5_hardware_area"]["members"]), 5)
-        self.assertIn("fine_gated_5pct_frontier", mechanisms)
+        self.assertIn("placement_rerank_at_5", mechanisms)
         for member in group["frontier"]:
             self.assertEqual(member["layouts"], {"A": member["word"]})
             self.assertIn("codegen_runs", member["score"])
@@ -125,6 +133,7 @@ class ScoringResultPlanTests(unittest.TestCase):
         self.assertAlmostEqual(
             frontier["regret"], frontier["best_time_ms"] - 1.0
         )
+        self.assertIn("5", summary["placement_reranker"]["regret_at_k"])
 
     def test_prepare_cli_writes_plan_checkpoint_and_summary(self) -> None:
         with TemporaryDirectory() as directory:
@@ -177,6 +186,84 @@ class ScoringResultPlanTests(unittest.TestCase):
             summary = json.loads((root / "summary.jsonl").read_text())
             self.assertEqual(summary["grammar"], "G_S")
             self.assertEqual(summary["layout_count"], len(standard_words(8)))
+
+    def test_oracle_audit_dumps_primitives_and_checks_dominance(self) -> None:
+        _, args = parse_arguments(
+            [
+                "--kernel",
+                "atax",
+                "--size",
+                "4",
+                "--dump-oracle-components",
+                "--check-oracle-feature-dominance",
+                "--prepare-only",
+            ]
+        )
+        group = build_group_plan(KERNEL_SPECS["atax"], 4, args)
+        configuration = _configuration(args, ["atax"], [4])
+        records = {
+            ("atax", 4, word): {
+                "word": word,
+                "timing": fake_timing(float(index)),
+            }
+            for index, word in enumerate(canonical_words(4), 1)
+        }
+
+        summary = summary_records(
+            {
+                "configuration_id": _configuration_id(configuration),
+                "configuration": configuration,
+                "groups": [group],
+            },
+            records,
+        )[0]
+
+        audit = summary["oracle_feature_audit"]
+        self.assertGreater(audit["primitive_count"], 0)
+        self.assertTrue(audit["records"])
+        self.assertIn("componentwise_dominated", audit["oracles"][0])
+
+    def test_feature_dominance_ignores_roundoff_only_differences(self) -> None:
+        features = {
+            "oracle": {
+                "q_fine": 2.0,
+                "locality": {
+                    "x": {"excess_footprint": 2.0},
+                },
+                "placement": [],
+            },
+            "candidate": {
+                "q_fine": 1.0,
+                "locality": {
+                    "x": {"excess_footprint": 2.0 + 1e-13},
+                },
+                "placement": [],
+            },
+        }
+
+        _coordinates, dominators = _feature_dominators(features, "oracle")
+
+        self.assertEqual(dominators, ["candidate"])
+
+    def test_placement_cache_includes_the_transaction_index_projection(self) -> None:
+        matrix = MatrixSpec("A", (1024, 1024), 8, ("i", "j"))
+        resource_maps = get_hardware_profile("mi300a").resource_maps
+        color_only_groups = {}
+        for word in standard_words(1024):
+            layout = canonical_layout_from_word(matrix, word)
+            color_only = tuple(
+                layout.matrix_rows()[bit] for bit in (9, 10, 11)
+            )
+            color_only_groups.setdefault(color_only, set()).add(
+                _placement_signature(matrix, layout, resource_maps)
+            )
+
+        self.assertTrue(
+            any(
+                len(transaction_signatures) > 1
+                for transaction_signatures in color_only_groups.values()
+            )
+        )
 
     def test_flag_fiber_plan_records_identity_realizations_at_small_width(self) -> None:
         _, args = parse_arguments(

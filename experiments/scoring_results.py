@@ -54,18 +54,20 @@ from experiments.layout_ranking import (
 from relay import (
     HARDWARE_PROFILES,
     CanonicalLayout,
+    ResourcePlacementScore,
     UniversalScopeObjectives,
     apply_flag_preserving_shears,
     build_resource_cohorts,
     canonical_layout_from_word,
-    compress_resource_cohorts,
     enumerate_flag_preserving_swizzles,
     get_hardware_profile,
+    group_resource_cohorts_by_translation,
     low_address_flag,
     resource_color_destination_bits,
     score_resource_placement,
 )
 from relay.objectives import build_objectives
+from relay.scoring import excess_footprint, normalized_excess
 from relay.simple_solver import (
     FrontierCost,
     _add_scores,
@@ -86,6 +88,22 @@ GRAMMARS = {
     "canonical": "G_C",
     "standard": "G_S",
 }
+RERANK_BUDGETS = (1, 3, 5, 10)
+PLACEMENT_STATISTICS = ("robust", "expected", "cvar25")
+
+
+def _placement_value(
+    placements: Sequence[ResourcePlacementScore], statistic: str
+) -> float:
+    attribute = {
+        "robust": "robust_contention",
+        "expected": "expected_contention",
+        "cvar25": "cvar25_contention",
+    }[statistic]
+    return sum(
+        placement.weight * float(getattr(placement, attribute))
+        for placement in placements
+    )
 
 
 @dataclass(frozen=True)
@@ -97,6 +115,8 @@ class ScoredWord:
     hardware_place: float
     flag_word: str | None = None
     shears: tuple[tuple[int, int], ...] = ()
+    placements: tuple[ResourcePlacementScore, ...] = ()
+    raw_scores: Mapping[str, float] | None = None
 
     @property
     def frontier_values(self) -> tuple[float, ...]:
@@ -116,6 +136,13 @@ def positive_integer(value: str) -> int:
 
 def nonnegative_integer(value: str) -> int:
     parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("value must be nonnegative")
+    return parsed
+
+
+def nonnegative_float(value: str) -> float:
+    parsed = float(value)
     if parsed < 0:
         raise argparse.ArgumentTypeError("value must be nonnegative")
     return parsed
@@ -157,6 +184,41 @@ def parse_arguments(
         help=(
             "realize each retained G_S flag with unit-upper-triangular swizzles "
             "using at most COUNT XORs (default: disabled)"
+        ),
+    )
+    parser.add_argument(
+        "--locality-shell-tolerance",
+        type=nonnegative_float,
+        default=0.05,
+        metavar="FRACTION",
+        help=(
+            "maximum relative locality loss admitted around each three-cost "
+            "frontier member before placement reranking (default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
+        "--placement-statistic",
+        choices=PLACEMENT_STATISTICS,
+        default="robust",
+        help=(
+            "global-phase placement statistic used by the reranker "
+            "(default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
+        "--dump-oracle-components",
+        action="store_true",
+        help=(
+            "include complete primitive locality and placement vectors for the "
+            "oracle, reranker leader, and locality frontier"
+        ),
+    )
+    parser.add_argument(
+        "--check-oracle-feature-dominance",
+        action="store_true",
+        help=(
+            "test whether any enumerated layout componentwise dominates the "
+            "measured oracle in the full primitive feature vector"
         ),
     )
     parser.add_argument(
@@ -382,6 +444,10 @@ def _configuration(
         "layout_scope": layout_scope,
         "hardware_profile": args.hardware_profile,
         "hardware_profile_id": profile.profile_id,
+        "selection_policy": "locality-shell-placement-reranker-v1",
+        "locality_shell_tolerance": args.locality_shell_tolerance,
+        "placement_statistic": args.placement_statistic,
+        "rerank_budgets": list(RERANK_BUDGETS),
         "samples": args.samples,
         "iterations": args.iterations,
         "warmup": args.warmup,
@@ -425,6 +491,176 @@ def _member_dict(item: ScoredWord, target_names: Sequence[str]) -> dict[str, obj
         result["shears"] = [list(shear) for shear in item.shears]
         result["swizzle_xors"] = len(item.shears)
     return result
+
+
+def _placement_dict(
+    placement: ResourcePlacementScore,
+    *,
+    include_phases: bool,
+) -> dict[str, object]:
+    result: dict[str, object] = {
+        "name": placement.name,
+        "cohort_family": placement.cohort_family,
+        "transaction_bytes": placement.transaction_bytes,
+        "color_count": placement.color_count,
+        "phase_policy": placement.phase_policy,
+        "weight": placement.weight,
+        "cohort_count": placement.cohort_count,
+        "cohort_weight": placement.cohort_weight,
+        "raw_pair_excess": placement.raw_pair_excess,
+        "normalized_contention": placement.normalized_contention,
+        "expected_contention": placement.expected_contention,
+        "robust_contention": placement.robust_contention,
+        "cvar25_contention": placement.cvar25_contention,
+        "within_contention": placement.within_contention,
+        "within_by_array": dict(placement.within_by_array),
+        "cross_contention": placement.cross_contention,
+        "weighted_contention": placement.weighted_contention,
+    }
+    if include_phases:
+        result["phase_scores"] = [
+            {
+                "allocation_phases": dict(phase.allocation_phases),
+                "raw_pair_excess": phase.raw_pair_excess,
+                "normalized_contention": phase.normalized_contention,
+                "within_contention": phase.within_contention,
+                "within_by_array": dict(phase.within_by_array),
+                "cross_contention": phase.cross_contention,
+            }
+            for phase in placement.phase_scores
+        ]
+    return result
+
+
+def _primitive_feature_dict(
+    item: ScoredWord,
+    matrices: Sequence[object],
+    components: Sequence[object],
+    fine_component: str,
+) -> dict[str, object]:
+    if item.raw_scores is None:
+        raise ValueError("primitive feature reporting requires raw component scores")
+    locality = {}
+    for component in components:
+        raw = float(item.raw_scores.get(component.name, 0.0))
+        bound = sum(
+            component.packing_bound(matrix)
+            for matrix in matrices
+            if component.edges_by_array.get(matrix.name)
+        )
+        excess = normalized_excess(raw, bound)
+        if excess == 0.0:
+            continue
+        locality[component.name] = {
+            "raw_region_count": raw,
+            "packing_lower_bound": bound,
+            "normalized_excess": excess,
+            "excess_footprint": excess_footprint(
+                raw,
+                bound,
+                component.region_bytes,
+                component.normalization_bytes,
+            ),
+        }
+    return {
+        "q_fine": float(item.raw_scores.get(fine_component, 0.0)),
+        "locality": locality,
+        "placement": [
+            _placement_dict(placement, include_phases=True)
+            for placement in item.placements
+        ],
+    }
+
+
+def _in_locality_shell(
+    candidate: ScoredWord,
+    anchor: ScoredWord,
+    tolerance: float,
+) -> bool:
+    return all(
+        candidate_value
+        <= anchor_value + tolerance * max(abs(anchor_value), 1.0)
+        for candidate_value, anchor_value in zip(
+            candidate.cost.values, anchor.cost.values
+        )
+    )
+
+
+def build_placement_reranker(
+    candidates: Sequence[ScoredWord],
+    locality_frontier: Sequence[ScoredWord],
+    tolerance: float,
+) -> dict[str, object]:
+    """Build a bounded locality shell and rank it by corrected placement."""
+
+    shell: dict[str, ScoredWord] = {}
+    bucket_winners: dict[str, ScoredWord] = {}
+    pool: dict[str, ScoredWord] = {
+        item.word: item for item in locality_frontier
+    }
+    for anchor in locality_frontier:
+        eligible = [
+            candidate
+            for candidate in candidates
+            if _in_locality_shell(candidate, anchor, tolerance)
+        ]
+        for candidate in eligible:
+            shell[candidate.word] = candidate
+        winner = min(
+            eligible,
+            key=lambda item: (
+                item.hardware_place,
+                item.cost.values,
+                item.cost.codegen_runs,
+                item.cost.codegen_xors,
+                item.word,
+            ),
+        )
+        bucket_winners[anchor.word] = winner
+        pool[winner.word] = winner
+    ranked = sorted(
+        pool.values(),
+        key=lambda item: (
+            item.hardware_place,
+            item.cost.values,
+            item.cost.codegen_runs,
+            item.cost.codegen_xors,
+            item.word,
+        ),
+    )
+    return {
+        "shell": tuple(shell.values()),
+        "bucket_winners": bucket_winners,
+        "pool": tuple(pool.values()),
+        "ranked": tuple(ranked),
+    }
+
+
+def _placement_signature(
+    matrix: object,
+    layout: object,
+    resource_maps: Sequence[object],
+) -> tuple[object, ...]:
+    if isinstance(layout, CanonicalLayout):
+        rows = layout.matrix_rows()
+    else:
+        rows = getattr(layout, "a_rows", ())
+    starts = []
+    for resource_map in resource_maps:
+        if resource_map.transaction_bytes % matrix.element_bytes:
+            return layout.signature()
+        transaction_elements = (
+            resource_map.transaction_bytes // matrix.element_bytes
+        )
+        if (
+            transaction_elements <= 0
+            or transaction_elements & (transaction_elements - 1)
+        ):
+            return layout.signature()
+        starts.append(transaction_elements.bit_length() - 1)
+    if rows and starts:
+        return tuple(tuple(rows[start:]) for start in starts)
+    return layout.signature()
 
 
 def _problem_inputs(
@@ -474,6 +710,12 @@ def build_group_plan(
             if weights[component.name] > 0
         ),
     }
+    audit_features = (
+        args.dump_oracle_components
+        or args.check_oracle_feature_dominance
+    )
+    if audit_features:
+        raw_names = {component.name for component in components}
     context_layouts, context_scores = _context(
         matrices_tuple, components, raw_names
     )
@@ -488,7 +730,7 @@ def build_group_plan(
         for resource_map in profile.resource_maps
     ):
         resource_cohorts = {
-            family: compress_resource_cohorts(matrices, cohorts)
+            family: group_resource_cohorts_by_translation(matrices, cohorts)
             for family, cohorts in resource_cohorts.items()
         }
     target_matrices = tuple(matrix for matrix in matrices_tuple if matrix.target)
@@ -500,6 +742,10 @@ def build_group_plan(
 
     scored: list[ScoredWord] = []
     base_scored: list[ScoredWord] = []
+    placement_cache: dict[
+        tuple[tuple[str, tuple[object, ...]], ...],
+        tuple[ResourcePlacementScore, ...],
+    ] = {}
     materialization_count = 0
     retained_materialization_count = 0
     fiber_destination_bits: tuple[int, ...] = ()
@@ -524,17 +770,35 @@ def build_group_plan(
             peak_tolerances,
             profile.fine_component,
         )
-        base_placement = score_resource_placement(
-            matrices,
-            base_layouts,
-            resource_cohorts,
-            profile.resource_maps,
+        base_placement_key = tuple(
+            (
+                matrix.name,
+                _placement_signature(
+                    matrix,
+                    base_layouts[matrix.name],
+                    profile.resource_maps,
+                ),
+            )
+            for matrix in target_matrices
         )
+        base_placement = placement_cache.get(base_placement_key)
+        if base_placement is None:
+            base_placement = score_resource_placement(
+                matrices,
+                base_layouts,
+                resource_cohorts,
+                profile.resource_maps,
+            )
+            placement_cache[base_placement_key] = base_placement
         base_item = ScoredWord(
-            word,
-            base_cost,
-            sum(score.weighted_contention for score in base_placement),
-            word if args.fiber_max_xors else None,
+            word=word,
+            cost=base_cost,
+            hardware_place=_placement_value(
+                base_placement, args.placement_statistic
+            ),
+            flag_word=word if args.fiber_max_xors else None,
+            placements=base_placement,
+            raw_scores=raw_scores if audit_features else None,
         )
         base_scored.append(base_item)
         if not args.fiber_max_xors:
@@ -593,28 +857,43 @@ def build_group_plan(
                 )
             if low_address_flag(first_matrix, layouts[first_matrix.name]) != expected_flag:
                 raise RuntimeError("flag-fiber enumeration changed its source flag")
-            placement_scores = score_resource_placement(
-                matrices,
-                layouts,
-                resource_cohorts,
-                profile.resource_maps,
+            placement_key = tuple(
+                (
+                    matrix.name,
+                    _placement_signature(
+                        matrix,
+                        layouts[matrix.name],
+                        profile.resource_maps,
+                    ),
+                )
+                for matrix in target_matrices
             )
+            placement_scores = placement_cache.get(placement_key)
+            if placement_scores is None:
+                placement_scores = score_resource_placement(
+                    matrices,
+                    layouts,
+                    resource_cohorts,
+                    profile.resource_maps,
+                )
+                placement_cache[placement_key] = placement_scores
             fiber_items.append(
                 ScoredWord(
-                    next(iter(descriptors)),
-                    replace(
+                    word=next(iter(descriptors)),
+                    cost=replace(
                         base_cost,
                         codegen_runs=sum(layout.runs for layout in layouts.values()),
                         codegen_xors=sum(
                             layout.xor_count for layout in layouts.values()
                         ),
                     ),
-                    sum(
-                        score.weighted_contention
-                        for score in placement_scores
+                    hardware_place=_placement_value(
+                        placement_scores, args.placement_statistic
                     ),
-                    word,
-                    seed.shears,
+                    flag_word=word,
+                    shears=seed.shears,
+                    placements=placement_scores,
+                    raw_scores=raw_scores if audit_features else None,
                 )
             )
         materialization_count += len(fiber_items)
@@ -626,19 +905,11 @@ def build_group_plan(
         scored.extend(retained)
 
     locality_frontier = _pareto(base_scored, lambda item: item.cost.values)
-    base_colored_frontier = _pareto(
-        base_scored, lambda item: item.frontier_values
+    reranker = build_placement_reranker(
+        scored, locality_frontier, args.locality_shell_tolerance
     )
-    frontier = _pareto(scored, lambda item: item.frontier_values)
-    fine_minimum = min(item.cost.fine_region_count for item in base_scored)
-    fine_limit = 1.05 * fine_minimum
-    fine_eligible = [
-        item for item in scored if item.cost.fine_region_count <= fine_limit
-    ]
-    fine_gated = _pareto(
-        fine_eligible,
-        lambda item: item.frontier_values[1:],
-    )
+    ranked = reranker["ranked"]
+    assert isinstance(ranked, tuple)
     scalar_order = sorted(
         scored,
         key=lambda item: (item.cost.hardware_area, item.cost.codegen_runs, item.word),
@@ -646,14 +917,6 @@ def build_group_plan(
     minimum_area = scalar_order[0].cost.hardware_area
     minimum_area_ties = sum(
         item.cost.hardware_area == minimum_area for item in scored
-    )
-    lexical = min(
-        scored,
-        key=lambda item: (
-            item.frontier_values,
-            item.cost.codegen_runs,
-            item.word,
-        ),
     )
     row_major_word = "j" * (n.bit_length() - 1) + "i" * (n.bit_length() - 1)
     row_major = next(
@@ -682,29 +945,39 @@ def build_group_plan(
             ],
         },
         {
-            "name": "lexicographic_five_cost",
-            "definition": (
-                "lexicographic minimum of (Q_fine, J_peak, J_area, J_place); "
-                "exact ties break by fewer codegen runs then canonical word"
-            ),
-            "members": [_member_dict(lexical, target_names)],
-        },
-        {
-            "name": "fine_gated_5pct_frontier",
-            "definition": (
-                "Q_fine <= 1.05 Q_fine*, then Pareto over "
-                "(J_peak, J_area, J_place)"
-            ),
-            "members": [
-                _member_dict(item, target_names) for item in fine_gated
-            ],
-        },
-        {
             "name": "row_major_baseline",
             "definition": "complete row-major canonical word",
             "members": [_member_dict(row_major, target_names)],
         },
     ]
+    for budget in RERANK_BUDGETS:
+        mechanisms.append(
+            {
+                "name": f"placement_rerank_at_{budget}",
+                "definition": (
+                    "top corrected-J_place recommendations from the bounded "
+                    f"locality shell, capped at {budget} layouts"
+                ),
+                "members": [
+                    _member_dict(item, target_names)
+                    for item in ranked[:budget]
+                ],
+            }
+        )
+
+    primitive_features = (
+        {
+            item.word: _primitive_feature_dict(
+                item,
+                matrices_tuple,
+                components,
+                profile.fine_component,
+            )
+            for item in scored
+        }
+        if audit_features
+        else {}
+    )
     return {
         "kernel": spec.name,
         "display_name": spec.display_name,
@@ -725,7 +998,6 @@ def build_group_plan(
             "fine_region_count",
             "hardware_peak",
             "hardware_area",
-            "hardware_place",
         ],
         "locality_frontier_objectives": [
             "fine_region_count",
@@ -735,11 +1007,37 @@ def build_group_plan(
         "locality_frontier": [
             _member_dict(item, target_names) for item in locality_frontier
         ],
-        "base_colored_frontier": [
-            _member_dict(item, target_names)
-            for item in base_colored_frontier
+        "frontier": [
+            _member_dict(item, target_names) for item in locality_frontier
         ],
-        "frontier": [_member_dict(item, target_names) for item in frontier],
+        "placement_reranker": {
+            "definition": (
+                "retain the three-cost locality frontier, add the lowest "
+                "corrected-J_place member of each coordinatewise locality "
+                "shell bucket, then rank the bounded union by the selected "
+                "global-phase J_place statistic"
+            ),
+            "locality_shell_tolerance": args.locality_shell_tolerance,
+            "placement_statistic": args.placement_statistic,
+            "shell_count": len(reranker["shell"]),
+            "bucket_winner_count": len(
+                {item.word for item in reranker["bucket_winners"].values()}
+            ),
+            "pool_count": len(reranker["pool"]),
+            "bucket_winners": {
+                anchor: _member_dict(winner, target_names)
+                for anchor, winner in reranker["bucket_winners"].items()
+            },
+            "ranked": [
+                _member_dict(item, target_names) for item in ranked
+            ],
+            "budgets": list(RERANK_BUDGETS),
+        },
+        "primitive_features": primitive_features,
+        "oracle_audit_options": {
+            "dump_components": args.dump_oracle_components,
+            "check_feature_dominance": args.check_oracle_feature_dominance,
+        },
         "flag_fiber": {
             "enabled": bool(args.fiber_max_xors),
             "max_xors": args.fiber_max_xors,
@@ -749,11 +1047,6 @@ def build_group_plan(
             "locality_invariance": (
                 "verified by equality of every low-address prefix subspace"
             ),
-        },
-        "fine_gated_5pct": {
-            "fine_minimum": fine_minimum,
-            "fine_limit": fine_limit,
-            "eligible_count": len(fine_eligible),
         },
         "selection_mechanisms": mechanisms,
     }
@@ -1117,6 +1410,162 @@ def _best_timed(
     return complete, best_ms, best
 
 
+def _flatten_primitive_features(
+    features: Mapping[str, object],
+) -> dict[str, float]:
+    flattened = {"Q_fine": float(features["q_fine"])}
+    locality = features["locality"]
+    assert isinstance(locality, dict)
+    for name, component in locality.items():
+        assert isinstance(component, dict)
+        flattened[f"locality.{name}.excess_footprint"] = float(
+            component["excess_footprint"]
+        )
+    placements = features["placement"]
+    assert isinstance(placements, list)
+    for placement in placements:
+        assert isinstance(placement, dict)
+        prefix = f"placement.{placement['name']}"
+        for name in (
+            "raw_pair_excess",
+            "expected_contention",
+            "robust_contention",
+            "cvar25_contention",
+            "within_contention",
+            "cross_contention",
+        ):
+            flattened[f"{prefix}.{name}"] = float(placement[name])
+        within = placement["within_by_array"]
+        assert isinstance(within, dict)
+        for array, value in within.items():
+            flattened[f"{prefix}.within.{array}"] = float(value)
+        phases = placement["phase_scores"]
+        assert isinstance(phases, list)
+        for phase in phases:
+            assert isinstance(phase, dict)
+            assignment = phase["allocation_phases"]
+            assert isinstance(assignment, dict)
+            phase_name = ",".join(
+                f"{array}={value}"
+                for array, value in sorted(assignment.items())
+            )
+            for name in (
+                "raw_pair_excess",
+                "normalized_contention",
+                "cross_contention",
+            ):
+                flattened[f"{prefix}.phase[{phase_name}].{name}"] = float(
+                    phase[name]
+                )
+    return flattened
+
+
+def _feature_dominators(
+    feature_vectors: Mapping[str, Mapping[str, object]],
+    oracle_word: str,
+) -> tuple[list[str], list[str]]:
+    flattened = {
+        word: _flatten_primitive_features(features)
+        for word, features in feature_vectors.items()
+    }
+    coordinate_names = sorted(
+        {name for vector in flattened.values() for name in vector}
+    )
+    oracle = flattened[oracle_word]
+    dominators = []
+    for word, candidate in flattened.items():
+        if word == oracle_word:
+            continue
+        comparisons = []
+        strict = False
+        for name in coordinate_names:
+            candidate_value = candidate.get(name, 0.0)
+            oracle_value = oracle.get(name, 0.0)
+            tolerance = 1e-12 * max(
+                abs(candidate_value), abs(oracle_value), 1.0
+            )
+            comparisons.append(candidate_value <= oracle_value + tolerance)
+            strict = strict or candidate_value < oracle_value - tolerance
+        if all(comparisons) and strict:
+            dominators.append(word)
+    return coordinate_names, sorted(dominators)
+
+
+def _oracle_feature_audit(
+    group: Mapping[str, object],
+    oracle_words: Sequence[str],
+) -> dict[str, object] | None:
+    options = group.get("oracle_audit_options")
+    features = group.get("primitive_features")
+    if not isinstance(options, dict) or not isinstance(features, dict):
+        return None
+    if not (
+        options.get("dump_components")
+        or options.get("check_feature_dominance")
+    ):
+        return None
+    reranker = group["placement_reranker"]
+    assert isinstance(reranker, dict)
+    ranked = reranker["ranked"]
+    assert isinstance(ranked, list)
+    selected_word = str(ranked[0]["word"]) if ranked else None
+    frontier = group["locality_frontier"]
+    assert isinstance(frontier, list)
+    panel_words = {
+        *(str(member["word"]) for member in frontier),
+        *oracle_words,
+    }
+    if selected_word is not None:
+        panel_words.add(selected_word)
+    audits = []
+    coordinate_names: list[str] = []
+    for oracle_word in oracle_words:
+        coordinate_names, dominators = _feature_dominators(
+            features, oracle_word
+        )
+        audits.append(
+            {
+                "oracle_word": oracle_word,
+                "componentwise_dominated": bool(dominators),
+                "dominating_words": dominators,
+            }
+        )
+    result: dict[str, object] = {
+        "definition": (
+            "componentwise minimization over Q_fine, every nonzero locality "
+            "excess footprint, raw and normalized placement, within-array and "
+            "cross-array placement, and every global allocation phase"
+        ),
+        "primitive_count": len(coordinate_names),
+        "selected_word": selected_word,
+        "oracles": audits,
+    }
+    if options.get("dump_components"):
+        result["records"] = [
+            {
+                "word": word,
+                "roles": [
+                    role
+                    for role, present in (
+                        ("oracle", word in oracle_words),
+                        ("reranker_at_1", word == selected_word),
+                        (
+                            "locality_frontier",
+                            any(
+                                str(member["word"]) == word
+                                for member in frontier
+                            ),
+                        ),
+                    )
+                    if present
+                ],
+                "features": features[word],
+            }
+            for word in sorted(panel_words)
+        ]
+    return result
+
+
 def summary_records(
     plan: Mapping[str, object],
     raw_records: Mapping[tuple[str, int, str], Mapping[str, object]],
@@ -1209,22 +1658,37 @@ def summary_records(
             )
             for member in locality_members
         ]
-        base_colored_members = group["base_colored_frontier"]
-        assert isinstance(base_colored_members, list)
-        (
-            base_colored_complete,
-            base_colored_best,
-            base_colored_best_layouts,
-        ) = _best_timed(
-            base_colored_members, raw_records, kernel, n
-        )
-        base_colored_layouts = [
-            _timed_member(
-                member,
-                raw_records.get((kernel, n, str(member["word"]))),
+        reranker_plan = group["placement_reranker"]
+        assert isinstance(reranker_plan, dict)
+        reranked_members = reranker_plan["ranked"]
+        assert isinstance(reranked_members, list)
+        rerank_results = {}
+        for budget in reranker_plan["budgets"]:
+            selected_members = reranked_members[: int(budget)]
+            complete, best_ms, best_layouts = _best_timed(
+                selected_members, raw_records, kernel, n
             )
-            for member in base_colored_members
-        ]
+            rerank_results[str(budget)] = {
+                "budget": int(budget),
+                "selected_count": len(selected_members),
+                "complete": complete,
+                "best_time_ms": best_ms if complete else None,
+                "regret": (
+                    best_ms / oracle_best - 1.0
+                    if complete
+                    and best_ms is not None
+                    and oracle_best is not None
+                    else None
+                ),
+                "best_layouts": best_layouts if complete else [],
+                "layouts": [
+                    _timed_member(
+                        member,
+                        raw_records.get((kernel, n, str(member["word"]))),
+                    )
+                    for member in selected_members
+                ],
+            }
         selection_records = []
         for mechanism in group["selection_mechanisms"]:
             members = mechanism["members"]
@@ -1315,39 +1779,11 @@ def summary_records(
                     "top_observed_layouts": observed_top,
                 },
                 "flag_fiber": group["flag_fiber"],
-                "base_colored_frontier": {
-                    "definition": (
-                        f"exact Pareto frontier over {configuration['grammar']} flag "
-                        "representatives before fiber materialization"
-                    ),
-                    "objectives": group["frontier_objectives"],
-                    "size": len(base_colored_members),
-                    "complete": base_colored_complete,
-                    "best_time_ms": (
-                        base_colored_best if base_colored_complete else None
-                    ),
-                    "regret": (
-                        base_colored_best / oracle_best - 1.0
-                        if base_colored_complete
-                        and base_colored_best is not None
-                        and oracle_best is not None
-                        else None
-                    ),
-                    "best_layouts": (
-                        base_colored_best_layouts
-                        if base_colored_complete
-                        else []
-                    ),
-                    "layouts": base_colored_layouts,
-                },
                 "frontier": {
                     "definition": (
-                        "exact Pareto frontier over "
-                        "(Q_fine, J_peak, J_area, J_place) after sparse "
-                        "flag-fiber materialization"
-                        if group["flag_fiber"]["enabled"]
-                        else "exact Pareto frontier over "
-                        "(Q_fine, J_peak, J_area, J_place)"
+                        "exact locality frontier over "
+                        "(Q_fine, J_peak, J_area); J_place is not a "
+                        "dominance coordinate"
                     ),
                     "objectives": group["frontier_objectives"],
                     "size": len(frontier_members),
@@ -1386,6 +1822,29 @@ def summary_records(
                     ),
                     "layouts": locality_layouts,
                 },
+                "placement_reranker": {
+                    "definition": reranker_plan["definition"],
+                    "locality_shell_tolerance": reranker_plan[
+                        "locality_shell_tolerance"
+                    ],
+                    "placement_statistic": reranker_plan[
+                        "placement_statistic"
+                    ],
+                    "shell_count": reranker_plan["shell_count"],
+                    "bucket_winner_count": reranker_plan[
+                        "bucket_winner_count"
+                    ],
+                    "pool_count": reranker_plan["pool_count"],
+                    "regret_at_k": rerank_results,
+                },
+                "oracle_feature_audit": (
+                    _oracle_feature_audit(
+                        group,
+                        [str(layout["word"]) for layout in oracle_layouts],
+                    )
+                    if oracle_complete
+                    else None
+                ),
                 "selection_mechanisms": selection_records,
             }
         )
@@ -1403,12 +1862,11 @@ def _write_summaries(
 def _priority_words(group: Mapping[str, object]) -> list[str]:
     words = [str(member["word"]) for member in group["frontier"]]
     words.extend(
-        str(member["word"])
-        for member in group["base_colored_frontier"]
-    )
-    words.extend(
         str(member["word"]) for member in group["locality_frontier"]
     )
+    reranker = group["placement_reranker"]
+    assert isinstance(reranker, dict)
+    words.extend(str(member["word"]) for member in reranker["ranked"])
     for mechanism in group["selection_mechanisms"]:
         words.extend(str(member["word"]) for member in mechanism["members"])
     return list(dict.fromkeys(words))

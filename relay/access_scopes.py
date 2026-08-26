@@ -112,6 +112,24 @@ class ResourceCohort:
             raise ValueError("resource cohort weight must be finite and positive")
 
 
+@dataclass(frozen=True)
+class ResourceCohortOccurrence:
+    """One weighted translation of a shared resource-cohort shape."""
+
+    anchors: tuple[tuple[str, int], ...]
+    weight: float
+    source: str
+
+
+@dataclass(frozen=True)
+class ResourceCohortGroup:
+    """Translation-equivalent cohorts with every global phase retained."""
+
+    family: str
+    relative_bits: tuple[tuple[str, int], ...]
+    occurrences: tuple[ResourceCohortOccurrence, ...]
+
+
 def _parse_resource_cohort_family(name: str) -> tuple[int, str]:
     parts = name.split(".")
     if (
@@ -236,6 +254,66 @@ def compress_resource_cohorts(
             ),
         )
         for representative, weight, count in groups.values()
+    )
+
+
+def group_resource_cohorts_by_translation(
+    matrices: Mapping[str, MatrixSpec],
+    cohorts: Sequence[ResourceCohort],
+) -> tuple[ResourceCohortGroup, ...]:
+    """Share XOR-relative cohort shapes without discarding global phases.
+
+    Unlike :func:`compress_resource_cohorts`, this representation retains the
+    logical anchor of every occurrence. A linear layout maps those anchors to
+    the occurrence's resource-color translation, so one allocation phase can
+    still be applied consistently across the complete execution.
+    """
+
+    groups: dict[
+        tuple[tuple[str, tuple[int, ...]], ...],
+        tuple[str, tuple[tuple[str, int], ...], list[ResourceCohortOccurrence]],
+    ] = {}
+    for cohort in cohorts:
+        by_array: dict[str, set[int]] = {}
+        for access in cohort.accesses:
+            matrix = matrices.get(access.array)
+            if matrix is None:
+                raise ValueError(
+                    f"resource cohort {cohort.source}: unknown array "
+                    f"{access.array!r}"
+                )
+            by_array.setdefault(access.array, set()).add(
+                matrix.coord_to_bits(access.coord)
+            )
+        signature = []
+        anchors = []
+        relative_bits = []
+        for array, values_set in sorted(by_array.items()):
+            values = tuple(sorted(values_set))
+            anchor = values[0]
+            relative = tuple(sorted(value ^ anchor for value in values))
+            signature.append((array, relative))
+            anchors.append((array, anchor))
+            relative_bits.extend((array, bit_pattern) for bit_pattern in relative)
+        key = tuple(signature)
+        occurrence = ResourceCohortOccurrence(
+            tuple(anchors), cohort.weight, cohort.source
+        )
+        existing = groups.get(key)
+        if existing is None:
+            groups[key] = (
+                cohort.family,
+                tuple(relative_bits),
+                [occurrence],
+            )
+        else:
+            existing[2].append(occurrence)
+
+    return tuple(
+        ResourceCohortGroup(family, relative_bits, tuple(occurrences))
+        for _key, (family, relative_bits, occurrences) in sorted(
+            groups.items()
+        )
     )
 
 
