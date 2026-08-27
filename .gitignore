@@ -8,3 +8,6 @@ __pycache__/
 
 *.o
 a.out
+
+# Large generated persistence audit plan
+results/standard_persistence_feature_audit_mi300a.plan.json
