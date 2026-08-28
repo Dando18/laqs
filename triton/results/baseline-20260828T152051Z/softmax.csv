@@ -1,0 +1,3 @@
+(M, N);naive_softmax-latency;naive_softmax-gbps;triton_softmax-latency;triton_softmax-speedup;triton_softmax-gbps;triton_softmax-accuracy
+(4096, 1024);0.020080000162124634;835.518718353677;0.01348000019788742;1.4896142334828424;1244.6005752009794;1.0
+average;;835.518718353677;;1.4896142334828424;1244.6005752009794;1.0

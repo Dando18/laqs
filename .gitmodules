@@ -1,0 +1,8 @@
+[submodule "triton/triton-lang"]
+	path = triton/triton-lang
+	url = https://github.com/triton-lang/triton.git
+	shallow = true
+[submodule "triton/tritonbench"]
+	path = triton/tritonbench
+	url = https://github.com/meta-pytorch/tritonbench.git
+	shallow = true

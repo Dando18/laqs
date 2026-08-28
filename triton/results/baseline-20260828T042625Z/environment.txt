@@ -1,0 +1,32 @@
+timestamp_utc=20260828T042625Z
+hostname=tuolumne1015
+flux_job_id=f3UqCCTQ5ayV
+rocm_module=rocm/7.2.1
+rocm_path=/opt/rocm-7.2.1
+rocr_visible_devices=0,1,2,3
+triton_commit=b1233aa326fa485b08de8593da2d08cb853c346b
+tritonbench_commit=1c3fed689fc4fcb589193514d753ebc4412eb44f
+
+
+Currently Loaded Modules:
+  1) craype-x86-trento        8) xpmem/2.6.5
+  2) libfabric/match_SHS      9) StdEnv              (S)
+  3) craype-network-ofi      10) cce/20.0.0
+  4) perftools-base/25.09.0  11) cray-libsci/25.09.0
+  5) craype/2.7.35           12) cray-mpich/9.0.1
+  6) PrgEnv-cray/8.7.0       13) rocm/7.2.1
+  7) flux_wrappers/0.1
+
+  Where:
+   S:  Module is Sticky, requires --force to unload or purge
+
+ 
+
+
+python=3.12.13
+torch=2.15.0.dev20260827+rocm7.2
+torch.version.hip=7.2.53211
+triton.path=None
+gpu_available=True
+gpu_name=AMD Instinct MI300A
+gpu_count=4
