@@ -202,3 +202,177 @@ def compiled_codegen_statistics(compiled) -> dict[str, object]:
         "opcode_counts": dict(sorted(opcodes.items())),
         "ir": ir_statistics,
     }
+
+
+def execution_layout_from_compiled(compiled, shape, names):
+    from relay import TritonLinearLayout, extract_blocked_layout
+    from triton.tools import LinearLayout as NativeLinearLayout
+
+    blocked = extract_blocked_layout(compiled.asm["ttgir"])
+    extracted = TritonLinearLayout.from_blocked(
+        shape,
+        size_per_thread=blocked.size_per_thread,
+        threads_per_warp=blocked.threads_per_warp,
+        warps_per_cta=blocked.warps_per_cta,
+        order=blocked.order,
+        output_dim_names=names,
+    )
+    native = NativeLinearLayout.from_bases(
+        extracted.bases,
+        [name for name, _ in extracted.out_dims],
+        [size for _, size in extracted.out_dims],
+    )
+    return blocked, TritonLinearLayout.from_triton(native)
+
+
+def execution_layout_record(blocked, execution) -> dict[str, object]:
+    return {
+        "blocked": {name: list(values) for name, values in blocked.as_dict().items()},
+        "input_sizes": {
+            name: execution.input_size(name) for name in execution.input_dims
+        },
+        "output_shape": list(execution.output_shape),
+        "bases": {
+            name: [list(basis) for basis in bases]
+            for name, bases in execution.bases
+        },
+    }
+
+
+def issue_events(
+    execution,
+    matrix,
+    *,
+    prefix: str,
+    site: str,
+    weight: float,
+    coordinate_map,
+):
+    from relay import induce_memory_event
+
+    events = []
+    register_count = execution.input_size("register")
+    warp_count = execution.input_size("warp")
+    for warp in range(warp_count):
+        for register in range(register_count):
+            locations = execution.locations(
+                fixed={"register": register, "warp": warp, "block": 0}
+            )
+            events.append(
+                induce_memory_event(
+                    execution,
+                    matrix,
+                    locations,
+                    id=f"{prefix}.w{warp}.r{register}",
+                    site=site,
+                    weight=weight,
+                    coordinate_map=coordinate_map,
+                )
+            )
+    return tuple(events)
+
+
+def solve_layouts(matrices, events, args, name):
+    from relay import (
+        ScorePolicy,
+        SolverConfig,
+        execution_conditioned_quotient_problem,
+        solve,
+    )
+
+    objective = f"{name}.issue.{args.transaction_bytes}B"
+    targets = tuple(matrix for matrix in matrices if matrix.target)
+    problem = execution_conditioned_quotient_problem(
+        matrices,
+        events,
+        transaction_bytes=args.transaction_bytes,
+        objective_name=objective,
+        config=SolverConfig(
+            policy=ScorePolicy("lexicographic", (objective, "runs", "xors")),
+            tile_shapes={matrix.name: (matrix.shape,) for matrix in targets},
+            general_tile_shapes={matrix.name: () for matrix in targets},
+            include_global_canonical=False,
+            enable_linear_inner=False,
+            canonical_candidates_per_tile=args.candidates,
+            primary_tolerance=0.0,
+            per_array_candidates=max(args.candidates, 4),
+            joint_candidates=max(args.candidates, 4),
+        ),
+        name=name,
+    )
+    return objective, problem, solve(problem)
+
+
+def array_result_record(matrix, result, component, objective):
+    from relay import row_major_layout, weighted_component_region_count
+
+    default = row_major_layout(matrix)
+    default_rows = layout_rows(default, matrix)
+    default_score = weighted_component_region_count(matrix, default, component)
+    candidates = []
+    for rank, candidate in enumerate(result.arrays[matrix.name].candidates, start=1):
+        layout = candidate.layout
+        candidates.append(
+            {
+                "solver_rank": rank,
+                "layout": layout.name,
+                "word": layout.word_string(matrix),
+                "a_rows": list(layout_rows(layout, matrix)),
+                "quotient_score": float(candidate.scores[objective]),
+                "packing_bound": float(candidate.packing_bounds[objective]),
+                "runs": layout.runs,
+                "xor_count": layout.xor_count,
+                "exact": candidate.exact,
+            }
+        )
+    best = candidates[0]
+    return {
+        "default": {
+            "layout": default.name,
+            "word": default.word_string(matrix),
+            "a_rows": list(default_rows),
+            "quotient_score": default_score,
+        },
+        "selected": best,
+        "predicted_transaction_reduction": 1.0
+        - float(best["quotient_score"]) / default_score,
+        "retained_candidates": candidates,
+        "solver": {
+            "realized_candidate_count": result.arrays[
+                matrix.name
+            ].all_candidate_count,
+            "retained_candidate_count": len(candidates),
+        },
+    }
+
+
+def measure_variants(launches, validators, args):
+    compiled = {label: launch() for label, launch in launches.items()}
+    torch.cuda.synchronize()
+    for validate in validators.values():
+        validate()
+    timings = benchmark_layouts(
+        launches,
+        samples=args.samples,
+        iterations=args.iterations,
+        warmup=args.warmup,
+    )
+    return {
+        label: {
+            "timing": timings[label],
+            "compiled_codegen": compiled_codegen_statistics(compiled[label]),
+        }
+        for label in launches
+    }
+
+
+def require_aligned(label: str, tensor: torch.Tensor, transaction_bytes: int):
+    if tensor.data_ptr() % transaction_bytes:
+        raise ValueError(f"{label} allocation is not transaction-aligned")
+
+
+def require_power_of_two_multiple(label: str, value: int, multiple: int):
+    if value < multiple or value % multiple:
+        raise ValueError(f"{label} must be a multiple of {multiple}")
+    if value & (value - 1):
+        raise ValueError(f"{label} must be a power of two")

@@ -1,0 +1,6 @@
+# Stage 1.5 GEMM counter passes. rocprof reruns the target for each line.
+pmc : TCP_TCC_READ_REQ_sum TCC_REQ_sum TCC_HIT_sum TCC_MISS_sum
+pmc : FETCH_SIZE WRITE_SIZE
+pmc : MemUnitStalled TCP_TCP_TA_DATA_STALL_CYCLES_sum
+pmc : MfmaUtil TOTAL_16_OPS
+kernel: gemm_prepacked_b_kernel

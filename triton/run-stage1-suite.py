@@ -11,313 +11,29 @@ import sys
 
 import torch
 import triton
-import triton.language as tl
-from triton.tools import LinearLayout as NativeLinearLayout
 
 from stage1_common import (
-    benchmark_layouts,
-    compiled_codegen_statistics,
+    array_result_record,
+    execution_layout_from_compiled,
+    execution_layout_record,
+    issue_events,
     layout_rows,
+    measure_variants,
     pack_tensor,
     positive_integer,
+    require_aligned,
+    require_power_of_two_multiple,
+    solve_layouts,
     validate_output,
 )
-
-
-WAVE_SIZE = 64
-TILE_SIZE = 32
-
-
-@triton.jit
-def linear_offset(first, second, A_ROWS: tl.constexpr, FIRST_BITS: tl.constexpr):
-    logical = first | (second << FIRST_BITS)
-    physical = logical ^ logical
-    for physical_bit in tl.static_range(len(A_ROWS)):
-        selected = logical & A_ROWS[physical_bit]
-        selected ^= selected >> 16
-        selected ^= selected >> 8
-        selected ^= selected >> 4
-        selected ^= selected >> 2
-        selected ^= selected >> 1
-        physical |= (selected & 1) << physical_bit
-    return physical
-
-
-@triton.jit
-def linear_offset_1d(index, A_ROWS: tl.constexpr):
-    physical = index ^ index
-    for physical_bit in tl.static_range(len(A_ROWS)):
-        selected = index & A_ROWS[physical_bit]
-        selected ^= selected >> 16
-        selected ^= selected >> 8
-        selected ^= selected >> 4
-        selected ^= selected >> 2
-        selected ^= selected >> 1
-        physical |= (selected & 1) << physical_bit
-    return physical
-
-
-@triton.jit
-def vector_add_kernel(
-    x,
-    y,
-    output,
-    X_ROWS: tl.constexpr,
-    N: tl.constexpr,
-    BLOCK: tl.constexpr,
-):
-    offsets = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
-    physical_x = linear_offset_1d(offsets, X_ROWS)
-    tl.store(output + offsets, tl.load(x + physical_x) + tl.load(y + offsets))
-
-
-@triton.jit
-def tiled_sum_kernel(
-    source,
-    output,
-    A_ROWS: tl.constexpr,
-    MODE_BITS: tl.constexpr,
-    N: tl.constexpr,
-    BLOCK_M: tl.constexpr,
-    BLOCK_N: tl.constexpr,
-):
-    program = tl.program_id(0)
-    tiles_n = N // BLOCK_N
-    tile_m = program // tiles_n
-    tile_n = program % tiles_n
-    rows = tile_m * BLOCK_M + tl.arange(0, BLOCK_M)[:, None]
-    columns = tile_n * BLOCK_N + tl.arange(0, BLOCK_N)[None, :]
-    offsets = linear_offset(rows, columns, A_ROWS, MODE_BITS)
-    values = tl.load(source + offsets)
-    row_sums = tl.sum(values, axis=1)
-    tl.store(output + program, tl.sum(row_sums, axis=0))
-
-
-@triton.jit
-def gesummv_kernel(
-    a,
-    b,
-    x,
-    output,
-    A_ROWS: tl.constexpr,
-    B_ROWS: tl.constexpr,
-    MODE_BITS: tl.constexpr,
-    N: tl.constexpr,
-    BLOCK: tl.constexpr,
-    ALPHA: tl.constexpr,
-    BETA: tl.constexpr,
-):
-    rows = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
-    sum_a = tl.zeros((BLOCK,), tl.float32)
-    sum_b = tl.zeros((BLOCK,), tl.float32)
-    for column in tl.range(0, N):
-        x_value = tl.load(x + column)
-        a_offsets = linear_offset(rows, column, A_ROWS, MODE_BITS)
-        b_offsets = linear_offset(rows, column, B_ROWS, MODE_BITS)
-        sum_a += tl.load(a + a_offsets) * x_value
-        sum_b += tl.load(b + b_offsets) * x_value
-    tl.store(output + rows, ALPHA * sum_a + BETA * sum_b)
-
-
-@triton.jit
-def gemm_prepacked_b_kernel(
-    a,
-    b,
-    c,
-    B_ROWS: tl.constexpr,
-    MODE_BITS: tl.constexpr,
-    N: tl.constexpr,
-    BLOCK_M: tl.constexpr,
-    BLOCK_N: tl.constexpr,
-    BLOCK_K: tl.constexpr,
-):
-    program_m = tl.program_id(0)
-    program_n = tl.program_id(1)
-    rows = program_m * BLOCK_M + tl.arange(0, BLOCK_M)
-    columns = program_n * BLOCK_N + tl.arange(0, BLOCK_N)
-    k_offsets = tl.arange(0, BLOCK_K)
-    accumulator = tl.zeros((BLOCK_M, BLOCK_N), tl.float32)
-    for k_base in tl.range(0, N, BLOCK_K):
-        k = k_base + k_offsets
-        a_tile = tl.load(a + rows[:, None] * N + k[None, :])
-        b_offsets = linear_offset(
-            k[:, None], columns[None, :], B_ROWS, MODE_BITS
-        )
-        b_tile = tl.load(b + b_offsets)
-        accumulator = tl.dot(a_tile, b_tile, accumulator)
-    c_offsets = rows[:, None] * N + columns[None, :]
-    tl.store(c + c_offsets, accumulator)
-
-
-def execution_layout_from_compiled(compiled, shape, names):
-    from relay import TritonLinearLayout, extract_blocked_layout
-
-    blocked = extract_blocked_layout(compiled.asm["ttgir"])
-    extracted = TritonLinearLayout.from_blocked(
-        shape,
-        size_per_thread=blocked.size_per_thread,
-        threads_per_warp=blocked.threads_per_warp,
-        warps_per_cta=blocked.warps_per_cta,
-        order=blocked.order,
-        output_dim_names=names,
-    )
-    native = NativeLinearLayout.from_bases(
-        extracted.bases,
-        [name for name, _ in extracted.out_dims],
-        [size for _, size in extracted.out_dims],
-    )
-    return blocked, TritonLinearLayout.from_triton(native)
-
-
-def execution_layout_record(blocked, execution) -> dict[str, object]:
-    return {
-        "blocked": {name: list(values) for name, values in blocked.as_dict().items()},
-        "input_sizes": {
-            name: execution.input_size(name) for name in execution.input_dims
-        },
-        "output_shape": list(execution.output_shape),
-        "bases": {
-            name: [list(basis) for basis in bases]
-            for name, bases in execution.bases
-        },
-    }
-
-
-def issue_events(
-    execution,
-    matrix,
-    *,
-    prefix: str,
-    site: str,
-    weight: float,
-    coordinate_map,
-):
-    from relay import induce_memory_event
-
-    events = []
-    register_count = execution.input_size("register")
-    warp_count = execution.input_size("warp")
-    for warp in range(warp_count):
-        for register in range(register_count):
-            locations = execution.locations(
-                fixed={"register": register, "warp": warp, "block": 0}
-            )
-            events.append(
-                induce_memory_event(
-                    execution,
-                    matrix,
-                    locations,
-                    id=f"{prefix}.w{warp}.r{register}",
-                    site=site,
-                    weight=weight,
-                    coordinate_map=coordinate_map,
-                )
-            )
-    return tuple(events)
-
-
-def solve_layouts(matrices, events, args, name):
-    from relay import (
-        ScorePolicy,
-        SolverConfig,
-        execution_conditioned_quotient_problem,
-        solve,
-    )
-
-    objective = f"{name}.issue.{args.transaction_bytes}B"
-    targets = tuple(matrix for matrix in matrices if matrix.target)
-    problem = execution_conditioned_quotient_problem(
-        matrices,
-        events,
-        transaction_bytes=args.transaction_bytes,
-        objective_name=objective,
-        config=SolverConfig(
-            policy=ScorePolicy("lexicographic", (objective, "runs", "xors")),
-            tile_shapes={matrix.name: (matrix.shape,) for matrix in targets},
-            general_tile_shapes={matrix.name: () for matrix in targets},
-            include_global_canonical=False,
-            enable_linear_inner=False,
-            canonical_candidates_per_tile=args.candidates,
-            primary_tolerance=0.0,
-            per_array_candidates=max(args.candidates, 4),
-            joint_candidates=max(args.candidates, 4),
-        ),
-        name=name,
-    )
-    return objective, problem, solve(problem)
-
-
-def array_result_record(matrix, result, component, objective):
-    from relay import row_major_layout, weighted_component_region_count
-
-    default = row_major_layout(matrix)
-    default_rows = layout_rows(default, matrix)
-    default_score = weighted_component_region_count(matrix, default, component)
-    candidates = []
-    for rank, candidate in enumerate(result.arrays[matrix.name].candidates, start=1):
-        layout = candidate.layout
-        candidates.append(
-            {
-                "solver_rank": rank,
-                "layout": layout.name,
-                "word": layout.word_string(matrix),
-                "a_rows": list(layout_rows(layout, matrix)),
-                "quotient_score": float(candidate.scores[objective]),
-                "packing_bound": float(candidate.packing_bounds[objective]),
-                "runs": layout.runs,
-                "xor_count": layout.xor_count,
-                "exact": candidate.exact,
-            }
-        )
-    best = candidates[0]
-    return {
-        "default": {
-            "layout": default.name,
-            "word": default.word_string(matrix),
-            "a_rows": list(default_rows),
-            "quotient_score": default_score,
-        },
-        "selected": best,
-        "predicted_transaction_reduction": 1.0
-        - float(best["quotient_score"]) / default_score,
-        "retained_candidates": candidates,
-        "solver": {
-            "realized_candidate_count": result.arrays[matrix.name].all_candidate_count,
-            "retained_candidate_count": len(candidates),
-        },
-    }
-
-
-def measure_variants(launches, validators, args):
-    compiled = {label: launch() for label, launch in launches.items()}
-    torch.cuda.synchronize()
-    for label, validate in validators.items():
-        validate()
-    timings = benchmark_layouts(
-        launches,
-        samples=args.samples,
-        iterations=args.iterations,
-        warmup=args.warmup,
-    )
-    return {
-        label: {
-            "timing": timings[label],
-            "compiled_codegen": compiled_codegen_statistics(compiled[label]),
-        }
-        for label in launches
-    }
-
-
-def require_aligned(label: str, tensor: torch.Tensor, transaction_bytes: int):
-    if tensor.data_ptr() % transaction_bytes:
-        raise ValueError(f"{label} allocation is not transaction-aligned")
-
-
-def require_power_of_two_multiple(label: str, value: int, multiple: int):
-    if value < multiple or value % multiple:
-        raise ValueError(f"{label} must be a multiple of {multiple}")
-    if value & (value - 1):
-        raise ValueError(f"{label} must be a power of two")
+from stage1_kernels import (
+    TILE_SIZE,
+    WAVE_SIZE,
+    gemm_prepacked_b_kernel,
+    gesummv_kernel,
+    tiled_sum_kernel,
+    vector_add_kernel,
+)
 
 
 def contiguous_control(args):
@@ -534,9 +250,12 @@ def gesummv(args):
     logical_b = (((i * 11 + j * 19) % 103) - 51).to(torch.float32) / 103
     x = (((torch.arange(n) * 7 % 37) - 18).to(torch.float32) / 37)
     reference = alpha * (logical_a @ x) + beta * (logical_b @ x)
-    defaults = {name: row_major_layout(matrix) for name, matrix in matrix_by_name.items()}
+    defaults = {
+        name: row_major_layout(matrix) for name, matrix in matrix_by_name.items()
+    }
     default_rows = {
-        name: layout_rows(defaults[name], matrix) for name, matrix in matrix_by_name.items()
+        name: layout_rows(defaults[name], matrix)
+        for name, matrix in matrix_by_name.items()
     }
     default_sources = {
         "A": pack_tensor(logical_a, default_rows["A"]).to("cuda"),

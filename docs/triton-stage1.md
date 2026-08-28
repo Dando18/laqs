@@ -157,6 +157,63 @@ The default suite uses 21 samples, 50 launches per sample, and 10 warmup rounds.
 Its aggregate is the median of the per-process medians, while retaining all raw
 process samples and codegen statistics.
 
+## Stage 1.5: complete GEMM ranking
+
+`triton/run-stage15-gemm.py` reuses the suite's exact fixed GEMM kernel and
+execution-layout helpers but compiles, validates, and benchmarks all eight
+retained B layouts. `triton/run-stage15-gemm-sweep.py` repeats that worker in
+fresh processes, aggregates candidates by stable layout identity, recomputes
+rank quality from the median of process medians, and can profile the default
+and selected mappings in isolation.
+
+Keep the timing and counter portions in separate five-minute allocations:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --process-launches 3 \
+  --json triton/results/stage15-gemm-ranking.json --quiet
+
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --ranking-json triton/results/stage15-gemm-ranking.json \
+  --profile --json triton/results/stage15-gemm.json --quiet
+```
+
+The counter configuration uses four replay passes because gfx942 cannot
+schedule all of the required counter blocks at once. It reports:
+
+- TCP-to-TCC read requests, which are the closest measured analogue of
+  coalesced load transactions in the quotient model;
+- L2 tag requests, hits, misses, and hit rate;
+- HBM read/write bytes and achieved bandwidth;
+- memory-unit stall percentage and aggregate stall cycles; and
+- MFMA utilization, profiler-derived FP16 operation count, and achieved TOPS.
+
+Only the final steady-state dispatches after explicit warmups are aggregated.
+The counters cover the whole GEMM, not B alone. Since A, C, the launch shape,
+and the kernel configuration are held fixed, request-count differences are
+attributable to B. The JSON also includes an explicitly labeled decomposition
+that infers the fixed and B request streams under the quotient score's B ratio.
+
+On the current MI300A run, the selected
+`nnnkkkkkkkkknnnnnn` layout is fastest across the aggregate and in each of the
+three process launches. Top-1 and top-3 regret are both zero, and tie-aware
+Spearman correlation is 0.756. The six score-262,144 candidates span 1.11% in
+runtime. Whole-kernel TCP-to-TCC read requests fall 30.37%; the inferred B
+stream falls exactly 50%, from 123,168 to 61,584 requests. L2 misses remain
+45,216 and HBM read bytes change by only 0.016%. This is evidence that Stage 1
+correctly removes B request redundancy, but that the redundant requests were
+L2 hits rather than HBM traffic. The equal-score runtime spread remains useful
+motivation for realization-aware work, but GEMM does not show that the Stage 1
+quotient ranking itself needs repair.
+
+ROCm 7.2's `rocprofv3` currently aborts while profiling this PyTorch/Triton
+process during late HIP registration. The driver therefore defaults to the
+available ROCm 7.0.2 `rocprof` counter collector; `--rocprof` and
+`--profile-config` make that choice explicit and replaceable. The profiler path
+and configuration are recorded in the result.
+
 ## Current scope
 
 This experiment deliberately fixes the compute/distributed layout and changes

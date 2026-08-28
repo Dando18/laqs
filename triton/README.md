@@ -152,6 +152,29 @@ The worker can also be run directly for compilation or correctness probes with
 `triton/run-stage1-suite.py`. Packing, reference construction, compilation, and
 validation are excluded from every timing interval.
 
+## Complete the Stage 1.5 GEMM ranking
+
+Stage 1.5 benchmarks all eight retained B layouts for the fixed GEMM and then
+profiles the default and LAQS-selected layouts. Run timing and counter
+collection separately so both jobs remain below the five-minute limit:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --process-launches 3 \
+  --json triton/results/stage15-gemm-ranking.json --quiet
+
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --ranking-json triton/results/stage15-gemm-ranking.json \
+  --profile --json triton/results/stage15-gemm.json --quiet
+```
+
+The result contains raw timing samples and full codegen statistics for every
+candidate, aggregate top-1/top-3 regret and rank correlation, and 20 raw
+steady-state counter dispatches for each profiled layout. Counter collection
+uses the four-pass configuration in `triton/rocprof-stage15.txt`.
+
 ## Collect the initial baseline
 
 Submit one task on one GPU for at most five minutes:
