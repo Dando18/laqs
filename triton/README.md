@@ -72,6 +72,21 @@ uv uses copy mode by default in this script because its cache and the workspace
 may not support hardlinks across their mount points. Override this with
 `RELAY_TRITON_UV_LINK_MODE` if needed.
 
+## Validate the induced RELAY hypergraph
+
+The stage-0 probe checks that a compiled one-wave Triton tile load and RELAY's
+copy of its LinearLayout agree on lane ownership, logical coordinates, byte
+offsets, transaction grouping, and quotient count:
+
+```bash
+module load rocm/7.2.1
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/validate-induced-hypergraph.py
+```
+
+See [Triton integration stage 0](../docs/triton-stage0.md) for the validation
+contract, library API, and current scope.
+
 ## Collect the initial baseline
 
 Submit one task on one GPU for at most five minutes:
