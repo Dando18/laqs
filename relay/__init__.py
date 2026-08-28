@@ -102,18 +102,22 @@ from .simple_solver import (
     simple_solve,
 )
 from .triton import (
+    BlockedLayoutParameters,
     HardwareLocation,
     HypergraphValidation,
     InducedMemoryEvent,
     ObservedAccess,
     TritonLinearLayout,
     ValidationMismatch,
+    execution_conditioned_quotient_problem,
+    extract_blocked_layout,
     induce_memory_event,
     validate_induced_hypergraph,
 )
 
 __all__ = [
     "Access",
+    "BlockedLayoutParameters",
     "AffineAccessLayout",
     "ArrayComponentScore",
     "ArrayCodegenCost",
@@ -160,6 +164,8 @@ __all__ = [
     "MI300A_V1",
     "MemoryEvent",
     "dynamic_useful_bytes",
+    "execution_conditioned_quotient_problem",
+    "extract_blocked_layout",
     "get_hardware_profile",
     "group_resource_cohorts_by_translation",
     "induce_memory_event",

@@ -87,6 +87,23 @@ flux run -n1 -g1 -t 5m -q pdebug \
 See [Triton integration stage 0](../docs/triton-stage0.md) for the validation
 contract, library API, and current scope.
 
+## Solve the execution-conditioned quotient problem
+
+The Stage 1 experiment extracts the compiled one-wave layout for a symmetric
+row/column load, induces the exact RELAY hyperedges, solves for the best
+canonical quotient-locality layout, and correctness-checks and times that
+prepacked layout against Triton's default row-major matrix:
+
+```bash
+module load rocm/7.2.1
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1.py \
+  --json triton/results/stage1.json
+```
+
+See [Triton integration stage 1](../docs/triton-stage1.md) for the objective,
+experiment controls, JSON contents, and boundary with the later fiber search.
+
 ## Collect the initial baseline
 
 Submit one task on one GPU for at most five minutes:

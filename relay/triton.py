@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import product
-from typing import Iterable, Mapping, Protocol, Sequence
+import re
+from typing import TYPE_CHECKING, Callable, Iterable, Mapping, Protocol, Sequence
 
 from .layouts import Layout
 from .model import (
@@ -18,6 +19,9 @@ from .model import (
 from .objectives import Hyperedge
 from .scoring import transaction_region_ids
 
+if TYPE_CHECKING:
+    from .solver import RelayProblem, SolverConfig
+
 
 class TritonLinearLayoutLike(Protocol):
     """The part of Triton's Python LinearLayout binding that RELAY uses."""
@@ -27,6 +31,49 @@ class TritonLinearLayoutLike(Protocol):
 
     @property
     def out_dims(self) -> Sequence[tuple[str, int]]: ...
+
+
+@dataclass(frozen=True)
+class BlockedLayoutParameters:
+    """The hardware factors of one compiled Triton blocked encoding."""
+
+    size_per_thread: tuple[int, ...]
+    threads_per_warp: tuple[int, ...]
+    warps_per_cta: tuple[int, ...]
+    order: tuple[int, ...]
+
+    def as_dict(self) -> dict[str, tuple[int, ...]]:
+        return {
+            "sizePerThread": self.size_per_thread,
+            "threadsPerWarp": self.threads_per_warp,
+            "warpsPerCTA": self.warps_per_cta,
+            "order": self.order,
+        }
+
+
+def _parse_int_list(body: str, field: str) -> tuple[int, ...]:
+    match = re.search(rf"\b{field}\s*=\s*\[([^]]*)\]", body)
+    if match is None:
+        raise ValueError(f"compiled blocked layout has no {field}")
+    values = match.group(1).strip()
+    return tuple(
+        int(value.strip()) for value in values.split(",") if value.strip()
+    )
+
+
+def extract_blocked_layout(ttgir: str) -> BlockedLayoutParameters:
+    """Extract the named ``#blocked`` encoding from compiled TTGIR text."""
+
+    match = re.search(r"#blocked\s*=\s*#ttg\.blocked<\{([^}]+)\}>", ttgir)
+    if match is None:
+        raise ValueError("compiled Triton module does not contain #blocked")
+    body = match.group(1)
+    return BlockedLayoutParameters(
+        size_per_thread=_parse_int_list(body, "sizePerThread"),
+        threads_per_warp=_parse_int_list(body, "threadsPerWarp"),
+        warps_per_cta=_parse_int_list(body, "warpsPerCTA"),
+        order=_parse_int_list(body, "order"),
+    )
 
 
 @dataclass(frozen=True, order=True)
@@ -309,10 +356,16 @@ def induce_memory_event(
     order: int = 0,
     weight: float = 1.0,
     lane_dimension: str = "lane",
+    coordinate_map: Callable[[Coord], Coord] | None = None,
 ) -> InducedMemoryEvent:
-    """Map one hardware issue cohort through ``L`` into a RELAY event."""
+    """Map one hardware issue cohort through ``L`` into a RELAY event.
 
-    if execution_layout.output_shape != matrix.shape:
+    ``coordinate_map`` composes a tensor-local Triton result with the pointer
+    expression that embeds it in an array. Without it, the LinearLayout output
+    is itself the array coordinate.
+    """
+
+    if coordinate_map is None and execution_layout.output_shape != matrix.shape:
         raise ValueError(
             "Triton output shape does not match the matrix: "
             f"{execution_layout.output_shape} != {matrix.shape}"
@@ -323,7 +376,12 @@ def induce_memory_event(
 
     accesses: list[Access] = []
     for location in cohort:
-        coord = execution_layout.apply(location)
+        tensor_coord = execution_layout.apply(location)
+        coord = (
+            tensor_coord
+            if coordinate_map is None
+            else tuple(coordinate_map(tensor_coord))
+        )
         matrix.validate_coord(coord)
         try:
             lane = location.value(lane_dimension)
@@ -349,6 +407,76 @@ def induce_memory_event(
             metadata={"provenance": "triton-linear-layout"},
         ),
         cohort,
+    )
+
+
+def execution_conditioned_quotient_problem(
+    matrices: Iterable[MatrixSpec],
+    induced_events: Iterable[InducedMemoryEvent],
+    *,
+    transaction_bytes: int,
+    config: "SolverConfig | None" = None,
+    objective_name: str | None = None,
+    name: str = "triton_execution_conditioned_quotient",
+) -> "RelayProblem":
+    """Build Stage 1's quotient-locality problem from induced issue cohorts."""
+
+    from .objectives import ExplicitRegions
+    from .solver import RelayProblem, SolverConfig
+
+    matrix_items = tuple(matrices)
+    matrix_by_name = {matrix.name: matrix for matrix in matrix_items}
+    if not matrix_items:
+        raise ValueError("an execution-conditioned problem needs a matrix")
+    if len(matrix_by_name) != len(matrix_items):
+        raise ValueError("execution-conditioned matrix names must be unique")
+    if not any(matrix.target for matrix in matrix_items):
+        raise ValueError("an execution-conditioned problem needs a target matrix")
+    if transaction_bytes <= 0 or not is_power_of_two(transaction_bytes):
+        raise ValueError("transaction_bytes must be a positive power of two")
+    for matrix in matrix_items:
+        if transaction_bytes % matrix.element_bytes:
+            raise ValueError(
+                f"{matrix.name}: transaction_bytes must be divisible by "
+                "element_bytes"
+            )
+
+    event_items = tuple(induced_events)
+    if not event_items:
+        raise ValueError("an execution-conditioned problem needs an induced event")
+    events: list[MemoryEvent] = []
+    edges: dict[str, list[Hyperedge]] = {}
+    for induced in event_items:
+        arrays = {access.array for access in induced.event.accesses}
+        if len(arrays) != 1:
+            raise ValueError(
+                f"induced event {induced.event.id} must access exactly one array"
+            )
+        array = next(iter(arrays))
+        if array not in matrix_by_name:
+            raise ValueError(
+                f"induced event {induced.event.id}: unknown array {array}"
+            )
+        events.append(induced.event)
+        edges.setdefault(array, []).append(induced.hyperedge)
+
+    component_name = objective_name or f"triton.issue.{transaction_bytes}B"
+    objective = ExplicitRegions(
+        component_name,
+        transaction_bytes,
+        {array: tuple(items) for array, items in edges.items()},
+        provenance="triton-linear-layout",
+        description=(
+            "Exact hardware issue cohorts induced by Triton LinearLayouts"
+        ),
+    )
+    return RelayProblem(
+        matrices=matrix_items,
+        events=tuple(events),
+        sequences=(),
+        objectives=(objective,),
+        config=config or SolverConfig(),
+        name=name,
     )
 
 

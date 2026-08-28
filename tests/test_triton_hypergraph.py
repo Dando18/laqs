@@ -3,17 +3,35 @@ from __future__ import annotations
 import unittest
 
 from relay import (
+    BlockedLayoutParameters,
     HardwareLocation,
     MatrixSpec,
     ObservedAccess,
+    ScorePolicy,
+    SolverConfig,
     TritonLinearLayout,
+    execution_conditioned_quotient_problem,
+    extract_blocked_layout,
     induce_memory_event,
     row_major_layout,
+    solve,
     validate_induced_hypergraph,
+    weighted_component_region_count,
 )
 
 
 class TritonLinearLayoutTests(unittest.TestCase):
+    def test_compiled_blocked_layout_parameters_are_extracted(self) -> None:
+        ttgir = """
+        #blocked = #ttg.blocked<{sizePerThread = [1],
+          threadsPerWarp = [64], warpsPerCTA = [1], order = [0]}>
+        """
+
+        self.assertEqual(
+            extract_blocked_layout(ttgir),
+            BlockedLayoutParameters((1,), (64,), (1,), (0,)),
+        )
+
     def test_apply_matches_tritons_swizzled_header_example(self) -> None:
         layout = TritonLinearLayout.from_bases(
             (
@@ -245,6 +263,82 @@ class InducedHypergraphValidationTests(unittest.TestCase):
             [access.lane for access in induced.event.accesses],
             [0, 1, 2, 3, 0, 1, 2, 3],
         )
+
+
+class ExecutionConditionedQuotientTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.matrix = MatrixSpec("A", (8, 8), 4, ("i", "j"))
+        self.execution_layout = one_wave_layout()
+        self.locations = self.execution_layout.locations(
+            fixed={"register": 0, "warp": 0, "block": 0}
+        )
+
+    def induced_events(self):
+        return (
+            induce_memory_event(
+                self.execution_layout,
+                self.matrix,
+                self.locations,
+                id="row.load",
+                site="symmetric_sum.row",
+                coordinate_map=lambda coord: (0, coord[0]),
+            ),
+            induce_memory_event(
+                self.execution_layout,
+                self.matrix,
+                self.locations,
+                id="column.load",
+                site="symmetric_sum.column",
+                coordinate_map=lambda coord: (coord[0], 0),
+            ),
+        )
+
+    def test_coordinate_map_embeds_tensor_layout_in_matrix(self) -> None:
+        row, column = self.induced_events()
+
+        self.assertEqual(
+            row.hyperedge.points,
+            tuple((0, lane) for lane in range(8)),
+        )
+        self.assertEqual(
+            column.hyperedge.points,
+            tuple((lane, 0) for lane in range(8)),
+        )
+
+    def test_stage1_problem_finds_a_better_quotient_flag(self) -> None:
+        objective_name = "triton.issue.16B"
+        problem = execution_conditioned_quotient_problem(
+            (self.matrix,),
+            self.induced_events(),
+            transaction_bytes=16,
+            objective_name=objective_name,
+            config=SolverConfig(
+                policy=ScorePolicy(
+                    "lexicographic", (objective_name, "runs", "xors")
+                ),
+                tile_shapes={"A": ((8, 8),)},
+                general_tile_shapes={"A": ()},
+                include_global_canonical=False,
+                enable_linear_inner=False,
+                canonical_candidates_per_tile=4,
+                primary_tolerance=0.0,
+                per_array_candidates=8,
+            ),
+        )
+
+        result = solve(problem)
+        component = result.components[0]
+        default_score = weighted_component_region_count(
+            self.matrix,
+            row_major_layout(self.matrix),
+            component,
+        )
+        best = result.arrays["A"].candidates[0]
+
+        self.assertEqual(component.provenance, "triton-linear-layout")
+        self.assertEqual(default_score, 10)
+        self.assertEqual(best.scores[objective_name], 8)
+        self.assertLess(best.scores[objective_name], default_score)
 
 
 def one_wave_layout() -> TritonLinearLayout:

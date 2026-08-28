@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import re
 import sys
 
 import torch
@@ -56,30 +55,6 @@ def trace_tile_load(
     tl.store(byte_offsets + offsets, offsets * ELEMENT_WIDTH)
 
 
-def parse_int_list(body: str, field: str) -> tuple[int, ...]:
-    match = re.search(rf"\b{field}\s*=\s*\[([^]]*)\]", body)
-    if match is None:
-        raise ValueError(f"compiled blocked layout has no {field}")
-    values = match.group(1).strip()
-    return tuple(int(value.strip()) for value in values.split(",") if value.strip())
-
-
-def extract_blocked_layout(ttgir: str) -> dict[str, tuple[int, ...]]:
-    match = re.search(r"#blocked\s*=\s*#ttg\.blocked<\{([^}]+)\}>", ttgir)
-    if match is None:
-        raise ValueError("compiled tile load does not contain #blocked")
-    body = match.group(1)
-    return {
-        field: parse_int_list(body, field)
-        for field in (
-            "sizePerThread",
-            "threadsPerWarp",
-            "warpsPerCTA",
-            "order",
-        )
-    }
-
-
 def validate_lane_trace(
     observed_lanes: list[int], expected_lanes: set[int]
 ) -> None:
@@ -124,8 +99,6 @@ def run_probe(transaction_bytes: int) -> dict[str, object]:
     if not torch.equal(source, loaded):
         raise ValueError("the instrumented Triton load returned incorrect values")
 
-    blocked = extract_blocked_layout(compiled.asm["ttgir"])
-
     # Import RELAY only after Triton because this script lives in relay/triton.
     repository = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository))
@@ -134,17 +107,19 @@ def run_probe(transaction_bytes: int) -> dict[str, object]:
         MatrixSpec,
         ObservedAccess,
         TritonLinearLayout,
+        extract_blocked_layout,
         induce_memory_event,
         row_major_layout,
         validate_induced_hypergraph,
     )
 
+    blocked = extract_blocked_layout(compiled.asm["ttgir"])
     extracted = TritonLinearLayout.from_blocked(
         (TILE_ELEMENTS,),
-        size_per_thread=blocked["sizePerThread"],
-        threads_per_warp=blocked["threadsPerWarp"],
-        warps_per_cta=blocked["warpsPerCTA"],
-        order=blocked["order"],
+        size_per_thread=blocked.size_per_thread,
+        threads_per_warp=blocked.threads_per_warp,
+        warps_per_cta=blocked.warps_per_cta,
+        order=blocked.order,
     )
     native = NativeLinearLayout.from_bases(
         extracted.bases,
@@ -201,7 +176,7 @@ def run_probe(transaction_bytes: int) -> dict[str, object]:
         "element_bytes": matrix.element_bytes,
         "hardware_locations": len(cohort),
         "compiled_blocked_layout": {
-            name: list(values) for name, values in blocked.items()
+            name: list(values) for name, values in blocked.as_dict().items()
         },
         "transaction_bytes": transaction_bytes,
         "expected_transaction_ids": list(
