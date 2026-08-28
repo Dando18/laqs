@@ -105,6 +105,25 @@ class TritonLinearLayoutTests(unittest.TestCase):
             (2, 7),
         )
 
+    def test_blocked_layout_adds_register_bases_for_tensor_repetition(self) -> None:
+        layout = TritonLinearLayout.from_blocked(
+            (32, 32),
+            size_per_thread=(1, 1),
+            threads_per_warp=(8, 8),
+            warps_per_cta=(1, 4),
+            order=(1, 0),
+        )
+
+        self.assertEqual(layout.input_size("register"), 4)
+        self.assertEqual(
+            dict(layout.bases)["register"],
+            ((8, 0), (16, 0)),
+        )
+        self.assertEqual(
+            layout.apply({"register": 3, "lane": 0, "warp": 0, "block": 0}),
+            (24, 0),
+        )
+
     def test_incomplete_location_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "missing=.*warp"):
             one_wave_layout().apply(

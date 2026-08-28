@@ -5,14 +5,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
-import statistics
 import sys
 
 import torch
 import triton
 import triton.language as tl
 from triton.tools import LinearLayout as NativeLinearLayout
+
+from stage1_common import (
+    benchmark_layouts,
+    compiled_codegen_statistics,
+    layout_rows,
+    pack_tensor,
+    positive_integer,
+    stable_id,
+    validate_output,
+)
 
 
 BLOCK_SIZE = 64
@@ -60,114 +70,6 @@ def symmetric_sum(
     tl.store(output + first, tl.sum(accumulator, axis=0))
 
 
-def positive_integer(value: str) -> int:
-    try:
-        parsed = int(value)
-    except ValueError as error:
-        raise argparse.ArgumentTypeError(
-            f"expected an integer, got {value!r}"
-        ) from error
-    if parsed <= 0:
-        raise argparse.ArgumentTypeError("value must be positive")
-    return parsed
-
-
-def layout_rows(layout, matrix) -> tuple[int, ...]:
-    from relay import CanonicalLayout, LinearInnerLayout
-
-    if isinstance(layout, CanonicalLayout):
-        rows = layout.matrix_rows()
-    elif isinstance(layout, LinearInnerLayout):
-        rows = layout.a_rows
-    else:
-        raise TypeError(f"unsupported Stage 1 layout {type(layout).__name__}")
-    if layout.tile_exponents != matrix.mode_bits:
-        raise ValueError("the Stage 1 benchmark requires a full-matrix layout")
-    return tuple(rows)
-
-
-def physical_offsets(
-    matrix_size: int,
-    mode_bits: int,
-    rows: tuple[int, ...],
-) -> torch.Tensor:
-    first = torch.arange(matrix_size, dtype=torch.int64)[:, None]
-    second = torch.arange(matrix_size, dtype=torch.int64)[None, :]
-    logical = first | (second << mode_bits)
-    physical = torch.zeros_like(logical)
-    for physical_bit, row in enumerate(rows):
-        selected = logical & row
-        selected ^= selected >> 32
-        selected ^= selected >> 16
-        selected ^= selected >> 8
-        selected ^= selected >> 4
-        selected ^= selected >> 2
-        selected ^= selected >> 1
-        physical |= (selected & 1) << physical_bit
-    return physical
-
-
-def pack_matrix(
-    logical: torch.Tensor,
-    mode_bits: int,
-    rows: tuple[int, ...],
-) -> torch.Tensor:
-    offsets = physical_offsets(logical.shape[0], mode_bits, rows)
-    packed = torch.empty_like(logical).flatten()
-    packed[offsets.flatten()] = logical.flatten()
-    return packed
-
-
-def validate_output(
-    label: str, output: torch.Tensor, reference: torch.Tensor
-) -> None:
-    observed = output.cpu()
-    if torch.allclose(observed, reference, rtol=1e-4, atol=1e-3):
-        return
-    error = torch.max(torch.abs(observed - reference)).item()
-    raise ValueError(f"{label} layout produced incorrect output: max error {error}")
-
-
-def timing_summary(samples_ms: list[float]) -> dict[str, object]:
-    return {
-        "median_ms": statistics.median(samples_ms),
-        "mean_ms": statistics.fmean(samples_ms),
-        "min_ms": min(samples_ms),
-        "stdev_ms": (
-            statistics.pstdev(samples_ms) if len(samples_ms) > 1 else 0.0
-        ),
-        "samples_ms": samples_ms,
-    }
-
-
-def benchmark_layouts(
-    launches,
-    *,
-    samples: int,
-    iterations: int,
-    warmup: int,
-) -> dict[str, dict[str, object]]:
-    labels = tuple(launches)
-    for _ in range(warmup):
-        for label in labels:
-            launches[label]()
-    torch.cuda.synchronize()
-
-    timings = {label: [] for label in labels}
-    for sample in range(samples):
-        order = labels if sample % 2 == 0 else tuple(reversed(labels))
-        for label in order:
-            start = torch.cuda.Event(enable_timing=True)
-            stop = torch.cuda.Event(enable_timing=True)
-            start.record()
-            for _ in range(iterations):
-                launches[label]()
-            stop.record()
-            stop.synchronize()
-            timings[label].append(float(start.elapsed_time(stop)) / iterations)
-    return {label: timing_summary(values) for label, values in timings.items()}
-
-
 def run_experiment(args: argparse.Namespace) -> dict[str, object]:
     if not torch.cuda.is_available():
         raise RuntimeError("the Stage 1 experiment requires a Flux GPU allocation")
@@ -188,8 +90,10 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
         execution_conditioned_quotient_problem,
         extract_blocked_layout,
         induce_memory_event,
+        low_address_flag,
         row_major_layout,
         solve,
+        summarize_rank_quality,
         weighted_component_region_count,
     )
 
@@ -208,7 +112,7 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
     logical = (((first * 17 + second * 13) % 101) - 50).to(torch.float32)
     logical /= 101.0
     reference = logical.sum(dim=1) + logical.sum(dim=0)
-    default_source = pack_matrix(logical, mode_bits, default_rows).to("cuda")
+    default_source = pack_tensor(logical, default_rows).to("cuda")
     default_output = torch.empty(args.matrix_size, dtype=torch.float32, device="cuda")
     if default_source.data_ptr() % args.transaction_bytes:
         raise ValueError("default allocation is not transaction-aligned")
@@ -287,52 +191,108 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
     )
     result = solve(problem)
     component = result.components[0]
-    best = result.arrays[matrix.name].candidates[0]
-    best_layout = best.layout
-    best_rows = layout_rows(best_layout, matrix)
+    retained = result.arrays[matrix.name].candidates
+    best = retained[0]
     default_score = weighted_component_region_count(
         matrix, default_layout, component
     )
     best_score = float(best.scores[objective_name])
 
-    best_source = pack_matrix(logical, mode_bits, best_rows).to("cuda")
-    best_output = torch.empty_like(default_output)
-    if best_source.data_ptr() % args.transaction_bytes:
-        raise ValueError("LAQS allocation is not transaction-aligned")
+    launches = {}
+    compiled_candidates = {}
+    candidate_records = []
+    sources_by_mapping = {
+        stable_id("mapping", list(default_rows)): default_source,
+    }
+    outputs = {}
+    score_levels = sorted(
+        {float(candidate.scores[objective_name]) for candidate in retained}
+    )
+    for solver_rank, candidate in enumerate(retained, start=1):
+        layout = candidate.layout
+        rows = layout_rows(layout, matrix)
+        mapping_id = stable_id("mapping", list(rows))
+        flag = low_address_flag(matrix, layout)
+        flag_id = stable_id("flag", flag)
+        candidate_id = stable_id(
+            "candidate",
+            {
+                "layout": layout.name,
+                "grammar": layout.grammar,
+                "a_rows": rows,
+            },
+        )
+        source = sources_by_mapping.get(mapping_id)
+        if source is None:
+            source = pack_tensor(logical, rows).to("cuda")
+            sources_by_mapping[mapping_id] = source
+        if source.data_ptr() % args.transaction_bytes:
+            raise ValueError(f"{candidate_id} allocation is not transaction-aligned")
+        output = torch.empty_like(default_output)
+        outputs[candidate_id] = output
 
-    def launch_default():
-        symmetric_sum[(args.matrix_size,)](
-            default_source,
-            default_output,
-            A_ROWS=default_rows,
-            MODE_BITS=mode_bits,
-            N=args.matrix_size,
-            BLOCK=BLOCK_SIZE,
-            num_warps=1,
+        def launch(source=source, output=output, rows=rows):
+            return symmetric_sum[(args.matrix_size,)](
+                source,
+                output,
+                A_ROWS=rows,
+                MODE_BITS=mode_bits,
+                N=args.matrix_size,
+                BLOCK=BLOCK_SIZE,
+                num_warps=1,
+            )
+
+        launches[candidate_id] = launch
+        compiled_candidates[candidate_id] = launch()
+        candidate_records.append(
+            {
+                "candidate_id": candidate_id,
+                "solver_rank": solver_rank,
+                "quotient_rank": score_levels.index(
+                    float(candidate.scores[objective_name])
+                )
+                + 1,
+                "layout": layout.name,
+                "grammar": layout.grammar,
+                "word": layout.word_string(matrix),
+                "a_rows": list(rows),
+                "mapping_id": mapping_id,
+                "flag_id": flag_id,
+                "quotient_score": float(candidate.scores[objective_name]),
+                "packing_bound": float(candidate.packing_bounds[objective_name]),
+                "runs": layout.runs,
+                "xor_count": layout.xor_count,
+                "exact": candidate.exact,
+                "note": candidate.note,
+            }
         )
 
-    def launch_laqs():
-        symmetric_sum[(args.matrix_size,)](
-            best_source,
-            best_output,
-            A_ROWS=best_rows,
-            MODE_BITS=mode_bits,
-            N=args.matrix_size,
-            BLOCK=BLOCK_SIZE,
-            num_warps=1,
-        )
-
-    launch_laqs()
     torch.cuda.synchronize()
-    validate_output("LAQS", best_output, reference)
+    for record in candidate_records:
+        candidate_id = str(record["candidate_id"])
+        validate_output(candidate_id, outputs[candidate_id], reference)
     timings = benchmark_layouts(
-        {"default": launch_default, "laqs": launch_laqs},
+        launches,
         samples=args.samples,
         iterations=args.iterations,
         warmup=args.warmup,
     )
-    default_median = float(timings["default"]["median_ms"])
-    best_median = float(timings["laqs"]["median_ms"])
+    for record in candidate_records:
+        candidate_id = str(record["candidate_id"])
+        timing = timings[candidate_id]
+        record["runtime_ms"] = float(timing["median_ms"])
+        record["timing"] = timing
+        record["compiled_codegen"] = compiled_codegen_statistics(
+            compiled_candidates[candidate_id]
+        )
+
+    rank_quality = summarize_rank_quality(candidate_records)
+    best_record = candidate_records[0]
+    default_record = next(
+        record for record in candidate_records if record["layout"] == "row_major"
+    )
+    default_median = float(default_record["runtime_ms"])
+    best_median = float(best_record["runtime_ms"])
 
     return {
         "stage": 1,
@@ -352,27 +312,39 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
         "objective": objective_name,
         "packing_lower_bound": component.packing_bound(matrix),
         "default": {
-            "layout": default_layout.name,
-            "word": default_layout.word_string(matrix),
-            "a_rows": list(default_rows),
+            "candidate_id": default_record["candidate_id"],
+            "layout": default_record["layout"],
+            "word": default_record["word"],
+            "a_rows": default_record["a_rows"],
             "predicted_transactions": default_score,
-            "timing": timings["default"],
+            "timing": default_record["timing"],
+            "compiled_codegen": default_record["compiled_codegen"],
         },
         "laqs": {
-            "layout": best_layout.name,
-            "grammar": best_layout.grammar,
-            "word": best_layout.word_string(matrix),
-            "a_rows": list(best_rows),
+            "candidate_id": best_record["candidate_id"],
+            "layout": best_record["layout"],
+            "grammar": best_record["grammar"],
+            "word": best_record["word"],
+            "a_rows": best_record["a_rows"],
             "predicted_transactions": best_score,
-            "packing_bound": best.packing_bounds[objective_name],
-            "runs": best_layout.runs,
-            "xor_count": best_layout.xor_count,
-            "exact": best.exact,
-            "timing": timings["laqs"],
+            "packing_bound": best_record["packing_bound"],
+            "runs": best_record["runs"],
+            "xor_count": best_record["xor_count"],
+            "exact": best_record["exact"],
+            "timing": best_record["timing"],
+            "compiled_codegen": best_record["compiled_codegen"],
         },
+        "candidates": candidate_records,
+        "rank_quality": rank_quality,
         "predicted_transaction_reduction": 1.0 - best_score / default_score,
         "measured_speedup": default_median / best_median,
         "correct": True,
+        "process": {
+            "pid": os.getpid(),
+            "torch_version": torch.__version__,
+            "triton_version": triton.__version__,
+            "device": torch.cuda.get_device_name(torch.cuda.current_device()),
+        },
         "solver": {
             "elapsed_seconds": result.elapsed_seconds,
             "candidate_count": result.arrays[matrix.name].all_candidate_count,
@@ -390,6 +362,11 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--iterations", type=positive_integer, default=10)
     parser.add_argument("--warmup", type=positive_integer, default=5)
     parser.add_argument("--json", type=Path)
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="suppress JSON on stdout (the --json file is still written)",
+    )
     return parser.parse_args(argv)
 
 
@@ -397,7 +374,8 @@ def main() -> None:
     args = parse_arguments()
     result = run_experiment(args)
     payload = json.dumps(result, indent=2, sort_keys=True)
-    print(payload)
+    if not args.quiet:
+        print(payload)
     if args.json is not None:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(payload + "\n", encoding="utf-8")

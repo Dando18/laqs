@@ -187,12 +187,13 @@ class TritonLinearLayout:
         order: Sequence[int],
         output_dim_names: Sequence[str] | None = None,
     ) -> "TritonLinearLayout":
-        """Construct the LinearLayout of one fully covered blocked CTA tile.
+        """Construct a blocked CTA LinearLayout, including register repeats.
 
         This is the common no-CGA case from Triton's
-        ``BlockedEncodingAttr::toLinearLayout``. Repetition or truncation is
-        rejected so the extracted compiler layout remains an explicit part of
-        the stage-0 contract.
+        ``BlockedEncodingAttr::toLinearLayout``. If the hardware factors cover
+        less than ``shape``, Triton extends the register dimension in logical
+        output-dimension order. Truncation and non-integral repetition remain
+        unsupported.
         """
 
         output_shape = tuple(int(size) for size in shape)
@@ -216,10 +217,14 @@ class TritonLinearLayout:
             factors[0][dim] * factors[1][dim] * factors[2][dim]
             for dim in range(rank)
         )
-        if covered != output_shape:
+        if any(
+            covered_extent > output_extent
+            or output_extent % covered_extent
+            for covered_extent, output_extent in zip(covered, output_shape)
+        ):
             raise ValueError(
-                "blocked hardware factors must exactly cover the stage-0 "
-                f"tile: {covered} != {output_shape}"
+                "blocked hardware factors must tile the tensor shape: "
+                f"{covered} does not tile {output_shape}"
             )
 
         strides = [1] * rank
@@ -236,6 +241,15 @@ class TritonLinearLayout:
             input_bases.append((input_name, tuple(bases)))
             for dim in range(rank):
                 strides[dim] *= factor[dim]
+
+        register_bases = list(input_bases[0][1])
+        for dim in range(rank):
+            repetitions = output_shape[dim] // covered[dim]
+            for bit in range(exact_log2(repetitions)):
+                basis = [0] * rank
+                basis[dim] = covered[dim] << bit
+                register_bases.append(tuple(basis))
+        input_bases[0] = ("register", tuple(register_bases))
         input_bases.append(("block", ()))
 
         names = (

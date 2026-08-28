@@ -104,6 +104,54 @@ flux run -n1 -g1 -t 5m -q pdebug \
 See [Triton integration stage 1](../docs/triton-stage1.md) for the objective,
 experiment controls, JSON contents, and boundary with the later fiber search.
 
+### Measure Stage 1 ranking quality
+
+`run-stage1.py` benchmarks every candidate retained by the Stage 1 solver and
+reports top-1/top-3 regret, tie-aware Spearman correlation, equal-score runtime
+spread, and same-flag spread when distinct realizations are present. It also
+records loaded-kernel register and spill counts, shared memory, code-object and
+IR sizes, and assembly opcode counts for every candidate.
+
+Use the sweep driver for the longer confirmation experiment across matrix sizes
+and fresh Python processes:
+
+```bash
+module load rocm/7.2.1
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-ranking.py \
+  --matrix-sizes 512 1024 2048 \
+  --process-launches 3 \
+  --json triton/results/stage1-ranking.json --quiet
+```
+
+The sweep defaults to 21 samples of 50-launch timing batches and 10 warmup
+rounds per candidate. Each matrix-size/process pair is a new child process, and
+the aggregate ranking uses the median of its per-process medians.
+
+## Run the targeted Stage 1 kernel suite
+
+The targeted suite exercises four access regimes without depending on broad
+TritonBench operator coverage:
+
+- contiguous vector addition as a negative control;
+- a custom 32x32 tile using four warps and four register elements per lane;
+- GESUMMV with A and B solved independently and measured separately and jointly;
+- a fixed 32x32x32 FP16 GEMM configuration with only B prepacked.
+
+Run three independent processes with longer timing batches:
+
+```bash
+module load rocm/7.0.2
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-suite-sweep.py \
+  --process-launches 3 \
+  --json triton/results/stage1-suite-sweep.json --quiet
+```
+
+The worker can also be run directly for compilation or correctness probes with
+`triton/run-stage1-suite.py`. Packing, reference construction, compilation, and
+validation are excluded from every timing interval.
+
 ## Collect the initial baseline
 
 Submit one task on one GPU for at most five minutes:

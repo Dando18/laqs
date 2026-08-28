@@ -49,6 +49,7 @@ from .persistence import (
     score_temporal_persistence,
 )
 from .report import dump_json, print_layout, print_report, result_to_dict
+from .ranking import spearman_rank_correlation, summarize_rank_quality
 from .scoring import (
     SCORE_MODES,
     ArrayComponentScore,
@@ -212,6 +213,8 @@ __all__ = [
     "quotient_region_count",
     "score_resource_placement",
     "score_temporal_persistence",
+    "spearman_rank_correlation",
+    "summarize_rank_quality",
     "result_to_dict",
     "resource_color_destination_bits",
     "row_major_layout",
