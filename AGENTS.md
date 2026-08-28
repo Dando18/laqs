@@ -1,6 +1,6 @@
-# RELAY
+# RELAY/LAQS
 
-RELAY is an algorithm and on-going research idea for finding ideal data layouts for matrices in GPU kernels.
+RELAY (or LAQS, I'm undecided on the name) is an algorithm and on-going research idea for finding ideal data layouts for matrices in GPU kernels.
 
 RELAY design is still very much in progress. `notes/relay.tex` contains notes and an overview of the approach. Ideas may lag slightly in the notes or be incomplete, so do not treat it as exact requirements, but rather an implementation guideline.
 
@@ -19,6 +19,8 @@ _System and Environment (IMPORTANT):_ You are developing on an HPC cluster. The 
 If you need access to a GPU, you need to use flux; the login nodes do not have GPUs accessible. You can use `flux run -n1 -g1 -t 5m -q pdebug <my-command>` to run a short command on a GPU. It may not run right away. DO NOT, UNDER ANY CIRCUMSTANCES, EVER USE MORE TASKS THAN 1, MORE GPUS THAN 1, OR A LONGER WALL TIME THAN 5 MINUTES. If you need bigger or longer jobs, then pass back to the user and ask them to run and report the outputs.
 
 If you hit any environment or system software issues, like missing software or inaccessible GPUs, do not spend too long trying to fix them. Try one or two quick fixes if you feel they will work, but do not waste time or tokens on environment issues that the user did not explicitly ask you to fix. More often than not it requires the user to load or install something outside of your harness. So after some quick attempts, please pass the issue back to the user for them to fix. You can describe the issue and possible solutions if it makes sense.
+
+_Filesystems:_ Code directories are generally kept in home: `/g/g16/dnicho`. This filesystem has limited space, however, so only code, metadata, and small data should be kept here. Larger files, such as installs, virtual environments, and data, should be kept in `/usr/WS1/dnicho` which has a lot more space. I tend to create symlinks to /usr/WS1 in home to make things easier. I generally try to match project subdirectory structure across the symlinks, e.g. `/g/g16/dnicho/myprojects/project-foo/.venv` symlinks to `/usr/WS1/dnicho/myprojects/project-foo/.venv/`.
 
 _Building and Installing:_ `.venv` has an editable install, so Python changes don't require re-installing.
 
