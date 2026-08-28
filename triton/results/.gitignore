@@ -1,1 +1,3 @@
 *.log
+stage1-*-breadth-cases/
+stage2-probe-processes/

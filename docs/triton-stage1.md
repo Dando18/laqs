@@ -214,6 +214,147 @@ available ROCm 7.0.2 `rocprof` counter collector; `--rocprof` and
 `--profile-config` make that choice explicit and replaceable. The profiler path
 and configuration are recorded in the result.
 
+## Stage 1 breadth experiments
+
+Two resumable drivers extend the all-candidate ranking experiment without
+turning it into a broad operator-count exercise. Both run each case in three
+fresh Python processes, retain raw samples and codegen statistics for every
+candidate, and rank the candidates using the median of the process medians.
+Existing per-process JSON files are reused, so a sweep can be divided into
+several Flux allocations without changing the aggregate.
+
+`triton/run-stage1-gemm-breadth.py` holds one prepacked B operand and sweeps 13
+fixed GEMM regimes:
+
+- 512, 1024, and 2048 square problems;
+- two lower-arithmetic-intensity skinny problems;
+- warm and explicitly cache-thrashed timing;
+- transposed A and transposed B storage; and
+- three block/warp configurations.
+
+The cache-thrashed path touches a 256 MiB buffer before every measured GEMM.
+The thrash kernel is synchronized by stream order but lies outside the GPU
+event interval, so the reported runtime covers only GEMM. This is an
+operational cache-state control rather than a claim that every level of the
+MI300A memory hierarchy is empty.
+
+The current execution-layout bridge extracts the compiled blocked B-load
+encoding rather than Triton's dot-operand encoding. The generalized worker
+therefore requires `BLOCK_M == BLOCK_K`; the supplied configurations all obey
+that restriction. This keeps the induced B tile and the layout extracted from
+the compiled kernel aligned until dot-operand extraction is implemented.
+
+Run a subset that fits comfortably within one five-minute allocation, then
+continue with another subset using the same results directory:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-gemm-breadth.py \
+  --cases square_512_warm square_1024_warm square_2048_warm \
+  --process-launches 3 \
+  --json triton/results/stage1-gemm-breadth.json --quiet
+```
+
+`triton/run-stage1-kernel-breadth.py` covers seven persistent-operand regimes:
+
+- repeated bias with ReLU and matrix bias with row softmax;
+- embedding-bag lookup from a persistent weight table;
+- GEMV, MVT, and GESUMMV matrix operands; and
+- a five-point stencil over a persistent field.
+
+The suite includes contiguous negative controls as well as row, column,
+row-plus-column, indirect, and neighborhood access patterns. Affine-translated
+cohorts are represented once with their exact dynamic multiplicity. The
+stencil represents the clamped left and right boundary cohorts separately.
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-kernel-breadth.py \
+  --process-launches 3 \
+  --json triton/results/stage1-kernel-breadth.json --quiet
+```
+
+Each case summary contains default and selected quotient scores, default and
+selected runtimes, speedup, top-1/top-3 regret, rank correlation, selected
+layout word, and whether LAQS retained the default physical mapping. Full case
+records preserve equal-score and same-flag runtime spreads plus per-candidate
+register, spill, instruction, binary, and opcode statistics.
+
+The current three-process MI300A result is stored in
+`triton/results/stage1-gemm-breadth.json` and
+`triton/results/stage1-kernel-breadth.json`. Bias-ReLU, biased softmax,
+embedding bag, and stencil retain the default mapping. MVT improves by 14.52%
+and GESUMMV by 8.76%. The 32x2048x1024 skinny GEMM improves by 12.03%, while
+the 2048 square GEMM improves by 2.52%.
+
+The breadth result also strengthens the case for a service-aware nested
+objective. Minimum-quotient GEMM candidates span as much as 36.97% in runtime,
+and the 32x64x32 eight-warp configuration halves the quotient score while
+slowing to 0.661x; its top-3 regret is still 16.70%. GEMV similarly reduces its
+quotient score by 32x but takes 3.96% longer. No retained canonical group
+contains two distinct mappings with the same low-address flag, so this
+experiment does not yet isolate within-fiber placement. The GEMV and
+fixed-block inversions are good counter targets before attributing their
+behavior specifically to fiber placement.
+
+## Controlled Stage-2 flag-fiber probe
+
+`triton/run-stage2-probe.py` tests flag realization without integrating a
+fiber into the solver DP. It uses the Stage-1-selected prepacked B flag for a
+2048x2048x2048 GEMM with a fixed 32x32x32, four-warp configuration. Every GEMM
+is preceded by a 256 MiB cache-thrash launch outside the timing interval.
+
+The MI300A proof-of-concept resource map selects element-offset destination
+bits 11, 12, and 13, corresponding to its modeled HBM-stack byte-address bits
+12, 13, and 14. Identity plus every color-relevant elementary upper-triangular
+shear produces 28 realizations. For every realization the probe:
+
+- compares the entire low-address prefix flag with the Stage-1 flag;
+- recomputes and requires the exact 128-byte quotient score;
+- records analytical runs/XORs and compiled register, spill, instruction, and
+  opcode statistics separately;
+- scores translated groups of four B issue cohorts per warp and B tile under
+  the HBM-stack service sketch; and
+- packs B, checks GEMM output, and benchmarks the specialized address map.
+
+The service score covers B only because B is the only changing allocation.
+It is a hypothesis from the proof-of-concept HBM-stack interleave map, not a
+measured hardware counter. The complete dynamic B-tile translations and their
+program multiplicities remain in the grouped service calculation.
+
+Run three fresh processes with the resumable driver:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage2-probe-sweep.py \
+  --process-launches 3 \
+  --json triton/results/stage2-probe.json --quiet
+```
+
+The aggregate gate calls variation meaningful at a 2% total runtime spread.
+It calls the service score predictive when its tie-aware rank correlation is
+at least 0.5 and the fastest minimum-service realization is within 2% of the
+measured fastest realization. All thresholds and the underlying continuous
+metrics are recorded, so the binary gate does not replace inspection of the
+data.
+
+On the current three-process MI300A run, all 28 realizations preserve the
+complete flag and the exact quotient score of 16,777,216. The modeled service
+score has two levels: six shears reduce it from 1,048,576 to 449,389.71. The
+aggregate runtime nevertheless spans only 3.11%, and the service/runtime rank
+correlation is -0.054. The low-service group has a 512.484 us median versus
+512.245 us for the higher-service group. Its fastest realization is 1.81%
+slower than the measured fastest candidate.
+
+The unsheared Stage-1 realization is fastest in the aggregate at 501.484 us
+and fastest in two of three processes. It compiles to 486 instructions; the
+low-service shears compile to 496 instructions, while all candidates use 56
+registers and have no spills. Compiled instruction count has a modest 0.437
+rank correlation with runtime. Thus the probe observes real same-flag
+variation but no service-predictable benefit, and the declared gate is false.
+This result favors retaining fiber-aware realization as future work rather
+than implementing the full Stage-2 DP now.
+
 ## Current scope
 
 This experiment deliberately fixes the compute/distributed layout and changes

@@ -127,6 +127,43 @@ def benchmark_layouts(
     return {label: timing_summary(values) for label, values in timings.items()}
 
 
+def benchmark_layouts_isolated(
+    launches,
+    *,
+    before_each,
+    samples: int,
+    iterations: int,
+    warmup: int,
+) -> dict[str, dict[str, object]]:
+    """Time individual launches after a cache-state preparation callback."""
+
+    labels = tuple(launches)
+    for _ in range(warmup):
+        for label in labels:
+            before_each()
+            launches[label]()
+    torch.cuda.synchronize()
+
+    timings = {label: [] for label in labels}
+    for sample in range(samples):
+        rotation = (sample // 2) % len(labels)
+        base = labels if sample % 2 == 0 else tuple(reversed(labels))
+        order = base[rotation:] + base[:rotation]
+        for label in order:
+            isolated = []
+            for _ in range(iterations):
+                before_each()
+                start = torch.cuda.Event(enable_timing=True)
+                stop = torch.cuda.Event(enable_timing=True)
+                start.record()
+                launches[label]()
+                stop.record()
+                stop.synchronize()
+                isolated.append(float(start.elapsed_time(stop)))
+            timings[label].append(statistics.fmean(isolated))
+    return {label: timing_summary(values) for label, values in timings.items()}
+
+
 def stable_id(prefix: str, value: object) -> str:
     encoded = json.dumps(value, separators=(",", ":"), sort_keys=True).encode()
     return f"{prefix}_{hashlib.sha256(encoded).hexdigest()[:12]}"

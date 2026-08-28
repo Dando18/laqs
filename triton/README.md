@@ -175,6 +175,63 @@ candidate, aggregate top-1/top-3 regret and rank correlation, and 20 raw
 steady-state counter dispatches for each profiled layout. Counter collection
 uses the four-pass configuration in `triton/rocprof-stage15.txt`.
 
+## Run the Stage 1 breadth experiments
+
+The GEMM breadth driver ranks all eight retained B layouts across square,
+skinny, warm-cache, cache-thrashed, transposed-storage, and fixed block/warp
+regimes. It is resumable: divide the named cases across multiple five-minute
+allocations and keep the same results directory.
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-gemm-breadth.py \
+  --cases square_512_warm square_1024_warm square_2048_warm \
+  --process-launches 3 \
+  --json triton/results/stage1-gemm-breadth.json --quiet
+```
+
+The focused persistent-operand suite ranks bias-ReLU, biased softmax,
+embedding bag, GEMV, MVT, GESUMMV, and five-point stencil cases:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-kernel-breadth.py \
+  --process-launches 3 \
+  --json triton/results/stage1-kernel-breadth.json --quiet
+```
+
+Both aggregate the median runtime from three independent process launches and
+report default/selected quotient, top-1/top-3 regret, runtime, no-change status,
+rank correlation, raw timing, and complete per-candidate codegen statistics.
+See [Triton integration stage 1](../docs/triton-stage1.md) for the exact case
+catalog and cache-control semantics.
+
+## Run the controlled Stage-2 probe
+
+The probe materializes 28 sparse shear realizations of the Stage-1-selected
+2048-square GEMM B flag without adding fibers to the solver DP. It checks exact
+flag and quotient invariance, records codegen and the MI300A resource-service
+sketch separately, and benchmarks cache-thrashed GEMMs in three fresh
+processes:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage2-probe-sweep.py \
+  --process-launches 3 \
+  --json triton/results/stage2-probe.json --quiet
+```
+
+The process checkpoint directory is reused, allowing the three launches to be
+split across separate five-minute allocations. The aggregate reports runtime
+spread, service/runtime and codegen/runtime rank correlations, service-optimal
+regret, raw timings, and the explicit Stage-2 gate.
+
+The current result preserves the flag and quotient for all 28 realizations and
+shows a 3.11% runtime spread, but the service/runtime rank correlation is
+-0.054 and the unsheared identity is fastest in the aggregate. The Stage-2
+gate is therefore false; see the integration document and
+`triton/results/stage2-probe.json` for the complete candidate data.
+
 ## Collect the initial baseline
 
 Submit one task on one GPU for at most five minutes:

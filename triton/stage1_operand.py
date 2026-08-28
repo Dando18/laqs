@@ -1,0 +1,253 @@
+"""Shared all-candidate benchmark for one prepacked persistent operand."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+import statistics
+
+import torch
+
+from stage1_common import (
+    benchmark_layouts,
+    compiled_codegen_statistics,
+    layout_rows,
+    pack_tensor,
+    require_aligned,
+    solve_layouts,
+    stable_id,
+    timing_summary,
+)
+
+
+def rank_persistent_operand(
+    matrix,
+    logical_operand: torch.Tensor,
+    default_source: torch.Tensor,
+    events,
+    *,
+    args,
+    problem_name: str,
+    make_output: Callable[[], object],
+    make_launch: Callable[[torch.Tensor, object, tuple[int, ...]], Callable],
+    validate: Callable[[str, object], None],
+    benchmark: Callable | None = None,
+) -> dict[str, object]:
+    """Solve, compile, validate, and time every retained operand layout."""
+
+    from relay import (
+        low_address_flag,
+        row_major_layout,
+        summarize_rank_quality,
+        weighted_component_region_count,
+    )
+
+    objective, problem, result = solve_layouts(
+        (matrix,), events, args, problem_name
+    )
+    component = result.components[0]
+    retained = result.arrays[matrix.name].candidates
+    default_layout = row_major_layout(matrix)
+    default_rows = layout_rows(default_layout, matrix)
+    default_score = weighted_component_region_count(
+        matrix, default_layout, component
+    )
+    sources_by_mapping = {
+        stable_id("mapping", list(default_rows)): default_source,
+    }
+    launches = {}
+    outputs = {}
+    compiled = {}
+    records = []
+    score_levels = sorted(
+        {float(candidate.scores[objective]) for candidate in retained}
+    )
+    for solver_rank, candidate in enumerate(retained, start=1):
+        layout = candidate.layout
+        rows = layout_rows(layout, matrix)
+        mapping_id = stable_id("mapping", list(rows))
+        flag_id = stable_id("flag", low_address_flag(matrix, layout))
+        candidate_id = stable_id(
+            "candidate",
+            {
+                "layout": layout.name,
+                "grammar": layout.grammar,
+                "a_rows": rows,
+            },
+        )
+        source = sources_by_mapping.get(mapping_id)
+        if source is None:
+            source = pack_tensor(logical_operand, rows).to("cuda")
+            sources_by_mapping[mapping_id] = source
+        require_aligned(candidate_id, source, args.transaction_bytes)
+        output = make_output()
+        launch = make_launch(source, output, rows)
+        outputs[candidate_id] = output
+        launches[candidate_id] = launch
+        compiled[candidate_id] = launch()
+        score = float(candidate.scores[objective])
+        records.append(
+            {
+                "candidate_id": candidate_id,
+                "solver_rank": solver_rank,
+                "quotient_rank": score_levels.index(score) + 1,
+                "layout": layout.name,
+                "grammar": layout.grammar,
+                "word": layout.word_string(matrix),
+                "a_rows": list(rows),
+                "mapping_id": mapping_id,
+                "flag_id": flag_id,
+                "quotient_score": score,
+                "packing_bound": float(candidate.packing_bounds[objective]),
+                "runs": layout.runs,
+                "xor_count": layout.xor_count,
+                "exact": candidate.exact,
+                "note": candidate.note,
+            }
+        )
+
+    torch.cuda.synchronize()
+    for record in records:
+        candidate_id = str(record["candidate_id"])
+        validate(candidate_id, outputs[candidate_id])
+    timing_function = benchmark
+    if timing_function is None:
+        timing_function = lambda candidate_launches: benchmark_layouts(
+            candidate_launches,
+            samples=args.samples,
+            iterations=args.iterations,
+            warmup=args.warmup,
+        )
+    timings = timing_function(launches)
+    for record in records:
+        candidate_id = str(record["candidate_id"])
+        timing = timings[candidate_id]
+        record["runtime_ms"] = float(timing["median_ms"])
+        record["timing"] = timing
+        record["compiled_codegen"] = compiled_codegen_statistics(
+            compiled[candidate_id]
+        )
+
+    rank_quality = summarize_rank_quality(records)
+    selected = records[0]
+    default = next(record for record in records if record["layout"] == "row_major")
+    return {
+        "objective": objective,
+        "packing_lower_bound": component.packing_bound(matrix),
+        "default": default,
+        "selected": selected,
+        "candidates": records,
+        "rank_quality": rank_quality,
+        "default_quotient": float(default_score),
+        "selected_quotient": float(selected["quotient_score"]),
+        "predicted_transaction_reduction": 1.0
+        - float(selected["quotient_score"]) / float(default_score),
+        "default_runtime_ms": float(default["runtime_ms"]),
+        "selected_runtime_ms": float(selected["runtime_ms"]),
+        "measured_speedup": float(default["runtime_ms"])
+        / float(selected["runtime_ms"]),
+        "laqs_made_no_change": selected["mapping_id"] == default["mapping_id"],
+        "solver": {
+            "name": problem.name,
+            "elapsed_seconds": result.elapsed_seconds,
+            "candidate_count": result.arrays[matrix.name].all_candidate_count,
+            "retained_candidates": len(retained),
+        },
+        "correct": True,
+    }
+
+
+def aggregate_persistent_rankings(
+    rankings: list[dict[str, object]],
+) -> dict[str, object]:
+    """Aggregate candidate runtimes across fresh process launches."""
+
+    from relay import summarize_rank_quality
+
+    if not rankings:
+        raise ValueError("persistent-operand aggregation requires results")
+    candidate_ids = [
+        str(candidate["candidate_id"]) for candidate in rankings[0]["candidates"]
+    ]
+    for ranking in rankings[1:]:
+        observed = [
+            str(candidate["candidate_id"]) for candidate in ranking["candidates"]
+        ]
+        if observed != candidate_ids:
+            raise ValueError("retained candidates changed between processes")
+
+    candidates = []
+    for index, candidate_id in enumerate(candidate_ids):
+        process_candidates = [ranking["candidates"][index] for ranking in rankings]
+        process_medians = [
+            float(candidate["timing"]["median_ms"])
+            for candidate in process_candidates
+        ]
+        samples = [
+            float(sample)
+            for candidate in process_candidates
+            for sample in candidate["timing"]["samples_ms"]
+        ]
+        codegen = [candidate["compiled_codegen"] for candidate in process_candidates]
+        candidate = {
+            key: value
+            for key, value in process_candidates[0].items()
+            if key not in {"compiled_codegen", "runtime_ms", "timing"}
+        }
+        runtime = statistics.median(process_medians)
+        candidate["runtime_ms"] = runtime
+        candidate["timing"] = {
+            **timing_summary(samples),
+            "aggregation_runtime_ms": runtime,
+            "aggregation_method": "median_of_process_medians",
+            "process_medians_ms": process_medians,
+            "process_launch_count": len(process_medians),
+        }
+        candidate["compiled_codegen"] = codegen[0]
+        candidate["compiled_codegen_consistent"] = all(
+            item == codegen[0] for item in codegen[1:]
+        )
+        if not candidate["compiled_codegen_consistent"]:
+            candidate["compiled_codegen_by_process"] = codegen
+        candidates.append(candidate)
+
+    selected = candidates[0]
+    default = next(candidate for candidate in candidates if candidate["layout"] == "row_major")
+    quality = summarize_rank_quality(candidates)
+    aggregate = {
+        key: value
+        for key, value in rankings[0].items()
+        if key
+        not in {
+            "candidates",
+            "correct",
+            "default",
+            "default_runtime_ms",
+            "laqs_made_no_change",
+            "measured_speedup",
+            "rank_quality",
+            "selected",
+            "selected_runtime_ms",
+        }
+    }
+    aggregate.update(
+        {
+            "process_launch_count": len(rankings),
+            "process_speedups": [
+                float(ranking["default_runtime_ms"])
+                / float(ranking["selected_runtime_ms"])
+                for ranking in rankings
+            ],
+            "default": default,
+            "selected": selected,
+            "candidates": candidates,
+            "rank_quality": quality,
+            "default_runtime_ms": float(default["runtime_ms"]),
+            "selected_runtime_ms": float(selected["runtime_ms"]),
+            "measured_speedup": float(default["runtime_ms"])
+            / float(selected["runtime_ms"]),
+            "laqs_made_no_change": selected["mapping_id"]
+            == default["mapping_id"],
+            "correct": all(bool(ranking["correct"]) for ranking in rankings),
+        }
+    )
+    return aggregate
