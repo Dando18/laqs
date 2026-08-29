@@ -291,6 +291,7 @@ def _effective_policy(config: SolverConfig, components: Sequence[ObjectiveCompon
         kind=policy.kind,
         order=order,
         weights=policy.weights,
+        tie_order=policy.tie_order,
         paths_per_state=policy.paths_per_state,
         frontier_limit=policy.frontier_limit,
     )
@@ -469,6 +470,7 @@ def solve(problem: RelayProblem) -> RelayResult:
                         kind="lexicographic",
                         order=policy.order,
                         weights=policy.weights,
+                        tie_order=policy.tie_order,
                         paths_per_state=min(policy.paths_per_state, 4),
                         frontier_limit=policy.frontier_limit,
                     )

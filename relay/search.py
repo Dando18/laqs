@@ -35,13 +35,23 @@ class ScorePolicy:
     kind: str = "lexicographic"
     order: tuple[str, ...] = ()
     weights: Mapping[str, float] = field(default_factory=dict)
+    tie_order: tuple[str, ...] = ()
     paths_per_state: int = 8
     frontier_limit: int = 32
 
     def key(self, score: Mapping[str, float]) -> tuple[float, ...]:
         values = tuple(float(score.get(name, 0.0)) for name in self.order)
         if self.kind == "weighted":
-            total = sum(float(self.weights.get(name, 0.0)) * float(score.get(name, 0.0)) for name in self.order)
+            total = sum(
+                float(self.weights.get(name, 0.0))
+                * float(score.get(name, 0.0))
+                for name in self.order
+            )
+            if self.tie_order:
+                ties = tuple(
+                    float(score.get(name, 0.0)) for name in self.tie_order
+                )
+                return (total, *ties)
             return (total, *values)
         if self.kind in {"lexicographic", "pareto"}:
             return values

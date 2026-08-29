@@ -1,3 +1,4 @@
 *.log
 stage1-*-breadth-cases/
+stage1-kernel-temporal-*-cases/
 stage2-probe-processes/

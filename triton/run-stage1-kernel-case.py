@@ -13,6 +13,7 @@ import torch
 import triton
 
 from stage1_common import (
+    compressed_temporal_edges,
     execution_layout_from_compiled,
     execution_layout_record,
     issue_events,
@@ -20,6 +21,7 @@ from stage1_common import (
     pack_tensor,
     positive_integer,
     require_aligned,
+    temporal_loop_edges,
 )
 from stage1_kernels import (
     bias_relu_kernel,
@@ -35,6 +37,26 @@ from run_stage1_kernel_cases import CASES
 
 
 INNER_TILE_FACTORS = (1, 2, 4, 8, 16, 32, 64)
+
+
+def unavailable_temporal_model(reason: str):
+    return (), {
+        "availability": "not_modeled",
+        "reason": reason,
+        "streams": [],
+        "dynamic_scalar_accesses": 0,
+    }
+
+
+def modeled_temporal_model(*streams):
+    return {
+        "availability": "modeled",
+        "reason": None,
+        "streams": list(streams),
+        "dynamic_scalar_accesses": sum(
+            int(stream["dynamic_scalar_accesses"]) for stream in streams
+        ),
+    }
 
 
 def patterned(shape, first: int, second: int, modulus: int) -> torch.Tensor:
@@ -122,6 +144,9 @@ def bias_relu(args):
         weight=elements // block,
         coordinate_map=lambda coord: coord,
     )
+    temporal_edges, temporal_model = unavailable_temporal_model(
+        "the target has no ordered intra-program load sequence"
+    )
     ranking = rank_persistent_operand(
         matrix,
         logical_bias,
@@ -135,6 +160,9 @@ def bias_relu(args):
             label, output.reshape(rows, n), reference
         ),
         inner_tile_shapes=((32,), (64,), (128,), (block,)),
+        temporal_edges=temporal_edges,
+        temporal_model=temporal_model,
+        temporal_mode=args.temporal_mode,
     )
     return result_record(
         "bias_relu", matrix, blocked, execution, events, ranking, rows=rows
@@ -179,6 +207,9 @@ def softmax_bias(args):
         weight=m,
         coordinate_map=lambda coord: (0, coord[0]),
     )
+    temporal_edges, temporal_model = unavailable_temporal_model(
+        "the target is loaded by one tensor operation with no loop"
+    )
     ranking = rank_persistent_operand(
         matrix,
         logical_bias,
@@ -195,6 +226,9 @@ def softmax_bias(args):
             (rows_per_tile, n)
             for rows_per_tile in INNER_TILE_FACTORS
         ),
+        temporal_edges=temporal_edges,
+        temporal_model=temporal_model,
+        temporal_mode=args.temporal_mode,
     )
     return result_record(
         "softmax_bias", matrix, blocked, execution, events, ranking
@@ -244,6 +278,10 @@ def embedding_bag(args):
         weight=bags * bag_size,
         coordinate_map=lambda coord: (0, coord[0]),
     )
+    temporal_edges, temporal_model = unavailable_temporal_model(
+        "the four-row loop is data-dependent and shorter than one "
+        "transaction window"
+    )
     ranking = rank_persistent_operand(
         matrix,
         logical_weight,
@@ -260,6 +298,9 @@ def embedding_bag(args):
             (rows_per_tile, dimensions)
             for rows_per_tile in INNER_TILE_FACTORS
         ),
+        temporal_edges=temporal_edges,
+        temporal_model=temporal_model,
+        temporal_mode=args.temporal_mode,
     )
     return result_record(
         "embedding_bag",
@@ -313,6 +354,17 @@ def gemv(args):
         weight=(m // block) * k,
         coordinate_map=lambda coord: (coord[0], 0),
     )
+    window = args.transaction_bytes // matrix.element_bytes
+    temporal_edges, temporal_stream = temporal_loop_edges(
+        execution,
+        matrix,
+        prefix="gemv.weight.load",
+        steps=k,
+        window=window,
+        program_instances=m // block,
+        coordinate_map=lambda coord, step: (coord[0], step),
+    )
+    temporal_model = modeled_temporal_model(temporal_stream)
     ranking = rank_persistent_operand(
         matrix,
         logical_weight,
@@ -329,6 +381,9 @@ def gemv(args):
             (block, columns_per_tile)
             for columns_per_tile in INNER_TILE_FACTORS
         ),
+        temporal_edges=temporal_edges,
+        temporal_model=temporal_model,
+        temporal_mode=args.temporal_mode,
     )
     return result_record("gemv", matrix, blocked, execution, events, ranking)
 
@@ -386,6 +441,27 @@ def mvt(args):
             coordinate_map=lambda coord: (0, coord[0]),
         ),
     )
+    window = args.transaction_bytes // matrix.element_bytes
+    row_temporal, row_stream = temporal_loop_edges(
+        execution,
+        matrix,
+        prefix="mvt.row.load",
+        steps=n,
+        window=window,
+        program_instances=n // block,
+        coordinate_map=lambda coord, step: (coord[0], step),
+    )
+    column_temporal, column_stream = temporal_loop_edges(
+        execution,
+        matrix,
+        prefix="mvt.column.load",
+        steps=n,
+        window=window,
+        program_instances=n // block,
+        coordinate_map=lambda coord, step: (step, coord[0]),
+    )
+    temporal_edges = row_temporal + column_temporal
+    temporal_model = modeled_temporal_model(row_stream, column_stream)
     ranking = rank_persistent_operand(
         matrix,
         logical_matrix,
@@ -404,6 +480,9 @@ def mvt(args):
                 + [(factor, block) for factor in INNER_TILE_FACTORS]
             )
         ),
+        temporal_edges=temporal_edges,
+        temporal_model=temporal_model,
+        temporal_mode=args.temporal_mode,
     )
     return result_record("mvt", matrix, blocked, execution, events, ranking)
 
@@ -456,6 +535,17 @@ def gesummv(args):
         weight=(n // block) * n,
         coordinate_map=lambda coord: (coord[0], 0),
     )
+    window = args.transaction_bytes // matrix.element_bytes
+    temporal_edges, temporal_stream = temporal_loop_edges(
+        execution,
+        matrix,
+        prefix="gesummv.A.load",
+        steps=n,
+        window=window,
+        program_instances=n // block,
+        coordinate_map=lambda coord, step: (coord[0], step),
+    )
+    temporal_model = modeled_temporal_model(temporal_stream)
     ranking = rank_persistent_operand(
         matrix,
         logical_a,
@@ -472,6 +562,9 @@ def gesummv(args):
             (block, columns_per_tile)
             for columns_per_tile in INNER_TILE_FACTORS
         ),
+        temporal_edges=temporal_edges,
+        temporal_model=temporal_model,
+        temporal_mode=args.temporal_mode,
     )
     return result_record(
         "gesummv", matrix, blocked, execution, events, ranking
@@ -550,6 +643,22 @@ def stencil5(args):
                 min(base + coord[0], n - 1),
             ),
         )
+    temporal_edges, temporal_stream = compressed_temporal_edges(
+        matrix,
+        prefix="stencil5.neighborhood",
+        point_sets=(
+            (
+                (row, column),
+                (row, max(column - 1, 0)),
+                (row, min(column + 1, n - 1)),
+                (max(row - 1, 0), column),
+                (min(row + 1, m - 1), column),
+            )
+            for row in range(m)
+            for column in range(n)
+        ),
+    )
+    temporal_model = modeled_temporal_model(temporal_stream)
     ranking = rank_persistent_operand(
         matrix,
         logical,
@@ -564,6 +673,9 @@ def stencil5(args):
             (rows_per_tile, block)
             for rows_per_tile in INNER_TILE_FACTORS
         ),
+        temporal_edges=temporal_edges,
+        temporal_model=temporal_model,
+        temporal_mode=args.temporal_mode,
     )
     return result_record(
         "stencil5", matrix, blocked, execution, events, ranking
@@ -589,6 +701,11 @@ def parse_arguments(argv=None):
     parser.add_argument("--samples", type=positive_integer, default=9)
     parser.add_argument("--iterations", type=positive_integer, default=20)
     parser.add_argument("--warmup", type=positive_integer, default=5)
+    parser.add_argument(
+        "--temporal-mode",
+        choices=("issue", "union", "split"),
+        default="issue",
+    )
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)

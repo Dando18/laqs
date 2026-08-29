@@ -16,7 +16,7 @@ from stage1_operand import aggregate_persistent_rankings
 from run_stage1_kernel_cases import CASES
 
 
-def current_case_result(path: Path) -> bool:
+def current_case_result(path: Path, temporal_mode: str) -> bool:
     if not path.exists():
         return False
     try:
@@ -27,6 +27,7 @@ def current_case_result(path: Path) -> bool:
     return (
         scope.get("grammar") == "canonical_inner_tile"
         and scope.get("tile_policy") == "explicit_hypothesis_sweep_v1"
+        and scope.get("temporal_mode") == temporal_mode
     )
 
 
@@ -43,6 +44,13 @@ def case_summary(result: dict[str, object]) -> dict[str, object]:
         "fixed_outer_order": ranking["search_scope"]["fixed_outer_order"],
         "default_quotient": ranking["default_quotient"],
         "selected_quotient": ranking["selected_quotient"],
+        "default_quotient_components": ranking["default"][
+            "quotient_components"
+        ],
+        "selected_quotient_components": ranking["selected"][
+            "quotient_components"
+        ],
+        "temporal_model": ranking["temporal_model"],
         "default_runtime_ms": ranking["default_runtime_ms"],
         "selected_runtime_ms": ranking["selected_runtime_ms"],
         "measured_speedup": ranking["measured_speedup"],
@@ -74,7 +82,7 @@ def run_suite(args) -> dict[str, object]:
         case_dir.mkdir(exist_ok=True)
         for process_launch in range(1, args.process_launches + 1):
             output = case_dir / f"process-{process_launch}.json"
-            if current_case_result(output) and not args.rerun:
+            if current_case_result(output, args.temporal_mode) and not args.rerun:
                 print(
                     f"Kernel breadth: reuse {name} process {process_launch}",
                     file=sys.stderr,
@@ -103,6 +111,8 @@ def run_suite(args) -> dict[str, object]:
                     str(args.iterations),
                     "--warmup",
                     str(args.warmup),
+                    "--temporal-mode",
+                    args.temporal_mode,
                     "--json",
                     str(output),
                     "--quiet",
@@ -117,7 +127,11 @@ def run_suite(args) -> dict[str, object]:
             args.results_dir / name / f"process-{process_launch}.json"
             for process_launch in range(1, args.process_launches + 1)
         ]
-        absent = [path for path in outputs if not current_case_result(path)]
+        absent = [
+            path
+            for path in outputs
+            if not current_case_result(path, args.temporal_mode)
+        ]
         if absent:
             missing.extend(str(path.relative_to(args.results_dir)) for path in absent)
             continue
@@ -149,6 +163,7 @@ def run_suite(args) -> dict[str, object]:
             "samples": args.samples,
             "iterations": args.iterations,
             "warmup": args.warmup,
+            "temporal_mode": args.temporal_mode,
         },
         "case_order": list(CASES),
         "completed_cases": list(completed),
@@ -177,6 +192,11 @@ def parse_arguments(argv=None):
     parser.add_argument("--samples", type=positive_integer, default=9)
     parser.add_argument("--iterations", type=positive_integer, default=20)
     parser.add_argument("--warmup", type=positive_integer, default=5)
+    parser.add_argument(
+        "--temporal-mode",
+        choices=("issue", "union", "split"),
+        default="issue",
+    )
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)

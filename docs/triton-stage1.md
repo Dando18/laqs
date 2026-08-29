@@ -53,6 +53,20 @@ deduplicates identical complete physical mappings. This distinguishes a valid
 tile-hypothesis sweep from extracting a larger execution layout than the
 kernel actually has.
 
+An optional space-time extension augments issue cohorts with temporal fibers
+from statically ordered target-operand accesses. For hardware location $h$ and
+a non-overlapping window $W_b$ of dynamic issue steps, it adds
+
+\[
+T_{h,b}=\{X(h,t):t\in W_b\}.
+\]
+
+`--temporal-mode union` places issue and temporal edges in one
+`ExplicitRegions` component. `--temporal-mode split` keeps two components for
+reporting but ranks their equal-weight raw sum, followed by runs and XORs.
+Thus union and split express the same scalar objective; split does not apply an
+issue-first lexicographic preference.
+
 The score policy is lexicographic:
 
 1. minimize the induced quotient transaction count;
@@ -334,6 +348,65 @@ minimum-score mappings span 4.38% in runtime. Stencil produces seven distinct
 equal-score mappings: its top-1 regret is 5.06% and top-2 regret is zero. The
 selected stencil mapping is physically row-major, so its separately timed
 duplicate is also retained as a noise-control measurement.
+
+## Space-time temporal-edge experiment
+
+The temporal experiment uses one non-overlapping transaction-capacity window:
+32 FP32 loop steps for the 128-byte GEMV, MVT, and GESUMMV target streams.
+Aligned windows and program instances are exact XOR translations for the
+searched bit-linear mappings, so one representative edge per hardware
+location carries their multiplicity. This produces 64 temporal edges for GEMV
+and GESUMMV and 128 for MVT's row and transpose streams together.
+
+Stencil's five consecutive target loads form a different bounded sequence.
+All 262,144 output neighborhoods, including clamped boundaries, are enumerated
+and compressed into 81 exact XOR-translation classes. Bias-ReLU and biased
+softmax have no ordered intra-program sequence over the target. Embedding bag's
+four-row sequence is data-dependent and shorter than one transaction window;
+these three cases explicitly record that no temporal edges were modeled.
+
+Run the two equivalent representations independently:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-kernel-breadth.py \
+  --temporal-mode union --process-launches 3 \
+  --results-dir triton/results/stage1-kernel-temporal-union-cases \
+  --json triton/results/stage1-kernel-temporal-union.json --quiet
+
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-kernel-breadth.py \
+  --temporal-mode split --process-launches 3 \
+  --results-dir triton/results/stage1-kernel-temporal-split-cases \
+  --json triton/results/stage1-kernel-temporal-split.json --quiet
+```
+
+Both three-process runs retain identical candidate IDs, quotient scores,
+issue/temporal decompositions, and selected tiles for all seven kernels. The
+union results, compared with issue-only, are:
+
+| kernel | issue-only selection | space-time selection | space-time speedup | top-1 / top-2 / top-3 regret |
+|---|---:|---:|---:|---:|
+| GEMV | 64x1 | 64x4 | 1.0395x | 0% / 0% / 0% |
+| MVT | 4x64 | 4x64 | 1.1100x | 1.34% / 1.34% / 0.93% |
+| GESUMMV | 64x1 | 64x4 | 1.0505x | 3.52% / 3.52% / 3.52% |
+| stencil-5 | 1x64 | 4x64 | 1.0109x | 8.59% / 1.76% / 0% |
+
+For GEMV, row-major scores `(issue=1,048,576, temporal=32,768)` and the old
+64x1 selection scores the exact dual `(32,768, 1,048,576)`. The expanded tile
+sweep exposes a better 64x4 compromise `(131,072, 262,144)`, eliminating the
+old 3.38% top-1 regret and producing a stable 3.95% speedup in every process.
+
+MVT's temporal and issue components are equal for every candidate because the
+kernel already contains symmetric row and transpose issue streams. Temporal
+edges therefore add no ranking information there. For GESUMMV, the same 64x4
+compromise improves on row-major but loses 3.52% to the issue-only 64x1
+mapping, showing that equal spatial/temporal access coverage does not imply
+equal runtime weight. In stencil, the temporal objective promotes a family
+containing the fastest layout, but runs select 4x64 while the equal-score 16x64
+layout is faster; top-3 regret is zero. These are direct constraints on future
+temporal weighting and tie-breaking rather than evidence to remove the new
+edges.
 
 Results produced before the inner-tile scope change searched every logical bit
 of the operand and are not directly comparable. The previous 32x64x32

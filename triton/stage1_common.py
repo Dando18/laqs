@@ -324,6 +324,107 @@ def issue_events(
     return tuple(events)
 
 
+def temporal_loop_edges(
+    execution,
+    matrix,
+    *,
+    prefix: str,
+    steps: int,
+    window: int,
+    program_instances: int,
+    coordinate_map,
+):
+    """Compress aligned loop windows for bit-linear address mappings."""
+
+    from relay import Hyperedge
+
+    if steps <= 0 or window <= 0 or program_instances <= 0:
+        raise ValueError("temporal loop dimensions must be positive")
+    if steps % window:
+        raise ValueError("temporal steps must be divisible by the window")
+    translated_windows = steps // window
+    locations = execution.locations(fixed={"block": 0})
+    edges = []
+    for location in locations:
+        tensor_coord = execution.apply(location)
+        points = tuple(
+            tuple(coordinate_map(tensor_coord, step))
+            for step in range(window)
+        )
+        for point in points:
+            matrix.validate_coord(point)
+        hardware = ".".join(
+            f"{name}{value}" for name, value in location.coordinates
+        )
+        edges.append(
+            Hyperedge.make(
+                points,
+                weight=program_instances * translated_windows,
+                source=f"temporal:{prefix}:{hardware}:window{window}",
+            )
+        )
+    return tuple(edges), {
+        "stream": prefix,
+        "fiber": "per_hardware_location",
+        "window_elements": window,
+        "stride_elements": window,
+        "loop_steps": steps,
+        "program_instances": program_instances,
+        "translated_windows_per_location": translated_windows,
+        "representative_edge_count": len(edges),
+        "dynamic_scalar_accesses": len(locations) * steps * program_instances,
+        "compression": "aligned_xor_translations",
+    }
+
+
+def compressed_temporal_edges(matrix, *, prefix: str, point_sets):
+    """Compress exact temporal fibers that differ only by XOR translation."""
+
+    from relay import Hyperedge
+
+    groups = {}
+    dynamic_fibers = 0
+    dynamic_accesses = 0
+    for points in point_sets:
+        items = tuple(tuple(point) for point in points)
+        unique = tuple(sorted(set(items)))
+        if not unique:
+            raise ValueError("a temporal fiber cannot be empty")
+        for point in unique:
+            matrix.validate_coord(point)
+        bits = tuple(matrix.coord_to_bits(point) for point in unique)
+        key = min(
+            tuple(sorted(value ^ anchor for value in bits))
+            for anchor in bits
+        )
+        dynamic_fibers += 1
+        dynamic_accesses += len(items)
+        group = groups.get(key)
+        if group is None:
+            groups[key] = (unique, 1)
+        else:
+            groups[key] = (group[0], group[1] + 1)
+
+    edges = tuple(
+        Hyperedge.make(
+            group[0],
+            weight=group[1],
+            source=f"temporal:{prefix}:class{index}",
+        )
+        for index, (_key, group) in enumerate(sorted(groups.items()))
+    )
+    return edges, {
+        "stream": prefix,
+        "fiber": "per_hardware_location",
+        "window_elements": None,
+        "stride_elements": None,
+        "dynamic_fibers": dynamic_fibers,
+        "representative_edge_count": len(edges),
+        "dynamic_scalar_accesses": dynamic_accesses,
+        "compression": "exact_xor_translation_classes",
+    }
+
+
 def solve_layouts(
     matrices,
     events,
@@ -331,6 +432,8 @@ def solve_layouts(
     name,
     *,
     inner_tile_shapes,
+    temporal_edges=None,
+    temporal_mode="issue",
 ):
     from relay import (
         ScorePolicy,
@@ -339,7 +442,28 @@ def solve_layouts(
         solve,
     )
 
-    objective = f"{name}.issue.{args.transaction_bytes}B"
+    if temporal_mode not in {"issue", "union", "split"}:
+        raise ValueError(f"unknown temporal mode {temporal_mode!r}")
+    issue_objective = f"{name}.issue.{args.transaction_bytes}B"
+    temporal_objective = f"{name}.temporal.{args.transaction_bytes}B"
+    if temporal_mode == "union":
+        objective = f"{name}.space_time.{args.transaction_bytes}B"
+        policy = ScorePolicy(
+            "lexicographic", (objective, "runs", "xors")
+        )
+    elif temporal_mode == "split":
+        objective = (issue_objective, temporal_objective)
+        policy = ScorePolicy(
+            kind="weighted",
+            order=objective,
+            weights={issue_objective: 1.0, temporal_objective: 1.0},
+            tie_order=("runs", "xors"),
+        )
+    else:
+        objective = issue_objective
+        policy = ScorePolicy(
+            "lexicographic", (objective, "runs", "xors")
+        )
     targets = tuple(matrix for matrix in matrices if matrix.target)
     if not targets:
         raise ValueError("Stage 1 requires at least one target matrix")
@@ -366,9 +490,14 @@ def solve_layouts(
         matrices,
         events,
         transaction_bytes=args.transaction_bytes,
-        objective_name=objective,
+        temporal_edges=temporal_edges,
+        temporal_mode=temporal_mode,
+        temporal_objective_name=temporal_objective,
+        objective_name=(
+            issue_objective if temporal_mode == "split" else objective
+        ),
         config=SolverConfig(
-            policy=ScorePolicy("lexicographic", (objective, "runs", "xors")),
+            policy=policy,
             tile_shapes=tile_shapes,
             general_tile_shapes={matrix.name: () for matrix in targets},
             include_global_canonical=False,
@@ -376,7 +505,7 @@ def solve_layouts(
             include_column_major_control=False,
             retain_one_candidate_per_tile=True,
             canonical_candidates_per_tile=args.candidates,
-            primary_tolerance=0.0,
+            primary_tolerance=(None if temporal_mode == "split" else 0.0),
             per_array_candidates=retained_count,
             joint_candidates=retained_count,
         ),

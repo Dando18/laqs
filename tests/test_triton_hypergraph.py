@@ -5,11 +5,13 @@ import unittest
 from relay import (
     BlockedLayoutParameters,
     HardwareLocation,
+    Hyperedge,
     MatrixSpec,
     ObservedAccess,
     ScorePolicy,
     SolverConfig,
     TritonLinearLayout,
+    canonical_layout_from_word,
     execution_conditioned_quotient_problem,
     extract_blocked_layout,
     induce_memory_event,
@@ -18,6 +20,7 @@ from relay import (
     validate_induced_hypergraph,
     weighted_component_region_count,
 )
+from relay.objectives import build_objectives
 
 
 class TritonLinearLayoutTests(unittest.TestCase):
@@ -358,6 +361,152 @@ class ExecutionConditionedQuotientTests(unittest.TestCase):
         self.assertEqual(default_score, 10)
         self.assertEqual(best.scores[objective_name], 8)
         self.assertLess(best.scores[objective_name], default_score)
+
+    def test_gemv_space_time_edges_expose_spatial_temporal_duality(self) -> None:
+        matrix = MatrixSpec("A", (1024, 1024), 4, ("i", "j"))
+        execution = TritonLinearLayout.from_blocked(
+            (64,),
+            size_per_thread=(1,),
+            threads_per_warp=(64,),
+            warps_per_cta=(1,),
+            order=(0,),
+        )
+        locations = execution.locations(
+            fixed={"register": 0, "warp": 0, "block": 0}
+        )
+        issue = induce_memory_event(
+            execution,
+            matrix,
+            locations,
+            id="gemv.issue",
+            site="gemv.load",
+            weight=16 * 1024,
+            coordinate_map=lambda coord: (coord[0], 0),
+        )
+        temporal = tuple(
+            Hyperedge.make(
+                ((lane, column) for column in range(32)),
+                weight=16 * 32,
+                source=f"temporal:lane{lane}",
+            )
+            for lane in range(64)
+        )
+        problem = execution_conditioned_quotient_problem(
+            (matrix,),
+            (issue,),
+            transaction_bytes=128,
+            temporal_edges={matrix.name: temporal},
+            temporal_mode="split",
+            objective_name="issue",
+            temporal_objective_name="temporal",
+            config=SolverConfig(
+                policy=ScorePolicy(
+                    kind="weighted",
+                    order=("issue", "temporal"),
+                    weights={"issue": 1.0, "temporal": 1.0},
+                    tie_order=("runs", "xors"),
+                ),
+                tile_shapes={
+                    "A": tuple((64, extent) for extent in (1, 2, 4, 8, 16, 32, 64))
+                },
+                general_tile_shapes={"A": ()},
+                include_global_canonical=False,
+                enable_linear_inner=False,
+                include_column_major_control=False,
+                retain_one_candidate_per_tile=True,
+                primary_tolerance=None,
+                per_array_candidates=8,
+            ),
+        )
+        components = build_objectives(
+            problem.objectives,
+            {matrix.name: matrix},
+            {event.id: event for event in problem.events},
+            problem.sequences,
+        )
+        issue_component, temporal_component = components
+        row_major = row_major_layout(matrix)
+        row_inner = canonical_layout_from_word(
+            matrix, "i" * 6, name="row_inner_64x1"
+        )
+
+        row_scores = (
+            weighted_component_region_count(
+                matrix, row_major, issue_component
+            ),
+            weighted_component_region_count(
+                matrix, row_major, temporal_component
+            ),
+        )
+        inner_scores = (
+            weighted_component_region_count(
+                matrix, row_inner, issue_component
+            ),
+            weighted_component_region_count(
+                matrix, row_inner, temporal_component
+            ),
+        )
+        self.assertEqual(row_scores, (1_048_576, 32_768))
+        self.assertEqual(inner_scores, (32_768, 1_048_576))
+        self.assertEqual(sum(row_scores), sum(inner_scores))
+
+        union = execution_conditioned_quotient_problem(
+            (matrix,),
+            (issue,),
+            transaction_bytes=128,
+            temporal_edges={matrix.name: temporal},
+            temporal_mode="union",
+            objective_name="space_time",
+            config=SolverConfig(
+                policy=ScorePolicy(
+                    "lexicographic", ("space_time", "runs", "xors")
+                ),
+                tile_shapes={
+                    "A": tuple((64, extent) for extent in (1, 2, 4, 8, 16, 32, 64))
+                },
+                general_tile_shapes={"A": ()},
+                include_global_canonical=False,
+                enable_linear_inner=False,
+                include_column_major_control=False,
+                retain_one_candidate_per_tile=True,
+                primary_tolerance=0.0,
+                per_array_candidates=8,
+            ),
+        )
+        union_component = build_objectives(
+            union.objectives,
+            {matrix.name: matrix},
+            {event.id: event for event in union.events},
+            union.sequences,
+        )[0]
+        self.assertEqual(
+            weighted_component_region_count(
+                matrix, row_major, union_component
+            ),
+            sum(row_scores),
+        )
+        self.assertEqual(
+            weighted_component_region_count(
+                matrix, row_inner, union_component
+            ),
+            sum(inner_scores),
+        )
+        union_result = solve(union)
+        split_result = solve(problem)
+        self.assertEqual(
+            union_result.arrays["A"].candidates[0].layout.tile_shape,
+            (64, 4),
+        )
+        self.assertEqual(
+            [
+                candidate.layout.signature()
+                for candidate in union_result.arrays["A"].candidates
+            ],
+            [
+                candidate.layout.signature()
+                for candidate in split_result.arrays["A"].candidates
+            ],
+        )
 
 
 def one_wave_layout() -> TritonLinearLayout:

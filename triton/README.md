@@ -218,6 +218,27 @@ correlation, raw timing, and complete per-candidate codegen statistics.
 See [Triton integration stage 1](../docs/triton-stage1.md) for the exact case
 catalog and cache-control semantics.
 
+### Add per-location temporal fibers
+
+The kernel-breadth worker also supports a space-time quotient experiment.
+`--temporal-mode union` adds issue and temporal hyperedges to one component;
+`--temporal-mode split` reports them separately while minimizing their equal
+raw-count sum. Both retain runs and XORs only as tie-breakers.
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-kernel-breadth.py \
+  --temporal-mode split --process-launches 3 \
+  --results-dir triton/results/stage1-kernel-temporal-split-cases \
+  --json triton/results/stage1-kernel-temporal-split.json --quiet
+```
+
+GEMV, MVT, and GESUMMV use exact 32-step non-overlapping loop windows;
+stencil neighborhoods are compressed into exact XOR-translation classes.
+Results record issue and temporal scores separately for every candidate even
+in union mode. See [Triton integration stage 1](../docs/triton-stage1.md) for
+the schedule coverage, union/split equivalence check, and measured outcomes.
+
 ## Run the controlled Stage-2 probe
 
 The probe materializes 28 sparse shear realizations of the Stage-1-selected

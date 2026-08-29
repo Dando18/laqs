@@ -15,6 +15,23 @@ from relay import (
 
 
 class SolverTests(unittest.TestCase):
+    def test_weighted_policy_uses_explicit_tie_order_before_components(self) -> None:
+        policy = ScorePolicy(
+            kind="weighted",
+            order=("issue", "temporal"),
+            weights={"issue": 1.0, "temporal": 1.0},
+            tie_order=("runs", "xors"),
+        )
+
+        simpler = {"issue": 10, "temporal": 20, "runs": 2, "xors": 0}
+        issue_local = {
+            "issue": 1,
+            "temporal": 29,
+            "runs": 3,
+            "xors": 0,
+        }
+        self.assertLess(policy.key(simpler), policy.key(issue_local))
+
     def test_inner_tile_search_keeps_outer_order_fixed(self) -> None:
         matrix = MatrixSpec("M", (8, 8), 4, ("i", "j"))
         event = MemoryEvent.make(

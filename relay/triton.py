@@ -429,11 +429,14 @@ def execution_conditioned_quotient_problem(
     induced_events: Iterable[InducedMemoryEvent],
     *,
     transaction_bytes: int,
+    temporal_edges: Mapping[str, Sequence[Hyperedge]] | None = None,
+    temporal_mode: str = "issue",
+    temporal_objective_name: str | None = None,
     config: "SolverConfig | None" = None,
     objective_name: str | None = None,
     name: str = "triton_execution_conditioned_quotient",
 ) -> "RelayProblem":
-    """Build Stage 1's quotient-locality problem from induced issue cohorts."""
+    """Build Stage 1's issue-only or space-time quotient-locality problem."""
 
     from .objectives import ExplicitRegions
     from .solver import RelayProblem, SolverConfig
@@ -448,6 +451,10 @@ def execution_conditioned_quotient_problem(
         raise ValueError("an execution-conditioned problem needs a target matrix")
     if transaction_bytes <= 0 or not is_power_of_two(transaction_bytes):
         raise ValueError("transaction_bytes must be a positive power of two")
+    if temporal_mode not in {"issue", "union", "split"}:
+        raise ValueError(
+            "temporal_mode must be one of 'issue', 'union', or 'split'"
+        )
     for matrix in matrix_items:
         if transaction_bytes % matrix.element_bytes:
             raise ValueError(
@@ -474,21 +481,80 @@ def execution_conditioned_quotient_problem(
         events.append(induced.event)
         edges.setdefault(array, []).append(induced.hyperedge)
 
+    temporal: dict[str, tuple[Hyperedge, ...]] = {}
+    for array, array_edges in (temporal_edges or {}).items():
+        if array not in matrix_by_name:
+            raise ValueError(f"temporal edges reference unknown array {array}")
+        temporal[array] = tuple(array_edges)
+        for edge in temporal[array]:
+            for point in edge.points:
+                matrix_by_name[array].validate_coord(point)
+
+    issue = {array: tuple(items) for array, items in edges.items()}
     component_name = objective_name or f"triton.issue.{transaction_bytes}B"
-    objective = ExplicitRegions(
-        component_name,
-        transaction_bytes,
-        {array: tuple(items) for array, items in edges.items()},
-        provenance="triton-linear-layout",
-        description=(
-            "Exact hardware issue cohorts induced by Triton LinearLayouts"
-        ),
-    )
+    if temporal_mode == "issue":
+        objectives = (
+            ExplicitRegions(
+                component_name,
+                transaction_bytes,
+                issue,
+                provenance="triton-linear-layout",
+                description=(
+                    "Exact hardware issue cohorts induced by Triton "
+                    "LinearLayouts"
+                ),
+            ),
+        )
+    elif temporal_mode == "union":
+        combined = {array: list(items) for array, items in issue.items()}
+        for array, items in temporal.items():
+            combined.setdefault(array, []).extend(items)
+        objectives = (
+            ExplicitRegions(
+                component_name,
+                transaction_bytes,
+                {
+                    array: tuple(items)
+                    for array, items in combined.items()
+                },
+                provenance="triton-linear-layout-space-time",
+                description=(
+                    "Union of exact hardware issue cohorts and per-location "
+                    "temporal fibers"
+                ),
+            ),
+        )
+    else:
+        temporal_name = temporal_objective_name
+        if temporal_name is None:
+            temporal_name = f"triton.temporal.{transaction_bytes}B"
+        objectives = (
+            ExplicitRegions(
+                component_name,
+                transaction_bytes,
+                issue,
+                provenance="triton-linear-layout",
+                description=(
+                    "Exact hardware issue cohorts induced by Triton "
+                    "LinearLayouts"
+                ),
+            ),
+            ExplicitRegions(
+                temporal_name,
+                transaction_bytes,
+                temporal,
+                provenance="triton-linear-layout-time",
+                description=(
+                    "Non-overlapping per-location temporal fibers over "
+                    "ordered issue steps"
+                ),
+            ),
+        )
     return RelayProblem(
         matrices=matrix_items,
         events=tuple(events),
         sequences=(),
-        objectives=(objective,),
+        objectives=objectives,
         config=config or SolverConfig(),
         name=name,
     )
