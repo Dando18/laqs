@@ -34,6 +34,9 @@ from stage1_operand import rank_persistent_operand
 from run_stage1_kernel_cases import CASES
 
 
+INNER_TILE_FACTORS = (1, 2, 4, 8, 16, 32, 64)
+
+
 def patterned(shape, first: int, second: int, modulus: int) -> torch.Tensor:
     i = torch.arange(shape[0], dtype=torch.int64)[:, None]
     j = torch.arange(shape[1], dtype=torch.int64)[None, :]
@@ -131,7 +134,7 @@ def bias_relu(args):
         validate=lambda label, output: validate_tensor(
             label, output.reshape(rows, n), reference
         ),
-        inner_tile_shape=(block,),
+        inner_tile_shapes=((32,), (64,), (128,), (block,)),
     )
     return result_record(
         "bias_relu", matrix, blocked, execution, events, ranking, rows=rows
@@ -188,7 +191,10 @@ def softmax_bias(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, rtol=2e-4
         ),
-        inner_tile_shape=(1, n),
+        inner_tile_shapes=tuple(
+            (rows_per_tile, n)
+            for rows_per_tile in INNER_TILE_FACTORS
+        ),
     )
     return result_record(
         "softmax_bias", matrix, blocked, execution, events, ranking
@@ -250,7 +256,10 @@ def embedding_bag(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=2e-2
         ),
-        inner_tile_shape=(1, dimensions),
+        inner_tile_shapes=tuple(
+            (rows_per_tile, dimensions)
+            for rows_per_tile in INNER_TILE_FACTORS
+        ),
     )
     return result_record(
         "embedding_bag",
@@ -316,7 +325,10 @@ def gemv(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=2e-2
         ),
-        inner_tile_shape=(block, 1),
+        inner_tile_shapes=tuple(
+            (block, columns_per_tile)
+            for columns_per_tile in INNER_TILE_FACTORS
+        ),
     )
     return result_record("gemv", matrix, blocked, execution, events, ranking)
 
@@ -386,7 +398,12 @@ def mvt(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=4e-2
         ),
-        inner_tile_shape=(block, block),
+        inner_tile_shapes=tuple(
+            dict.fromkeys(
+                [(block, factor) for factor in INNER_TILE_FACTORS]
+                + [(factor, block) for factor in INNER_TILE_FACTORS]
+            )
+        ),
     )
     return result_record("mvt", matrix, blocked, execution, events, ranking)
 
@@ -451,7 +468,10 @@ def gesummv(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=4e-2
         ),
-        inner_tile_shape=(block, 1),
+        inner_tile_shapes=tuple(
+            (block, columns_per_tile)
+            for columns_per_tile in INNER_TILE_FACTORS
+        ),
     )
     return result_record(
         "gesummv", matrix, blocked, execution, events, ranking
@@ -540,7 +560,10 @@ def stencil5(args):
         make_output=lambda: torch.empty_like(probe),
         make_launch=make_launch,
         validate=lambda label, output: validate_tensor(label, output, reference),
-        inner_tile_shape=(1, block),
+        inner_tile_shapes=tuple(
+            (rows_per_tile, block)
+            for rows_per_tile in INNER_TILE_FACTORS
+        ),
     )
     return result_record(
         "stencil5", matrix, blocked, execution, events, ranking

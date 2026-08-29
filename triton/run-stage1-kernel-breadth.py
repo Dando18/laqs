@@ -24,7 +24,10 @@ def current_case_result(path: Path) -> bool:
         scope = result["ranking"]["search_scope"]
     except (KeyError, TypeError, ValueError):
         return False
-    return scope.get("grammar") == "canonical_inner_tile"
+    return (
+        scope.get("grammar") == "canonical_inner_tile"
+        and scope.get("tile_policy") == "explicit_hypothesis_sweep_v1"
+    )
 
 
 def case_summary(result: dict[str, object]) -> dict[str, object]:
@@ -33,7 +36,10 @@ def case_summary(result: dict[str, object]) -> dict[str, object]:
     return {
         "target_operand": result["target_operand"],
         "operand_shape": result["operand_shape"],
-        "inner_tile_shape": ranking["search_scope"]["inner_tile_shape"],
+        "inner_tile_shapes": ranking["search_scope"]["inner_tile_shapes"],
+        "selected_inner_tile_shape": ranking["selected"][
+            "inner_tile_shape"
+        ],
         "fixed_outer_order": ranking["search_scope"]["fixed_outer_order"],
         "default_quotient": ranking["default_quotient"],
         "selected_quotient": ranking["selected_quotient"],

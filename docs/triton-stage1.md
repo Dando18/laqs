@@ -29,8 +29,9 @@ therefore uses the existing solver, scorer, layouts, and reports. The result is
 also the input needed by later flag-fiber work; there is no Triton-specific
 search implementation.
 
-Stage 1 searches the canonical grammar only inside the bounded persistent-load
-or natural reuse tile. The complete address map is the two-level composition
+Stage 1 searches the canonical grammar only inside a bounded persistent-load
+or declared natural-reuse tile. The complete address map is the two-level
+composition
 
 \[
 A=\begin{bmatrix}A_{\mathrm{inner}}&0\\0&A_{\mathrm{outer}}\end{bmatrix},
@@ -38,10 +39,19 @@ A=\begin{bmatrix}A_{\mathrm{inner}}&0\\0&A_{\mathrm{outer}}\end{bmatrix},
 
 where $A_{\mathrm{inner}}$ is searched and $A_{\mathrm{outer}}$ is fixed to
 row-major tile order. The flat row-major tensor mapping remains a default
-control, and tiled row-major is retained as a control within the constrained
-family. Full column-major is not admitted as an alternative outer layout.
+control. Full column-major is not admitted as an alternative outer layout.
 This keeps the search on address bits for which the compiled execution layout
 provides direct evidence.
+
+The kernel-breadth experiment treats tile shape as an explicit sensitivity
+parameter. It does not claim that Triton supplied the added orthogonal tile
+extent: the compiled execution cohort stays fixed while each declared shape
+changes the bounded domain of $A_{\mathrm{inner}}$. Every resulting complete
+mapping is rescored against the same induced events, and the best canonical
+candidate from every shape is retained along with flat row-major. Ranking then
+deduplicates identical complete physical mappings. This distinguishes a valid
+tile-hypothesis sweep from extracting a larger execution layout than the
+kernel actually has.
 
 The score policy is lexicographic:
 
@@ -290,9 +300,12 @@ The suite includes contiguous negative controls as well as row, column,
 row-plus-column, indirect, and neighborhood access patterns. Affine-translated
 cohorts are represented once with their exact dynamic multiplicity. The
 stencil represents the clamped left and right boundary cohorts separately.
-The inner tiles are 256 for bias-ReLU, 1x256 for softmax bias, 1x128 for
-embedding bag, 64x1 for GEMV and GESUMMV, 64x64 for MVT, and 1x64 for the
-stencil. In every case, tiles retain row-major outer order.
+Bias-ReLU searches 32, 64, 128, and 256-element one-dimensional tiles. The 2-D
+cases use the power-of-two ladder 1, 2, 4, 8, 16, 32, and 64 in the orthogonal
+reuse dimension: `Rx256` for softmax bias, `Rx128` for embedding bag, `64xC`
+for GEMV and GESUMMV, and `Rx64` for stencil. MVT contains both row and column
+loads, so it searches both `64xC` and `Rx64`, with duplicate `64x64` removed.
+Every hypothesis retains row-major outer tile order.
 
 ```bash
 flux run -n1 -g1 -t 5m -q pdebug \
@@ -301,20 +314,26 @@ flux run -n1 -g1 -t 5m -q pdebug \
   --json triton/results/stage1-kernel-breadth.json --quiet
 ```
 
-Each case summary contains the inner tile and fixed outer order, default and
-selected quotient scores, default and selected runtimes, speedup, top-1
-through top-5 regret, rank correlation, deduplicated mapping count, selected
-layout word, and whether LAQS retained the default physical mapping. Full case
-records preserve duplicate-mapping, equal-score, and same-flag runtime spreads
-plus per-candidate register, spill, instruction, binary, and opcode statistics.
+Each case summary contains all inner-tile hypotheses, the selected tile, and
+the fixed outer order; default and selected quotient scores and runtimes;
+speedup; top-1 through top-5 regret; rank correlation; deduplicated mapping
+count; selected layout word; and whether LAQS retained the default physical
+mapping. Full case records preserve duplicate-mapping, equal-score, and
+same-flag runtime spreads plus per-candidate register, spill, instruction,
+binary, and opcode statistics.
 
-The current three-process inner-tile result is stored in
-`triton/results/stage1-kernel-breadth.json`. Bias-ReLU, biased softmax,
-embedding bag, and stencil have one distinct mapping after deduplication. MVT
-uses a 64x64 inner tile and improves by 12.74%; GESUMMV uses a 64x1 tile and
-improves by 8.79%. GEMV's 64x1 inner layout reduces the quotient by 32x but is
-3.49% slower than flat row-major; because only two distinct mappings remain,
-top-2 regret is zero.
+The current three-process tile-sweep result is stored in
+`triton/results/stage1-kernel-breadth.json`. Bias-ReLU, biased softmax, and
+embedding bag collapse to one physical mapping after deduplication. All seven
+GEMV and GESUMMV shapes collapse to the same selected mapping plus row-major;
+GESUMMV improves by 8.77%, while GEMV's 32x quotient reduction is 3.38% slower
+than row-major and therefore has zero top-2 regret. MVT produces ten distinct
+mappings. Its selected layout improves on row-major by 11.11%, and its
+top-1 through top-5 regrets are 1.35%, 1.35%, 0.93%, 0.93%, and 0%; the six
+minimum-score mappings span 4.38% in runtime. Stencil produces seven distinct
+equal-score mappings: its top-1 regret is 5.06% and top-2 regret is zero. The
+selected stencil mapping is physically row-major, so its separately timed
+duplicate is also retained as a noise-control measurement.
 
 Results produced before the inner-tile scope change searched every logical bit
 of the operand and are not directly comparable. The previous 32x64x32

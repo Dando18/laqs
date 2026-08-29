@@ -58,6 +58,50 @@ class SolverTests(unittest.TestCase):
             (1, 0),
         )
 
+    def test_inner_tile_sweep_retains_best_candidate_per_shape(self) -> None:
+        matrix = MatrixSpec("M", (8, 8), 4, ("i", "j"))
+        event = MemoryEvent.make(
+            "load",
+            "load",
+            [Access("M", (lane, 0), lane=lane) for lane in range(8)],
+        )
+        result = solve(
+            RelayProblem(
+                matrices=(matrix,),
+                events=(event,),
+                sequences=(),
+                objectives=(SimultaneousRegions("fine", 16),),
+                config=SolverConfig(
+                    policy=ScorePolicy(
+                        "lexicographic", ("fine", "runs", "xors")
+                    ),
+                    tile_shapes={"M": ((2, 2), (4, 2))},
+                    general_tile_shapes={"M": ()},
+                    include_global_canonical=False,
+                    enable_linear_inner=False,
+                    include_column_major_control=False,
+                    retain_one_candidate_per_tile=True,
+                    primary_tolerance=0.0,
+                    per_array_candidates=3,
+                ),
+            )
+        )
+
+        candidates = result.arrays["M"].candidates
+        canonical_tiles = {
+            candidate.layout.tile_exponents
+            for candidate in candidates
+            if candidate.grammar == "canonical"
+            and candidate.layout.name != "row_major"
+        }
+        self.assertEqual(canonical_tiles, {(1, 1), (2, 1)})
+        self.assertTrue(
+            any(
+                candidate.layout.name == "row_major"
+                for candidate in candidates
+            )
+        )
+
     def test_conflict_packing_gap(self) -> None:
         matrix = MatrixSpec("M", (2, 2), 4, ("i", "j"))
         point_sets = (

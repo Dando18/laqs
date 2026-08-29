@@ -148,7 +148,7 @@ def run_probe(args) -> dict[str, object]:
         args,
         "stage2_probe",
         inner_tile_shapes={
-            matrix.name: (args.block_k, args.block_n)
+            matrix.name: ((args.block_k, args.block_n),)
         },
     )
     component = solve_result.components[0]

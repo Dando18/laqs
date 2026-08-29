@@ -31,7 +31,7 @@ def rank_persistent_operand(
     make_output: Callable[[], object],
     make_launch: Callable[[torch.Tensor, object, tuple[int, ...]], Callable],
     validate: Callable[[str, object], None],
-    inner_tile_shape: tuple[int, ...],
+    inner_tile_shapes: tuple[tuple[int, ...], ...],
     benchmark: Callable | None = None,
 ) -> dict[str, object]:
     """Solve, compile, validate, and time every retained operand layout."""
@@ -48,10 +48,15 @@ def rank_persistent_operand(
         events,
         args,
         problem_name,
-        inner_tile_shapes={matrix.name: inner_tile_shape},
+        inner_tile_shapes={matrix.name: inner_tile_shapes},
     )
     component = result.components[0]
-    retained = result.arrays[matrix.name].candidates
+    array_result = result.arrays[matrix.name]
+    retained = array_result.candidates
+    resolved_inner_tile_shapes = tuple(
+        tuple(1 << exponent for exponent in tile)
+        for tile in array_result.tile_hypotheses
+    )
     default_layout = row_major_layout(matrix)
     default_rows = layout_rows(default_layout, matrix)
     default_score = weighted_component_region_count(
@@ -140,7 +145,10 @@ def rank_persistent_operand(
         "objective": objective,
         "search_scope": {
             "grammar": "canonical_inner_tile",
-            "inner_tile_shape": list(inner_tile_shape),
+            "tile_policy": "explicit_hypothesis_sweep_v1",
+            "inner_tile_shapes": [
+                list(shape) for shape in resolved_inner_tile_shapes
+            ],
             "outer_layout": "row_major_tiles",
             "fixed_outer_order": list(reversed(matrix.mode_names)),
         },
@@ -161,7 +169,7 @@ def rank_persistent_operand(
         "solver": {
             "name": problem.name,
             "elapsed_seconds": result.elapsed_seconds,
-            "candidate_count": result.arrays[matrix.name].all_candidate_count,
+            "candidate_count": array_result.all_candidate_count,
             "retained_candidates": len(retained),
         },
         "correct": True,

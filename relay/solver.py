@@ -34,6 +34,7 @@ class SolverConfig:
     include_row_major_control: bool = True
     include_column_major_control: bool = True
     include_tiled_row_major_control: bool = False
+    retain_one_candidate_per_tile: bool = False
     general_max_inner_bits: int = 8
     general_exact_rank: int = 7
     general_candidates_per_tile: int = 2
@@ -329,6 +330,15 @@ def _select_array_candidates(
         selected = list(pool)
 
     mandatory: list[Candidate] = []
+    if config.retain_one_candidate_per_tile:
+        seen_tiles: set[tuple[int, ...]] = set()
+        for candidate in ordered:
+            if candidate.search_stats.grammar != "canonical":
+                continue
+            tile = candidate.layout.tile_exponents
+            if tile not in seen_tiles:
+                mandatory.append(candidate)
+                seen_tiles.add(tile)
     for grammar in ("canonical", "linear_inner"):
         matches = [candidate for candidate in ordered if candidate.grammar == grammar]
         if matches:

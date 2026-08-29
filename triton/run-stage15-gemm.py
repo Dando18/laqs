@@ -100,7 +100,7 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         events,
         args,
         "gemm_prepacked_b",
-        inner_tile_shapes={matrix.name: (TILE_SIZE, TILE_SIZE)},
+        inner_tile_shapes={matrix.name: ((TILE_SIZE, TILE_SIZE),)},
     )
     component = result.components[0]
     retained = result.arrays[matrix.name].candidates

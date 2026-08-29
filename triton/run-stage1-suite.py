@@ -76,7 +76,7 @@ def contiguous_control(args):
         events,
         args,
         "vector_add",
-        inner_tile_shapes={matrix.name: (block,)},
+        inner_tile_shapes={matrix.name: ((block,),)},
     )
     component = result.components[0]
     array = array_result_record(matrix, result, component, objective)
@@ -182,7 +182,7 @@ def distributed_tile(args):
         args,
         "distributed_tile",
         inner_tile_shapes={
-            matrix.name: (TILE_SIZE, TILE_SIZE)
+            matrix.name: ((TILE_SIZE, TILE_SIZE),)
         },
     )
     component = result.components[0]
@@ -314,7 +314,9 @@ def gesummv(args):
         events,
         args,
         "gesummv",
-        inner_tile_shapes={matrix.name: (block, 1) for matrix in matrices},
+        inner_tile_shapes={
+            matrix.name: ((block, 1),) for matrix in matrices
+        },
     )
     component = result.components[0]
     arrays = {
@@ -444,7 +446,7 @@ def gemm_prepacked_b(args):
         args,
         "gemm_prepacked_b",
         inner_tile_shapes={
-            matrix.name: (TILE_SIZE, TILE_SIZE)
+            matrix.name: ((TILE_SIZE, TILE_SIZE),)
         },
     )
     component = result.components[0]

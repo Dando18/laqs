@@ -115,13 +115,13 @@ preserving their first solver occurrence. It also records loaded-kernel
 register and spill counts, shared memory, code-object and IR sizes, and
 assembly opcode counts for every candidate.
 
-All current Stage-1 workers search only the canonical inner layout of the
-compiled persistent-load tile or a stated natural reuse tile. The complete
-packing map composes that inner layout with a fixed row-major order across
-tiles. Flat row-major and tiled row-major remain controls; full column-major
-is not searched as an outer layout. Results record `inner_tile_shape`,
-`inner_word`, `fixed_outer_order`, and the complete physical `word` and
-`a_rows` separately.
+Stage-1 workers search only canonical inner layouts and compose them with a
+fixed row-major order across tiles. The kernel-breadth worker treats the inner
+tile as an explicit hypothesis sweep, retains the best canonical result for
+each shape plus flat row-major, and deduplicates physical mappings for ranking.
+Full column-major is not searched as an outer layout. Results record
+`inner_tile_shapes`, each candidate's `inner_tile_shape` and `inner_word`, the
+`fixed_outer_order`, and the complete physical `word` and `a_rows` separately.
 
 Use the sweep driver for the longer confirmation experiment across matrix sizes
 and fresh Python processes:
@@ -212,9 +212,9 @@ flux run -n1 -g1 -t 5m -q pdebug \
 ```
 
 Both aggregate the median runtime from three independent process launches and
-report the search tile and fixed outer order, default/selected quotient,
-top-1 through top-5 regret, runtime, no-change status, rank correlation, raw
-timing, and complete per-candidate codegen statistics.
+report the searched tile hypotheses and fixed outer order, default/selected
+quotient, top-1 through top-5 regret, runtime, no-change status, rank
+correlation, raw timing, and complete per-candidate codegen statistics.
 See [Triton integration stage 1](../docs/triton-stage1.md) for the exact case
 catalog and cache-control semantics.
 

@@ -341,11 +341,27 @@ def solve_layouts(
 
     objective = f"{name}.issue.{args.transaction_bytes}B"
     targets = tuple(matrix for matrix in matrices if matrix.target)
+    if not targets:
+        raise ValueError("Stage 1 requires at least one target matrix")
     target_names = {matrix.name for matrix in targets}
     if set(inner_tile_shapes) != target_names:
         raise ValueError(
             "inner tile shapes must be supplied for every target matrix"
         )
+    tile_shapes = {
+        matrix.name: tuple(
+            dict.fromkeys(
+                tuple(shape) for shape in inner_tile_shapes[matrix.name]
+            )
+        )
+        for matrix in targets
+    }
+    if any(not shapes for shapes in tile_shapes.values()):
+        raise ValueError("each target matrix requires an inner tile shape")
+    retained_count = max(
+        args.candidates,
+        1 + max(len(shapes) for shapes in tile_shapes.values()),
+    )
     problem = execution_conditioned_quotient_problem(
         matrices,
         events,
@@ -353,19 +369,16 @@ def solve_layouts(
         objective_name=objective,
         config=SolverConfig(
             policy=ScorePolicy("lexicographic", (objective, "runs", "xors")),
-            tile_shapes={
-                matrix.name: (tuple(inner_tile_shapes[matrix.name]),)
-                for matrix in targets
-            },
+            tile_shapes=tile_shapes,
             general_tile_shapes={matrix.name: () for matrix in targets},
             include_global_canonical=False,
             enable_linear_inner=False,
             include_column_major_control=False,
-            include_tiled_row_major_control=True,
+            retain_one_candidate_per_tile=True,
             canonical_candidates_per_tile=args.candidates,
             primary_tolerance=0.0,
-            per_array_candidates=max(args.candidates, 4),
-            joint_candidates=max(args.candidates, 4),
+            per_array_candidates=retained_count,
+            joint_candidates=retained_count,
         ),
         name=name,
     )
@@ -396,9 +409,9 @@ def array_result_record(matrix, result, component, objective):
         )
     best = candidates[0]
     tile_exponents = result.arrays[matrix.name].tile_hypotheses
-    if len(tile_exponents) != 1:
-        raise ValueError("Stage 1 requires exactly one inner tile shape")
-    inner_tile_shape = [1 << exponent for exponent in tile_exponents[0]]
+    inner_tile_shapes = [
+        [1 << exponent for exponent in tile] for tile in tile_exponents
+    ]
     fixed_outer_order = list(reversed(matrix.mode_names))
     return {
         "default": {
@@ -413,7 +426,8 @@ def array_result_record(matrix, result, component, objective):
         "retained_candidates": candidates,
         "search_scope": {
             "grammar": "canonical_inner_tile",
-            "inner_tile_shape": inner_tile_shape,
+            "tile_policy": "explicit_hypothesis_sweep_v1",
+            "inner_tile_shapes": inner_tile_shapes,
             "outer_layout": "row_major_tiles",
             "fixed_outer_order": fixed_outer_order,
         },
