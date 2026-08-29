@@ -47,6 +47,17 @@ CASES = {
 }
 
 
+def current_case_result(path: Path) -> bool:
+    if not path.exists():
+        return False
+    try:
+        result = json.loads(path.read_text(encoding="utf-8"))
+        scope = result["ranking"]["search_scope"]
+    except (KeyError, TypeError, ValueError):
+        return False
+    return scope.get("grammar") == "canonical_inner_tile"
+
+
 def case_command(worker: Path, args, name: str, output: Path) -> list[str]:
     configuration = {
         "m": 512,
@@ -109,14 +120,23 @@ def case_summary(result: dict[str, object]) -> dict[str, object]:
     quality = ranking["rank_quality"]
     return {
         "configuration": result["configuration"],
+        "inner_tile_shape": ranking["search_scope"]["inner_tile_shape"],
+        "fixed_outer_order": ranking["search_scope"]["fixed_outer_order"],
         "default_quotient": ranking["default_quotient"],
         "selected_quotient": ranking["selected_quotient"],
         "default_runtime_ms": ranking["default_runtime_ms"],
         "selected_runtime_ms": ranking["selected_runtime_ms"],
         "measured_speedup": ranking["measured_speedup"],
         "top_1_regret": quality["regret"]["top_1"]["regret"],
+        "top_2_regret": quality["regret"]["top_2"]["regret"],
         "top_3_regret": quality["regret"]["top_3"]["regret"],
+        "top_4_regret": quality["regret"]["top_4"]["regret"],
+        "top_5_regret": quality["regret"]["top_5"]["regret"],
         "rank_correlation": quality["rank_correlation"]["rho"],
+        "ranking_candidate_count": quality["candidate_count"],
+        "removed_duplicate_mapping_count": quality[
+            "removed_duplicate_mapping_count"
+        ],
         "laqs_made_no_change": ranking["laqs_made_no_change"],
         "selected_word": ranking["selected"]["word"],
         "correct": result["correct"],
@@ -135,7 +155,7 @@ def run_sweep(args) -> dict[str, object]:
         case_dir.mkdir(exist_ok=True)
         for process_launch in range(1, args.process_launches + 1):
             output = case_dir / f"process-{process_launch}.json"
-            if output.exists() and not args.rerun:
+            if current_case_result(output) and not args.rerun:
                 print(
                     f"GEMM breadth: reuse {name} process {process_launch}",
                     file=sys.stderr,
@@ -157,7 +177,7 @@ def run_sweep(args) -> dict[str, object]:
             args.results_dir / name / f"process-{process_launch}.json"
             for process_launch in range(1, args.process_launches + 1)
         ]
-        absent = [path for path in outputs if not path.exists()]
+        absent = [path for path in outputs if not current_case_result(path)]
         if absent:
             missing.extend(str(path.relative_to(args.results_dir)) for path in absent)
             continue

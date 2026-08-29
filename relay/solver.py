@@ -5,7 +5,14 @@ from itertools import product
 from time import perf_counter
 from typing import Iterable, Mapping, Sequence
 
-from .layouts import CanonicalLayout, Layout, column_major_layout, row_major_layout
+from .layouts import (
+    CanonicalLayout,
+    Layout,
+    column_major_layout,
+    layout_codegen_runs,
+    row_major_layout,
+    tiled_row_major_layout,
+)
 from .model import EventSequence, MatrixSpec, MemoryEvent, exact_log2, is_power_of_two
 from .objectives import ObjectiveComponent, ObjectiveSpec, build_objectives
 from .scoring import weighted_component_region_count
@@ -24,6 +31,9 @@ class SolverConfig:
     max_tile_hypotheses: int = 128
     canonical_candidates_per_tile: int = 4
     enable_linear_inner: bool = True
+    include_row_major_control: bool = True
+    include_column_major_control: bool = True
+    include_tiled_row_major_control: bool = False
     general_max_inner_bits: int = 8
     general_exact_rank: int = 7
     general_candidates_per_tile: int = 2
@@ -246,7 +256,7 @@ def _candidate_from_seed(
     scores = {
         **direct,
         **metrics,
-        "runs": float(seed.layout.runs),
+        "runs": float(layout_codegen_runs(matrix, seed.layout)),
         "xors": float(seed.layout.xor_count),
     }
     return Candidate(
@@ -323,10 +333,12 @@ def _select_array_candidates(
         matches = [candidate for candidate in ordered if candidate.grammar == grammar]
         if matches:
             mandatory.append(matches[0])
-    for name in ("row_major", "column_major"):
-        match = next((candidate for candidate in ordered if candidate.layout.name == name), None)
-        if match is not None:
-            mandatory.append(match)
+    for name in ("row_major", "column_major", "tiled_row_major"):
+        mandatory.extend(
+            candidate
+            for candidate in ordered
+            if candidate.layout.name == name
+        )
 
     merged: list[Candidate] = []
     seen: set[tuple[object, ...]] = set()
@@ -413,7 +425,9 @@ def solve(problem: RelayProblem) -> RelayResult:
                     component,
                 )
         context_scores = _sum_score_maps(context_scores, _lane_metrics(matrix, layout, problem.events))
-        context_scores["runs"] = context_scores.get("runs", 0.0) + layout.runs
+        context_scores["runs"] = context_scores.get(
+            "runs", 0.0
+        ) + layout_codegen_runs(matrix, layout)
         context_scores["xors"] = context_scores.get("xors", 0.0) + layout.xor_count
 
     array_results: dict[str, ArrayResult] = {}
@@ -464,9 +478,16 @@ def solve(problem: RelayProblem) -> RelayResult:
                     )
                 )
 
-        row = row_major_layout(matrix)
-        column = column_major_layout(matrix)
-        seeds.extend((_control_seed(row, row.tile_exponents), _control_seed(column, column.tile_exponents)))
+        if config.include_tiled_row_major_control:
+            for tile in tile_exponents:
+                tiled = tiled_row_major_layout(matrix, tile)
+                seeds.append(_control_seed(tiled, tile))
+        if config.include_row_major_control:
+            row = row_major_layout(matrix)
+            seeds.append(_control_seed(row, row.tile_exponents))
+        if config.include_column_major_control:
+            column = column_major_layout(matrix)
+            seeds.append(_control_seed(column, column.tile_exponents))
 
         deduplicated: dict[tuple[object, ...], LayoutSeed] = {}
         for seed in seeds:

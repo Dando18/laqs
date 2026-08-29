@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, Sequence
 
-from .gf2 import apply_matrix, invert_matrix_from_columns
+from .gf2 import apply_matrix, invert_matrix_from_columns, invert_matrix_rows
 from .model import Coord, MatrixSpec
 
 
@@ -98,6 +98,51 @@ def linear_codegen_runs(
             end += 1
         position = end
     return runs
+
+
+def layout_matrix_rows(
+    matrix: MatrixSpec, layout: Layout
+) -> tuple[int, ...]:
+    """Return the complete logical-to-physical address matrix for a layout.
+
+    Inner-tile layouts leave the high address bits to their fixed outer tile
+    order.  Materializing the full matrix here keeps packing and generated
+    address expressions faithful to that two-level composition.
+    """
+
+    if layout.matrix_name != matrix.name:
+        raise ValueError("layout and matrix names differ")
+    rows = [0] * matrix.total_bits
+    logical_bit = 0
+    for mode, width in enumerate(matrix.mode_bits):
+        for bit in range(width):
+            coord = [0] * matrix.rank
+            coord[mode] = 1 << bit
+            physical = layout.offset(matrix, tuple(coord))
+            if physical.bit_length() > matrix.total_bits:
+                raise ValueError(
+                    f"layout {layout.name} produces an out-of-range address bit"
+                )
+            for physical_bit in range(matrix.total_bits):
+                if physical & (1 << physical_bit):
+                    rows[physical_bit] |= 1 << logical_bit
+            logical_bit += 1
+    result = tuple(rows)
+    try:
+        invert_matrix_rows(result, matrix.total_bits)
+    except ValueError as error:
+        raise ValueError(
+            f"layout {layout.name} is not a full-rank address map"
+        ) from error
+    return result
+
+
+def layout_codegen_runs(matrix: MatrixSpec, layout: Layout) -> int:
+    """Count source-mode runs in the complete two-level address map."""
+
+    return linear_codegen_runs(
+        layout_matrix_rows(matrix, layout), matrix.mode_bits
+    )
 
 
 @dataclass(frozen=True)
@@ -581,6 +626,31 @@ def row_major_layout(matrix: MatrixSpec, name: str = "row_major") -> CanonicalLa
         word.extend([mode] * exponents[mode])
     outer_order = tuple(reversed(range(matrix.rank)))
     layout = CanonicalLayout(name, matrix.name, exponents, tuple(word), outer_order)
+    layout.validate(matrix)
+    return layout
+
+
+def tiled_row_major_layout(
+    matrix: MatrixSpec,
+    tile_exponents: Sequence[int],
+    name: str = "tiled_row_major",
+) -> CanonicalLayout:
+    """Use row-major order within and across a fixed inner tile."""
+
+    exponents = tuple(tile_exponents)
+    if len(exponents) != matrix.rank:
+        raise ValueError("tile exponent rank mismatch")
+    word: list[int] = []
+    for mode in reversed(range(matrix.rank)):
+        word.extend([mode] * exponents[mode])
+    outer_order = tuple(reversed(range(matrix.rank)))
+    layout = CanonicalLayout(
+        name,
+        matrix.name,
+        exponents,
+        tuple(word),
+        outer_order,
+    )
     layout.validate(matrix)
     return layout
 

@@ -25,17 +25,32 @@ def positive_integer(value: str) -> int:
 
 
 def layout_rows(layout, matrix) -> tuple[int, ...]:
-    from relay import CanonicalLayout, LinearInnerLayout
+    from relay import layout_matrix_rows
 
-    if isinstance(layout, CanonicalLayout):
-        rows = layout.matrix_rows()
-    elif isinstance(layout, LinearInnerLayout):
-        rows = layout.a_rows
-    else:
-        raise TypeError(f"unsupported Stage 1 layout {type(layout).__name__}")
-    if layout.tile_exponents != matrix.mode_bits:
-        raise ValueError("the Stage 1 benchmark requires a full-matrix layout")
-    return tuple(rows)
+    return layout_matrix_rows(matrix, layout)
+
+
+def canonical_layout_metadata(layout, matrix) -> dict[str, object]:
+    from relay import CanonicalLayout
+
+    if not isinstance(layout, CanonicalLayout):
+        raise TypeError(
+            f"Stage 1 canonical search produced {type(layout).__name__}"
+        )
+    inner_word = layout.word_string(matrix)
+    outer_word = "".join(
+        matrix.mode_names[mode]
+        * (matrix.mode_bits[mode] - layout.tile_exponents[mode])
+        for mode in layout.outer_order
+    )
+    return {
+        "word": inner_word + outer_word,
+        "inner_word": inner_word,
+        "inner_tile_shape": list(layout.tile_shape),
+        "fixed_outer_order": [
+            matrix.mode_names[mode] for mode in layout.outer_order
+        ],
+    }
 
 
 def physical_offsets(
@@ -309,7 +324,14 @@ def issue_events(
     return tuple(events)
 
 
-def solve_layouts(matrices, events, args, name):
+def solve_layouts(
+    matrices,
+    events,
+    args,
+    name,
+    *,
+    inner_tile_shapes,
+):
     from relay import (
         ScorePolicy,
         SolverConfig,
@@ -319,6 +341,11 @@ def solve_layouts(matrices, events, args, name):
 
     objective = f"{name}.issue.{args.transaction_bytes}B"
     targets = tuple(matrix for matrix in matrices if matrix.target)
+    target_names = {matrix.name for matrix in targets}
+    if set(inner_tile_shapes) != target_names:
+        raise ValueError(
+            "inner tile shapes must be supplied for every target matrix"
+        )
     problem = execution_conditioned_quotient_problem(
         matrices,
         events,
@@ -326,10 +353,15 @@ def solve_layouts(matrices, events, args, name):
         objective_name=objective,
         config=SolverConfig(
             policy=ScorePolicy("lexicographic", (objective, "runs", "xors")),
-            tile_shapes={matrix.name: (matrix.shape,) for matrix in targets},
+            tile_shapes={
+                matrix.name: (tuple(inner_tile_shapes[matrix.name]),)
+                for matrix in targets
+            },
             general_tile_shapes={matrix.name: () for matrix in targets},
             include_global_canonical=False,
             enable_linear_inner=False,
+            include_column_major_control=False,
+            include_tiled_row_major_control=True,
             canonical_candidates_per_tile=args.candidates,
             primary_tolerance=0.0,
             per_array_candidates=max(args.candidates, 4),
@@ -353,20 +385,25 @@ def array_result_record(matrix, result, component, objective):
             {
                 "solver_rank": rank,
                 "layout": layout.name,
-                "word": layout.word_string(matrix),
+                **canonical_layout_metadata(layout, matrix),
                 "a_rows": list(layout_rows(layout, matrix)),
                 "quotient_score": float(candidate.scores[objective]),
                 "packing_bound": float(candidate.packing_bounds[objective]),
-                "runs": layout.runs,
+                "runs": int(candidate.scores["runs"]),
                 "xor_count": layout.xor_count,
                 "exact": candidate.exact,
             }
         )
     best = candidates[0]
+    tile_exponents = result.arrays[matrix.name].tile_hypotheses
+    if len(tile_exponents) != 1:
+        raise ValueError("Stage 1 requires exactly one inner tile shape")
+    inner_tile_shape = [1 << exponent for exponent in tile_exponents[0]]
+    fixed_outer_order = list(reversed(matrix.mode_names))
     return {
         "default": {
             "layout": default.name,
-            "word": default.word_string(matrix),
+            **canonical_layout_metadata(default, matrix),
             "a_rows": list(default_rows),
             "quotient_score": default_score,
         },
@@ -374,6 +411,12 @@ def array_result_record(matrix, result, component, objective):
         "predicted_transaction_reduction": 1.0
         - float(best["quotient_score"]) / default_score,
         "retained_candidates": candidates,
+        "search_scope": {
+            "grammar": "canonical_inner_tile",
+            "inner_tile_shape": inner_tile_shape,
+            "outer_layout": "row_major_tiles",
+            "fixed_outer_order": fixed_outer_order,
+        },
         "solver": {
             "realized_candidate_count": result.arrays[
                 matrix.name

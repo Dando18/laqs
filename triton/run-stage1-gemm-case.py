@@ -166,6 +166,11 @@ def run_case(args) -> dict[str, object]:
         ),
         validate=lambda label, output: validate_gemm(label, output, reference),
         benchmark=benchmark,
+        inner_tile_shape=(
+            (args.block_n, args.block_k)
+            if args.trans_b
+            else (args.block_k, args.block_n)
+        ),
     )
     return {
         "stage": 1,

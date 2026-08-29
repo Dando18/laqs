@@ -28,7 +28,7 @@ from .access_scopes import (
     build_resource_cohorts,
 )
 from .hardware import ResourceMap
-from .layouts import CanonicalLayout, Layout, LinearInnerLayout
+from .layouts import Layout, layout_codegen_runs, layout_matrix_rows
 from .model import Coord, MatrixSpec
 from .objectives import Hyperedge, ObjectiveComponent, build_objectives
 
@@ -544,16 +544,9 @@ def _robust_phase_scores(
 def _logical_layout_rows(
     matrix: MatrixSpec, layout: Layout
 ) -> tuple[int, ...] | None:
-    if isinstance(layout, CanonicalLayout):
-        rows = layout.matrix_rows()
-    elif (
-        isinstance(layout, LinearInnerLayout)
-        and sum(layout.tile_exponents) == matrix.total_bits
-    ):
-        rows = layout.a_rows
-    else:
-        return None
-    if len(rows) != matrix.total_bits:
+    try:
+        rows = layout_matrix_rows(matrix, layout)
+    except (TypeError, ValueError):
         return None
     return rows
 
@@ -1010,7 +1003,7 @@ def layout_codegen_cost(
             ArrayCodegenCost(
                 array=array_name,
                 grammar=layout.grammar,
-                runs=layout.runs,
+                runs=layout_codegen_runs(matrix, layout),
                 xors=layout.xor_count,
             )
         )

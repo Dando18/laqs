@@ -45,6 +45,8 @@ class RankQualityTests(unittest.TestCase):
 
         self.assertAlmostEqual(summary["regret"]["top_1"]["regret"], 1 / 3)
         self.assertEqual(summary["regret"]["top_3"]["regret"], 0.0)
+        self.assertEqual(summary["regret"]["top_5"]["candidate_count"], 4)
+        self.assertEqual(summary["regret"]["top_5"]["regret"], 0.0)
         equal_score = summary["equal_quotient_score_runtime_spread"]
         self.assertEqual(equal_score[0]["candidate_ids"], ["a", "b"])
         self.assertAlmostEqual(equal_score[0]["relative_spread"], 0.2)
@@ -64,6 +66,30 @@ class RankQualityTests(unittest.TestCase):
         duplicate = summary["duplicate_mapping_runtime_spread"]
         self.assertEqual(duplicate[0]["mapping_id"], "m1")
         self.assertAlmostEqual(duplicate[0]["relative_spread"], 0.1)
+        self.assertEqual(summary["candidate_count"], 1)
+        self.assertEqual(summary["retained_candidate_count"], 2)
+        self.assertEqual(summary["removed_duplicate_mapping_count"], 1)
+
+    def test_duplicate_mapping_does_not_consume_a_top_k_position(self) -> None:
+        summary = summarize_rank_quality(
+            (
+                self.record("a", 1, 12, "f1", "m1"),
+                self.record("a_duplicate", 1, 11, "f1", "m1"),
+                self.record("b", 1, 10, "f2", "m2"),
+                self.record("c", 1, 9, "f3", "m3"),
+                self.record("d", 2, 8, "f4", "m4"),
+            )
+        )
+
+        self.assertEqual(
+            summary["quotient_order_candidate_ids"], ["a", "b", "c", "d"]
+        )
+        self.assertEqual(summary["regret"]["top_2"]["regret"], 0.25)
+        self.assertEqual(summary["regret"]["top_3"]["regret"], 0.125)
+        self.assertEqual(summary["regret"]["top_4"]["regret"], 0.0)
+        removed = summary["mapping_deduplication"]["removed"]
+        self.assertEqual(removed[0]["candidate_id"], "a_duplicate")
+        self.assertEqual(removed[0]["representative_candidate_id"], "a")
 
 
 if __name__ == "__main__":

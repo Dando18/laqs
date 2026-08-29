@@ -71,7 +71,13 @@ def contiguous_control(args):
         weight=n // block,
         coordinate_map=lambda coord: coord,
     )
-    objective, _, result = solve_layouts((matrix,), events, args, "vector_add")
+    objective, _, result = solve_layouts(
+        (matrix,),
+        events,
+        args,
+        "vector_add",
+        inner_tile_shapes={matrix.name: (block,)},
+    )
     component = result.components[0]
     array = array_result_record(matrix, result, component, objective)
     selected_rows = tuple(array["selected"]["a_rows"])
@@ -170,7 +176,15 @@ def distributed_tile(args):
         weight=output_size,
         coordinate_map=lambda coord: coord,
     )
-    objective, _, result = solve_layouts((matrix,), events, args, "distributed_tile")
+    objective, _, result = solve_layouts(
+        (matrix,),
+        events,
+        args,
+        "distributed_tile",
+        inner_tile_shapes={
+            matrix.name: (TILE_SIZE, TILE_SIZE)
+        },
+    )
     component = result.components[0]
     array = array_result_record(matrix, result, component, objective)
     selected_rows = tuple(array["selected"]["a_rows"])
@@ -295,7 +309,13 @@ def gesummv(args):
                 coordinate_map=lambda coord: (coord[0], 0),
             )
         )
-    objective, _, result = solve_layouts(matrices, events, args, "gesummv")
+    objective, _, result = solve_layouts(
+        matrices,
+        events,
+        args,
+        "gesummv",
+        inner_tile_shapes={matrix.name: (block, 1) for matrix in matrices},
+    )
     component = result.components[0]
     arrays = {
         matrix.name: array_result_record(matrix, result, component, objective)
@@ -418,7 +438,15 @@ def gemm_prepacked_b(args):
         weight=occurrences,
         coordinate_map=lambda coord: coord,
     )
-    objective, _, result = solve_layouts((matrix,), events, args, "gemm_prepacked_b")
+    objective, _, result = solve_layouts(
+        (matrix,),
+        events,
+        args,
+        "gemm_prepacked_b",
+        inner_tile_shapes={
+            matrix.name: (TILE_SIZE, TILE_SIZE)
+        },
+    )
     component = result.components[0]
     array = array_result_record(matrix, result, component, objective)
     selected_rows = tuple(array["selected"]["a_rows"])

@@ -90,9 +90,10 @@ contract, library API, and current scope.
 ## Solve the execution-conditioned quotient problem
 
 The Stage 1 experiment extracts the compiled one-wave layout for a symmetric
-row/column load, induces the exact RELAY hyperedges, solves for the best
-canonical quotient-locality layout, and correctness-checks and times that
-prepacked layout against Triton's default row-major matrix:
+row/column load, induces the exact RELAY hyperedges, and solves for the best
+canonical layout inside its 64x64 reuse tile. Tiles keep a fixed row-major
+outer order. The selected prepacked layout is correctness-checked and timed
+against Triton's default flat row-major matrix:
 
 ```bash
 module load rocm/7.2.1
@@ -107,10 +108,20 @@ experiment controls, JSON contents, and boundary with the later fiber search.
 ### Measure Stage 1 ranking quality
 
 `run-stage1.py` benchmarks every candidate retained by the Stage 1 solver and
-reports top-1/top-3 regret, tie-aware Spearman correlation, equal-score runtime
-spread, and same-flag spread when distinct realizations are present. It also
-records loaded-kernel register and spill counts, shared memory, code-object and
-IR sizes, and assembly opcode counts for every candidate.
+reports top-1 through top-5 regret, tie-aware Spearman correlation, equal-score
+runtime spread, and same-flag spread when distinct realizations are present.
+Top-k and correlation first deduplicate identical physical mappings while
+preserving their first solver occurrence. It also records loaded-kernel
+register and spill counts, shared memory, code-object and IR sizes, and
+assembly opcode counts for every candidate.
+
+All current Stage-1 workers search only the canonical inner layout of the
+compiled persistent-load tile or a stated natural reuse tile. The complete
+packing map composes that inner layout with a fixed row-major order across
+tiles. Flat row-major and tiled row-major remain controls; full column-major
+is not searched as an outer layout. Results record `inner_tile_shape`,
+`inner_word`, `fixed_outer_order`, and the complete physical `word` and
+`a_rows` separately.
 
 Use the sweep driver for the longer confirmation experiment across matrix sizes
 and fresh Python processes:
@@ -171,9 +182,9 @@ flux run -n1 -g1 -t 5m -q pdebug \
 ```
 
 The result contains raw timing samples and full codegen statistics for every
-candidate, aggregate top-1/top-3 regret and rank correlation, and 20 raw
-steady-state counter dispatches for each profiled layout. Counter collection
-uses the four-pass configuration in `triton/rocprof-stage15.txt`.
+candidate, aggregate top-1 through top-5 regret and rank correlation, and 20
+raw steady-state counter dispatches for each profiled layout. Counter
+collection uses the four-pass configuration in `triton/rocprof-stage15.txt`.
 
 ## Run the Stage 1 breadth experiments
 
@@ -201,8 +212,9 @@ flux run -n1 -g1 -t 5m -q pdebug \
 ```
 
 Both aggregate the median runtime from three independent process launches and
-report default/selected quotient, top-1/top-3 regret, runtime, no-change status,
-rank correlation, raw timing, and complete per-candidate codegen statistics.
+report the search tile and fixed outer order, default/selected quotient,
+top-1 through top-5 regret, runtime, no-change status, rank correlation, raw
+timing, and complete per-candidate codegen statistics.
 See [Triton integration stage 1](../docs/triton-stage1.md) for the exact case
 catalog and cache-control semantics.
 

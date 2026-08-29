@@ -14,6 +14,7 @@ import triton
 
 from stage1_common import (
     benchmark_layouts,
+    canonical_layout_metadata,
     compiled_codegen_statistics,
     execution_layout_from_compiled,
     execution_layout_record,
@@ -95,7 +96,11 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         coordinate_map=lambda coord: coord,
     )
     objective, problem, result = solve_layouts(
-        (matrix,), events, args, "gemm_prepacked_b"
+        (matrix,),
+        events,
+        args,
+        "gemm_prepacked_b",
+        inner_tile_shapes={matrix.name: (TILE_SIZE, TILE_SIZE)},
     )
     component = result.components[0]
     retained = result.arrays[matrix.name].candidates
@@ -144,13 +149,13 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
                 "quotient_rank": score_levels.index(score) + 1,
                 "layout": layout.name,
                 "grammar": layout.grammar,
-                "word": layout.word_string(matrix),
+                **canonical_layout_metadata(layout, matrix),
                 "a_rows": list(rows),
                 "mapping_id": mapping_id,
                 "flag_id": flag_id,
                 "quotient_score": score,
                 "packing_bound": float(candidate.packing_bounds[objective]),
-                "runs": layout.runs,
+                "runs": int(candidate.scores["runs"]),
                 "xor_count": layout.xor_count,
                 "exact": candidate.exact,
                 "note": candidate.note,
@@ -197,6 +202,12 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         "dynamic_occurrences_per_event": occurrences,
         "induced_event_count": len(events),
         "objective": objective,
+        "search_scope": {
+            "grammar": "canonical_inner_tile",
+            "inner_tile_shape": [TILE_SIZE, TILE_SIZE],
+            "outer_layout": "row_major_tiles",
+            "fixed_outer_order": list(reversed(matrix.mode_names)),
+        },
         "packing_lower_bound": component.packing_bound(matrix),
         "default_candidate_id": default["candidate_id"],
         "selected_candidate_id": selected["candidate_id"],

@@ -9,8 +9,11 @@ from relay import (
     apply_flag_preserving_shears,
     canonical_layout_from_word,
     enumerate_flag_preserving_swizzles,
+    layout_codegen_runs,
+    layout_matrix_rows,
     low_address_flag,
     resource_color_destination_bits,
+    tiled_row_major_layout,
 )
 
 
@@ -43,6 +46,21 @@ class CanonicalLayoutWordTests(unittest.TestCase):
         # (2, 3) is in outer tile (1, 1), whose row-major tile rank is 3.
         # Its inner coordinate (0, 1) has low-to-high word bits j0, i0 = 01.
         self.assertEqual(layout.offset(self.matrix, (2, 3)), 13)
+        self.assertEqual(
+            layout_matrix_rows(self.matrix, layout),
+            (1 << 3, 1 << 0, 1 << 4, 1 << 1, 1 << 2),
+        )
+        self.assertEqual(layout_codegen_runs(self.matrix, layout), 4)
+
+    def test_tiled_row_major_fixes_row_major_outer_tile_order(self) -> None:
+        layout = tiled_row_major_layout(self.matrix, (1, 1))
+
+        self.assertEqual(layout.word, (1, 0))
+        self.assertEqual(layout.outer_order, (1, 0))
+        self.assertEqual(
+            layout_matrix_rows(self.matrix, layout),
+            (1 << 3, 1 << 0, 1 << 4, 1 << 1, 1 << 2),
+        )
 
     def test_invalid_words_are_rejected(self) -> None:
         invalid = (

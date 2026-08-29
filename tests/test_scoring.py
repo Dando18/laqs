@@ -243,7 +243,7 @@ class AggregateScoringTests(unittest.TestCase):
 
         cost = layout_codegen_cost({"L": matrix}, {"L": layout})
 
-        self.assertEqual(cost.runs, 2)
+        self.assertEqual(cost.runs, 3)
         self.assertEqual(cost.xors, 1)
         self.assertEqual(cost.arrays[0].grammar, "linear_inner")
 

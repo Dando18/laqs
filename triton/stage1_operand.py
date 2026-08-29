@@ -9,6 +9,7 @@ import torch
 
 from stage1_common import (
     benchmark_layouts,
+    canonical_layout_metadata,
     compiled_codegen_statistics,
     layout_rows,
     pack_tensor,
@@ -30,6 +31,7 @@ def rank_persistent_operand(
     make_output: Callable[[], object],
     make_launch: Callable[[torch.Tensor, object, tuple[int, ...]], Callable],
     validate: Callable[[str, object], None],
+    inner_tile_shape: tuple[int, ...],
     benchmark: Callable | None = None,
 ) -> dict[str, object]:
     """Solve, compile, validate, and time every retained operand layout."""
@@ -42,7 +44,11 @@ def rank_persistent_operand(
     )
 
     objective, problem, result = solve_layouts(
-        (matrix,), events, args, problem_name
+        (matrix,),
+        events,
+        args,
+        problem_name,
+        inner_tile_shapes={matrix.name: inner_tile_shape},
     )
     component = result.components[0]
     retained = result.arrays[matrix.name].candidates
@@ -92,13 +98,13 @@ def rank_persistent_operand(
                 "quotient_rank": score_levels.index(score) + 1,
                 "layout": layout.name,
                 "grammar": layout.grammar,
-                "word": layout.word_string(matrix),
+                **canonical_layout_metadata(layout, matrix),
                 "a_rows": list(rows),
                 "mapping_id": mapping_id,
                 "flag_id": flag_id,
                 "quotient_score": score,
                 "packing_bound": float(candidate.packing_bounds[objective]),
-                "runs": layout.runs,
+                "runs": int(candidate.scores["runs"]),
                 "xor_count": layout.xor_count,
                 "exact": candidate.exact,
                 "note": candidate.note,
@@ -132,6 +138,12 @@ def rank_persistent_operand(
     default = next(record for record in records if record["layout"] == "row_major")
     return {
         "objective": objective,
+        "search_scope": {
+            "grammar": "canonical_inner_tile",
+            "inner_tile_shape": list(inner_tile_shape),
+            "outer_layout": "row_major_tiles",
+            "fixed_outer_order": list(reversed(matrix.mode_names)),
+        },
         "packing_lower_bound": component.packing_bound(matrix),
         "default": default,
         "selected": selected,

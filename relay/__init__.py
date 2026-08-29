@@ -22,7 +22,10 @@ from .layouts import (
     LinearInnerLayout,
     canonical_layout_from_word,
     column_major_layout,
+    layout_codegen_runs,
+    layout_matrix_rows,
     row_major_layout,
+    tiled_row_major_layout,
 )
 from .model import Access, EventFilter, EventSequence, MatrixSpec, MemoryEvent
 from .objectives import (
@@ -207,6 +210,8 @@ __all__ = [
     "print_report",
     "normalized_excess",
     "layout_codegen_cost",
+    "layout_codegen_runs",
+    "layout_matrix_rows",
     "low_address_flag",
     "materialize_edge_families",
     "pareto_frontier",
@@ -218,6 +223,7 @@ __all__ = [
     "result_to_dict",
     "resource_color_destination_bits",
     "row_major_layout",
+    "tiled_row_major_layout",
     "score_layouts",
     "score_problem",
     "score_to_dict",

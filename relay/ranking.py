@@ -91,7 +91,30 @@ def summarize_rank_quality(
             if key not in record:
                 raise ValueError(f"candidate record is missing {key!r}")
 
-    indexed = list(enumerate(records))
+    representatives = []
+    representative_indices = []
+    seen_mappings = set()
+    removed_duplicates = []
+    representative_by_mapping = {}
+    for index, record in enumerate(records):
+        mapping = record[mapping_key]
+        if mapping in seen_mappings:
+            removed_duplicates.append(
+                {
+                    "candidate_id": str(record[id_key]),
+                    "mapping_id": str(mapping),
+                    "representative_candidate_id": str(
+                        representative_by_mapping[mapping][id_key]
+                    ),
+                }
+            )
+            continue
+        seen_mappings.add(mapping)
+        representative_by_mapping[mapping] = record
+        representatives.append(record)
+        representative_indices.append(index)
+
+    indexed = list(zip(representative_indices, representatives))
     ordered = [
         record
         for _, record in sorted(
@@ -99,11 +122,13 @@ def summarize_rank_quality(
             key=lambda item: (float(item[1][score_key]), item[0]),
         )
     ]
-    fastest = min(records, key=lambda record: float(record[runtime_key]))
+    fastest = min(
+        representatives, key=lambda record: float(record[runtime_key])
+    )
     fastest_runtime = float(fastest[runtime_key])
 
     regrets: dict[str, object] = {}
-    for requested in (1, 3):
+    for requested in range(1, 6):
         count = min(requested, len(ordered))
         selected = min(
             ordered[:count], key=lambda record: float(record[runtime_key])
@@ -119,9 +144,10 @@ def summarize_rank_quality(
     quotient_groups: dict[Hashable, list[Mapping[str, object]]] = defaultdict(list)
     flag_groups: dict[Hashable, list[Mapping[str, object]]] = defaultdict(list)
     mapping_groups: dict[Hashable, list[Mapping[str, object]]] = defaultdict(list)
-    for record in records:
+    for record in representatives:
         quotient_groups[record[score_key]].append(record)  # type: ignore[index]
         flag_groups[record[flag_key]].append(record)  # type: ignore[index]
+    for record in records:
         mapping_groups[record[mapping_key]].append(record)  # type: ignore[index]
 
     equal_quotient = []
@@ -152,14 +178,21 @@ def summarize_rank_quality(
         duplicate_mapping.append(item)
     duplicate_mapping.sort(key=lambda item: str(item["mapping_id"]))
 
-    scores = [float(record[score_key]) for record in records]
-    runtimes = [float(record[runtime_key]) for record in records]
+    scores = [float(record[score_key]) for record in representatives]
+    runtimes = [float(record[runtime_key]) for record in representatives]
     return {
         "runtime_metric": runtime_key,
-        "ranking_population": "retained_candidates",
+        "ranking_population": "distinct_physical_mappings",
         "tie_breaking": "input solver order",
-        "candidate_count": len(records),
+        "candidate_count": len(representatives),
+        "retained_candidate_count": len(records),
         "distinct_mapping_count": len(mapping_groups),
+        "removed_duplicate_mapping_count": len(removed_duplicates),
+        "mapping_deduplication": {
+            "key": mapping_key,
+            "policy": "keep first candidate in input solver order",
+            "removed": removed_duplicates,
+        },
         "fastest_candidate_id": str(fastest[id_key]),
         "fastest_runtime_ms": fastest_runtime,
         "quotient_order_candidate_ids": [
@@ -169,7 +202,7 @@ def summarize_rank_quality(
         "rank_correlation": {
             "method": "spearman_tie_aware",
             "rho": spearman_rank_correlation(scores, runtimes),
-            "sample_count": len(records),
+            "sample_count": len(representatives),
             "lower_is_better": True,
         },
         "equal_quotient_score_runtime_spread": equal_quotient,

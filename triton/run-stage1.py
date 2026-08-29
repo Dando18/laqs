@@ -16,6 +16,7 @@ from triton.tools import LinearLayout as NativeLinearLayout
 
 from stage1_common import (
     benchmark_layouts,
+    canonical_layout_metadata,
     compiled_codegen_statistics,
     layout_rows,
     pack_tensor,
@@ -178,10 +179,14 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
             policy=ScorePolicy(
                 "lexicographic", (objective_name, "runs", "xors")
             ),
-            tile_shapes={matrix.name: (matrix.shape,)},
+            tile_shapes={
+                matrix.name: ((BLOCK_SIZE, BLOCK_SIZE),)
+            },
             general_tile_shapes={matrix.name: ()},
             include_global_canonical=False,
             enable_linear_inner=False,
+            include_column_major_control=False,
+            include_tiled_row_major_control=True,
             canonical_candidates_per_tile=args.candidates,
             primary_tolerance=0.0,
             per_array_candidates=max(args.candidates, 4),
@@ -254,13 +259,13 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
                 + 1,
                 "layout": layout.name,
                 "grammar": layout.grammar,
-                "word": layout.word_string(matrix),
+                **canonical_layout_metadata(layout, matrix),
                 "a_rows": list(rows),
                 "mapping_id": mapping_id,
                 "flag_id": flag_id,
                 "quotient_score": float(candidate.scores[objective_name]),
                 "packing_bound": float(candidate.packing_bounds[objective_name]),
-                "runs": layout.runs,
+                "runs": int(candidate.scores["runs"]),
                 "xor_count": layout.xor_count,
                 "exact": candidate.exact,
                 "note": candidate.note,
@@ -310,6 +315,12 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
         },
         "dynamic_issue_multiplicity_per_orientation": event_weight,
         "objective": objective_name,
+        "search_scope": {
+            "grammar": "canonical_inner_tile",
+            "inner_tile_shape": [BLOCK_SIZE, BLOCK_SIZE],
+            "outer_layout": "row_major_tiles",
+            "fixed_outer_order": list(reversed(matrix.mode_names)),
+        },
         "packing_lower_bound": component.packing_bound(matrix),
         "default": {
             "candidate_id": default_record["candidate_id"],

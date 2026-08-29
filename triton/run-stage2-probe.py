@@ -143,7 +143,13 @@ def run_probe(args) -> dict[str, object]:
         coordinate_map=lambda coord: coord,
     )
     objective, _problem, solve_result = solve_layouts(
-        (matrix,), events, args, "stage2_probe"
+        (matrix,),
+        events,
+        args,
+        "stage2_probe",
+        inner_tile_shapes={
+            matrix.name: (args.block_k, args.block_n)
+        },
     )
     component = solve_result.components[0]
     selected_candidate = solve_result.arrays[matrix.name].candidates[0]
@@ -157,7 +163,9 @@ def run_probe(args) -> dict[str, object]:
 
     profile = get_hardware_profile(args.hardware_profile)
     destination_bits = resource_color_destination_bits(
-        profile.resource_maps, matrix.element_bytes, matrix.total_bits
+        profile.resource_maps,
+        matrix.element_bytes,
+        selected_layout.inner_bits,
     )
     seeds = enumerate_flag_preserving_swizzles(
         matrix,

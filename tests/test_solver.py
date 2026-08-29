@@ -15,6 +15,49 @@ from relay import (
 
 
 class SolverTests(unittest.TestCase):
+    def test_inner_tile_search_keeps_outer_order_fixed(self) -> None:
+        matrix = MatrixSpec("M", (8, 8), 4, ("i", "j"))
+        event = MemoryEvent.make(
+            "load",
+            "load",
+            [Access("M", (lane, 0), lane=lane) for lane in range(8)],
+        )
+        result = solve(
+            RelayProblem(
+                matrices=(matrix,),
+                events=(event,),
+                sequences=(),
+                objectives=(SimultaneousRegions("fine", 16),),
+                config=SolverConfig(
+                    policy=ScorePolicy(
+                        "lexicographic", ("fine", "runs", "xors")
+                    ),
+                    tile_shapes={"M": ((2, 2),)},
+                    general_tile_shapes={"M": ()},
+                    include_global_canonical=False,
+                    enable_linear_inner=False,
+                    include_column_major_control=False,
+                    include_tiled_row_major_control=True,
+                    primary_tolerance=0.0,
+                    per_array_candidates=8,
+                ),
+            )
+        )
+
+        candidates = result.arrays["M"].candidates
+        by_name = {candidate.layout.name: candidate for candidate in candidates}
+        self.assertIn("row_major", by_name)
+        self.assertIn("tiled_row_major", by_name)
+        self.assertNotIn("column_major", by_name)
+        self.assertEqual(
+            by_name["tiled_row_major"].layout.tile_exponents,
+            (1, 1),
+        )
+        self.assertEqual(
+            by_name["tiled_row_major"].layout.outer_order,
+            (1, 0),
+        )
+
     def test_conflict_packing_gap(self) -> None:
         matrix = MatrixSpec("M", (2, 2), 4, ("i", "j"))
         point_sets = (

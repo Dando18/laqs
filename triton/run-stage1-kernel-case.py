@@ -131,6 +131,7 @@ def bias_relu(args):
         validate=lambda label, output: validate_tensor(
             label, output.reshape(rows, n), reference
         ),
+        inner_tile_shape=(block,),
     )
     return result_record(
         "bias_relu", matrix, blocked, execution, events, ranking, rows=rows
@@ -187,6 +188,7 @@ def softmax_bias(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, rtol=2e-4
         ),
+        inner_tile_shape=(1, n),
     )
     return result_record(
         "softmax_bias", matrix, blocked, execution, events, ranking
@@ -248,6 +250,7 @@ def embedding_bag(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=2e-2
         ),
+        inner_tile_shape=(1, dimensions),
     )
     return result_record(
         "embedding_bag",
@@ -313,6 +316,7 @@ def gemv(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=2e-2
         ),
+        inner_tile_shape=(block, 1),
     )
     return result_record("gemv", matrix, blocked, execution, events, ranking)
 
@@ -382,6 +386,7 @@ def mvt(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=4e-2
         ),
+        inner_tile_shape=(block, block),
     )
     return result_record("mvt", matrix, blocked, execution, events, ranking)
 
@@ -446,6 +451,7 @@ def gesummv(args):
         validate=lambda label, output: validate_tensor(
             label, output, reference, atol=4e-2
         ),
+        inner_tile_shape=(block, 1),
     )
     return result_record(
         "gesummv", matrix, blocked, execution, events, ranking
@@ -534,6 +540,7 @@ def stencil5(args):
         make_output=lambda: torch.empty_like(probe),
         make_launch=make_launch,
         validate=lambda label, output: validate_tensor(label, output, reference),
+        inner_tile_shape=(1, block),
     )
     return result_record(
         "stencil5", matrix, blocked, execution, events, ranking

@@ -29,15 +29,30 @@ therefore uses the existing solver, scorer, layouts, and reports. The result is
 also the input needed by later flag-fiber work; there is no Triton-specific
 search implementation.
 
-The first experiment searches the complete canonical flag grammar. Its score
-policy is lexicographic:
+Stage 1 searches the canonical grammar only inside the bounded persistent-load
+or natural reuse tile. The complete address map is the two-level composition
+
+\[
+A=\begin{bmatrix}A_{\mathrm{inner}}&0\\0&A_{\mathrm{outer}}\end{bmatrix},
+\]
+
+where $A_{\mathrm{inner}}$ is searched and $A_{\mathrm{outer}}$ is fixed to
+row-major tile order. The flat row-major tensor mapping remains a default
+control, and tiled row-major is retained as a control within the constrained
+family. Full column-major is not admitted as an alternative outer layout.
+This keeps the search on address bits for which the compiled execution layout
+provides direct evidence.
+
+The score policy is lexicographic:
 
 1. minimize the induced quotient transaction count;
 2. minimize address-expression runs among locality ties; and
 3. minimize XORs among remaining ties.
 
 Only the first item is the Stage 1 objective. The other two choose a simple
-canonical realization without introducing another memory-performance score.
+canonical inner realization without introducing another memory-performance
+score. Reported run counts cover the complete composed address expression,
+including the fixed outer order.
 
 ## Symmetric row/column experiment
 
@@ -70,9 +85,10 @@ flux run -n1 -g1 -t 5m -q pdebug \
 ```
 
 The JSON reports the compiled blocked layout, representative hyperedges,
-packing lower bound, default and selected layout words, predicted transaction
-counts, raw timing samples, transaction reduction, and measured speedup. It now
-also reports every solver-retained candidate as
+packing lower bound, searched inner tile and word, fixed outer order, complete
+physical word and address rows, predicted transaction counts, raw timing
+samples, transaction reduction, and measured speedup. It also reports every
+solver-retained candidate as
 
 \[
 \left(J_Q(A;L),\ \operatorname{runtime}(A),\
@@ -88,17 +104,22 @@ balanced by rotating alternating forward and reverse orders.
 `rank_quality` defines top-\(k\) regret as
 
 \[
-\frac{\min_{A\ \text{in the first }k\text{ solver choices}} T(A)}
-     {\min_{A\ \text{in all retained choices}} T(A)}-1.
+\frac{\min_{A\ \text{in the first }k\text{ distinct mappings}} T(A)}
+     {\min_{A\ \text{in all distinct retained mappings}} T(A)}-1.
 \]
 
-Solver order resolves quotient ties using runs and then XOR count. Rank
-correlation is tie-aware Spearman correlation between quotient score and median
-runtime, with smaller values better on both axes. Equal-score spread is reported
-for every quotient-score group containing at least two candidates. Same-flag
-spread is reported only when a flag has at least two distinct physical mappings;
-repeated measurements of an identical mapping are reported separately as noise
-controls.
+Before ranking, candidates are deduplicated by their physical address mapping;
+the first occurrence in solver order is retained. This prevents mandatory
+control layouts from consuming a second top-k position when the DP already
+produced the same mapping. Regret is reported for every k from one through
+five. Solver order resolves quotient ties using runs and then XOR
+count. Rank correlation is tie-aware Spearman correlation between quotient
+score and median runtime over the same distinct-mapping population, with
+smaller values better on both axes. Equal-score spread is reported for every
+quotient-score group containing at least two distinct mappings. Same-flag
+spread is reported only when a flag has at least two distinct physical
+mappings; repeated measurements of an identical mapping are reported
+separately as noise controls.
 
 `--matrix-size`, `--transaction-bytes`, and the timing controls are explicit so
 larger confirmation runs do not require code changes.
@@ -242,7 +263,10 @@ The current execution-layout bridge extracts the compiled blocked B-load
 encoding rather than Triton's dot-operand encoding. The generalized worker
 therefore requires `BLOCK_M == BLOCK_K`; the supplied configurations all obey
 that restriction. This keeps the induced B tile and the layout extracted from
-the compiled kernel aligned until dot-operand extraction is implemented.
+the compiled kernel aligned until dot-operand extraction is implemented. For
+non-transposed B, the searched inner tile is `BLOCK_K x BLOCK_N`; transposed-B
+storage uses `BLOCK_N x BLOCK_K`. The layout of tiles within the full operand
+is fixed row-major.
 
 Run a subset that fits comfortably within one five-minute allocation, then
 continue with another subset using the same results directory:
@@ -266,6 +290,9 @@ The suite includes contiguous negative controls as well as row, column,
 row-plus-column, indirect, and neighborhood access patterns. Affine-translated
 cohorts are represented once with their exact dynamic multiplicity. The
 stencil represents the clamped left and right boundary cohorts separately.
+The inner tiles are 256 for bias-ReLU, 1x256 for softmax bias, 1x128 for
+embedding bag, 64x1 for GEMV and GESUMMV, 64x64 for MVT, and 1x64 for the
+stencil. In every case, tiles retain row-major outer order.
 
 ```bash
 flux run -n1 -g1 -t 5m -q pdebug \
@@ -274,28 +301,28 @@ flux run -n1 -g1 -t 5m -q pdebug \
   --json triton/results/stage1-kernel-breadth.json --quiet
 ```
 
-Each case summary contains default and selected quotient scores, default and
-selected runtimes, speedup, top-1/top-3 regret, rank correlation, selected
+Each case summary contains the inner tile and fixed outer order, default and
+selected quotient scores, default and selected runtimes, speedup, top-1
+through top-5 regret, rank correlation, deduplicated mapping count, selected
 layout word, and whether LAQS retained the default physical mapping. Full case
-records preserve equal-score and same-flag runtime spreads plus per-candidate
-register, spill, instruction, binary, and opcode statistics.
+records preserve duplicate-mapping, equal-score, and same-flag runtime spreads
+plus per-candidate register, spill, instruction, binary, and opcode statistics.
 
-The current three-process MI300A result is stored in
-`triton/results/stage1-gemm-breadth.json` and
+The current three-process inner-tile result is stored in
 `triton/results/stage1-kernel-breadth.json`. Bias-ReLU, biased softmax,
-embedding bag, and stencil retain the default mapping. MVT improves by 14.52%
-and GESUMMV by 8.76%. The 32x2048x1024 skinny GEMM improves by 12.03%, while
-the 2048 square GEMM improves by 2.52%.
+embedding bag, and stencil have one distinct mapping after deduplication. MVT
+uses a 64x64 inner tile and improves by 12.74%; GESUMMV uses a 64x1 tile and
+improves by 8.79%. GEMV's 64x1 inner layout reduces the quotient by 32x but is
+3.49% slower than flat row-major; because only two distinct mappings remain,
+top-2 regret is zero.
 
-The breadth result also strengthens the case for a service-aware nested
-objective. Minimum-quotient GEMM candidates span as much as 36.97% in runtime,
-and the 32x64x32 eight-warp configuration halves the quotient score while
-slowing to 0.661x; its top-3 regret is still 16.70%. GEMV similarly reduces its
-quotient score by 32x but takes 3.96% longer. No retained canonical group
-contains two distinct mappings with the same low-address flag, so this
-experiment does not yet isolate within-fiber placement. The GEMV and
-fixed-block inversions are good counter targets before attributing their
-behavior specifically to fiber placement.
+Results produced before the inner-tile scope change searched every logical bit
+of the operand and are not directly comparable. The previous 32x64x32
+eight-warp inversion motivated fixing the unsupported high-bit choices. A
+three-process controlled rerun fixes the suffix to row-major tile order and
+still measures 51.75% top-1 regret and 17.58% top-2 regret. The inversion is
+therefore not explained solely by unconstrained outer bits; it remains a
+useful counterexample for improving Stage 1's execution model.
 
 ## Controlled Stage-2 flag-fiber probe
 
