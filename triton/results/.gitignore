@@ -1,4 +1,6 @@
 *.log
 stage1-*-breadth-cases/
 stage1-kernel-temporal-*-cases/
+stage1-locality-counter-profiles/
+stage1-locality-counters-plots/
 stage2-probe-processes/

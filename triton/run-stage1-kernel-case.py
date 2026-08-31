@@ -706,6 +706,23 @@ def parse_arguments(argv=None):
         choices=("issue", "union", "split"),
         default="issue",
     )
+    parser.add_argument(
+        "--profile-layout",
+        choices=("default", "selected"),
+        help="finish with isolated steady-state dispatches of this layout",
+    )
+    parser.add_argument(
+        "--profile-cache-mode",
+        choices=("warm", "thrashed"),
+        default="warm",
+    )
+    parser.add_argument("--profile-warmup", type=positive_integer, default=5)
+    parser.add_argument(
+        "--profile-iterations", type=positive_integer, default=20
+    )
+    parser.add_argument(
+        "--cache-thrash-bytes", type=positive_integer, default=256 << 20
+    )
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)

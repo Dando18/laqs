@@ -239,6 +239,62 @@ Results record issue and temporal scores separately for every candidate even
 in union mode. See [Triton integration stage 1](../docs/triton-stage1.md) for
 the schedule coverage, union/split equivalence check, and measured outcomes.
 
+## Validate quotient locality with hardware counters
+
+`run-stage1-locality-counters.py` reruns the inner-tile DP, profiles the
+row-major and selected mappings in separate processes, and checkpoints every
+layout profile. It collects three gfx942 replay passes covering TCP/L1 cache
+accesses, TCP-to-TCC reads and writes, L2 requests/hits/misses, and HBM bytes.
+Only the final target dispatches are summarized; solver, compilation,
+correctness, warmup, and cache-thrash dispatches are excluded by selecting the
+last target dispatches and by the rocprof kernel filter.
+
+One independent default/selected pair in both cache regimes is a useful first
+pass. Run a few cases per five-minute allocation; rerunning the same command
+continues from the per-profile checkpoints:
+
+```bash
+module load rocm/7.0.2
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-locality-counters.py \
+  --cases bias_relu softmax_bias embedding_bag \
+  --cache-modes warm thrashed --max-profiles 6
+
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-locality-counters.py \
+  --cases gemv mvt gesummv stencil5 \
+  --cache-modes warm thrashed --max-profiles 6
+```
+
+Repeat the commands until `missing_profiles` is empty. For stronger process
+replication, add `--profile-launches 3`; already completed launch 1 profiles
+are reused. The primary experiment uses `--temporal-mode issue`, because its
+issue quotient is the direct 128-byte transaction predictor. Union and split
+selections can be profiled into independent checkpoint namespaces by adding
+`--temporal-mode union` or `--temporal-mode split` and choosing a distinct
+aggregate `--json` path.
+
+The aggregate JSON retains raw dispatch counters and writes a flat CSV beside
+it. Render the comparison matrix and quotient-versus-request scatter plots
+without a GPU:
+
+```bash
+.venv/bin/python triton/plot-stage1-locality-counters.py \
+  triton/results/stage1-locality-counters.json \
+  --output-dir triton/results/stage1-locality-counters-plots
+```
+
+The quotient counts transactions for only the persistent target operand,
+whereas the counters cover the full kernel. Fixed input, output, and
+instruction traffic is therefore expected to dilute the measured reduction.
+Warm-cache profiles test request formation; cache-thrashed profiles additionally
+make L2 misses and HBM traffic observable. Compare the issue quotient first
+with total TCP cache-line accesses, the closest counter for transaction
+formation. TCP-to-TCC reads, L2 misses, and HBM bytes are progressively
+downstream and may stay flat when the new layout turns repeated line accesses
+into TCP hits. None of these reductions is expected to be proportional to
+whole-kernel runtime speedup.
+
 ## Run the controlled Stage-2 probe
 
 The probe materializes 28 sparse shear realizations of the Stage-1-selected

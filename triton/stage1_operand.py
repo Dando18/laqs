@@ -199,6 +199,49 @@ def rank_persistent_operand(
     rank_quality = summarize_rank_quality(records)
     selected = records[0]
     default = next(record for record in records if record["layout"] == "row_major")
+    profile_target = None
+    profile_layout = getattr(args, "profile_layout", None)
+    if profile_layout is not None:
+        target = default if profile_layout == "default" else selected
+        target_launch = launches[str(target["candidate_id"])]
+        cache_mode = args.profile_cache_mode
+        prepare = lambda: None
+        if cache_mode == "thrashed":
+            from stage1_kernels import cache_thrash_kernel
+
+            elements = (args.cache_thrash_bytes + 3) // 4
+            cache_buffer = torch.empty(
+                elements, dtype=torch.float32, device="cuda"
+            )
+            grid = ((elements + 255) // 256,)
+
+            def prepare():
+                cache_thrash_kernel[grid](
+                    cache_buffer, N=elements, BLOCK=256
+                )
+
+        for _ in range(args.profile_warmup):
+            prepare()
+            target_launch()
+        torch.cuda.synchronize()
+        for _ in range(args.profile_iterations):
+            prepare()
+            target_launch()
+        torch.cuda.synchronize()
+        profile_target = {
+            "role": profile_layout,
+            "candidate_id": target["candidate_id"],
+            "mapping_id": target["mapping_id"],
+            "a_rows": target["a_rows"],
+            "quotient_score": target["quotient_score"],
+            "quotient_components": target["quotient_components"],
+            "cache_mode": cache_mode,
+            "cache_thrash_bytes": (
+                args.cache_thrash_bytes if cache_mode == "thrashed" else 0
+            ),
+            "warmup_dispatches": args.profile_warmup,
+            "profiled_dispatches": args.profile_iterations,
+        }
     temporal_record = {
         "mode": temporal_mode,
         "edge_family": "per_hardware_location_nonoverlapping",
@@ -251,6 +294,7 @@ def rank_persistent_operand(
             "candidate_count": array_result.all_candidate_count,
             "retained_candidates": len(retained),
         },
+        "profile_target": profile_target,
         "correct": True,
     }
 
@@ -310,7 +354,11 @@ def aggregate_persistent_rankings(
         candidates.append(candidate)
 
     selected = candidates[0]
-    default = next(candidate for candidate in candidates if candidate["layout"] == "row_major")
+    default = next(
+        candidate
+        for candidate in candidates
+        if candidate["layout"] == "row_major"
+    )
     quality = summarize_rank_quality(candidates)
     aggregate = {
         key: value
