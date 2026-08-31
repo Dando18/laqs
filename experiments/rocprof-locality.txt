@@ -1,0 +1,4 @@
+# LAQS locality experiment counter passes. rocprof reruns the target once per line.
+pmc : TCP_TOTAL_CACHE_ACCESSES_sum TCP_TCC_READ_REQ_sum TCP_TCC_WRITE_REQ_sum
+pmc : TCC_REQ_sum TCC_HIT_sum TCC_MISS_sum
+pmc : FETCH_SIZE WRITE_SIZE

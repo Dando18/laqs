@@ -113,6 +113,32 @@ The final plot is
 [`results/solver_frontier_speedup.png`](results/solver_frontier_speedup.png),
 with exact frontiers and raw timing samples retained in the adjacent JSON.
 
+## Validate quotient locality with hardware counters
+
+The locality-counter experiment asks whether a layout with lower modeled
+`Q_fine` actually issues fewer requests between TCP/L1 and TCC/L2. It runs an
+exact minimum-quotient canonical DP for each of the five HIP kernels, compares
+the selected layout with row-major, correctness-checks and times both binaries,
+and records three compatible ROCprof counter passes:
+
+```bash
+.venv/bin/python experiments/locality_counters.py \
+  --size 512 --prepare-only \
+  --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942
+
+module load rocm/7.0.2
+flux run -n1 -g1 -t 5m -q pdebug \
+  .venv/bin/python experiments/locality_counters.py \
+  --size 512 --resume \
+  --compiler /opt/rocm-7.0.2/bin/hipcc --arch gfx942
+```
+
+The completed `N=256` MI300A run is
+[`results/locality_counters_mi300a_n256.json`](results/locality_counters_mi300a_n256.json).
+See [LAQS locality hardware-counter experiment](docs/locality-counter-experiment.md)
+for counter meanings, cache-state boundaries, raw-data locations, plotting,
+and interpretation.
+
 ## Exhaustive canonical scoring results
 
 `experiments/scoring_results.py` builds a paper-oriented JSONL corpus for all
