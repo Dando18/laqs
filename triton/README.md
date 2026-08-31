@@ -317,14 +317,17 @@ flux run -n1 -g1 -t 5m -q pdebug \
   --case gesummv --tile-shape 64 64 --max-profiles 6
 ```
 
-Then render the raw quotient/TCP relationship and Spearman correlation without
-a GPU. The completed GESUMMV measurements were identical across all three
-profiler launches at every quotient level, so their zero-height min--max ranges
-are omitted from the plot; this is worth stating in the figure caption.
+Then render the per-issue quotient/TCP relationship and Spearman correlation
+without a GPU. Pass `--normalize-per-issue` to express TCP accesses per dynamic
+issue cohort; omit it to retain raw per-kernel counter values. The completed
+GESUMMV measurements were identical across all three profiler launches at every
+quotient level, so their zero-height min--max ranges are omitted from the plot;
+this is worth stating in the figure caption.
 
 ```bash
 .venv/bin/python triton/plot-stage1-quotient-level-counters.py \
-  triton/results/stage1-gesummv-quotient-level-counters.json
+  triton/results/stage1-gesummv-quotient-level-counters.json \
+  --normalize-per-issue
 ```
 
 Submit complete replacement runs for all seven kernels on separate exclusive

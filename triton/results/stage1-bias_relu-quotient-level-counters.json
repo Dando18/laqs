@@ -1,0 +1,2553 @@
+{
+  "candidates": [
+    {
+      "a_rows": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512
+      ],
+      "address_expression_runs": 1,
+      "candidate_id": "counter_candidate_d6aa0044edb3",
+      "compiled_codegen_by_launch": [
+        {
+          "assembly_bytes": 14670,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 57,
+          "binary_bytes": 5888,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 1,
+          "ir": {
+            "llir": {
+              "bytes": 8384,
+              "lines": 120
+            },
+            "source": {
+              "bytes": 34878,
+              "lines": 495
+            },
+            "ttgir": {
+              "bytes": 20311,
+              "lines": 238
+            },
+            "ttir": {
+              "bytes": 19216,
+              "lines": 248
+            }
+          },
+          "load_instruction_count": 4,
+          "n_max_threads": 256,
+          "n_regs": 5,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_and_b32": 9,
+            "s_branch": 1,
+            "s_endpgm": 1,
+            "s_load_dwordx2": 1,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 3,
+            "s_lshr_b32": 7,
+            "s_mov_b32": 7,
+            "s_mov_b64": 2,
+            "s_or_b32": 7,
+            "s_waitcnt": 2,
+            "s_xor_b32": 2,
+            "v_add_f32_e32": 1,
+            "v_and_or_b32": 1,
+            "v_bfrev_b32_e32": 1,
+            "v_cmp_gt_i32_e32": 1,
+            "v_cndmask_b32_e32": 1,
+            "v_lshlrev_b32_e32": 2,
+            "v_max_f32_e32": 1,
+            "v_or_b32_e32": 2,
+            "v_readfirstlane_b32": 1
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 2
+        },
+        {
+          "assembly_bytes": 14670,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 57,
+          "binary_bytes": 5888,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 1,
+          "ir": {
+            "llir": {
+              "bytes": 8384,
+              "lines": 120
+            },
+            "source": {
+              "bytes": 34878,
+              "lines": 495
+            },
+            "ttgir": {
+              "bytes": 20311,
+              "lines": 238
+            },
+            "ttir": {
+              "bytes": 19216,
+              "lines": 248
+            }
+          },
+          "load_instruction_count": 4,
+          "n_max_threads": 256,
+          "n_regs": 5,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_and_b32": 9,
+            "s_branch": 1,
+            "s_endpgm": 1,
+            "s_load_dwordx2": 1,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 3,
+            "s_lshr_b32": 7,
+            "s_mov_b32": 7,
+            "s_mov_b64": 2,
+            "s_or_b32": 7,
+            "s_waitcnt": 2,
+            "s_xor_b32": 2,
+            "v_add_f32_e32": 1,
+            "v_and_or_b32": 1,
+            "v_bfrev_b32_e32": 1,
+            "v_cmp_gt_i32_e32": 1,
+            "v_cndmask_b32_e32": 1,
+            "v_lshlrev_b32_e32": 2,
+            "v_max_f32_e32": 1,
+            "v_or_b32_e32": 2,
+            "v_readfirstlane_b32": 1
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 2
+        },
+        {
+          "assembly_bytes": 14670,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 57,
+          "binary_bytes": 5888,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 1,
+          "ir": {
+            "llir": {
+              "bytes": 8384,
+              "lines": 120
+            },
+            "source": {
+              "bytes": 34878,
+              "lines": 495
+            },
+            "ttgir": {
+              "bytes": 20311,
+              "lines": 238
+            },
+            "ttir": {
+              "bytes": 19216,
+              "lines": 248
+            }
+          },
+          "load_instruction_count": 4,
+          "n_max_threads": 256,
+          "n_regs": 5,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_and_b32": 9,
+            "s_branch": 1,
+            "s_endpgm": 1,
+            "s_load_dwordx2": 1,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 3,
+            "s_lshr_b32": 7,
+            "s_mov_b32": 7,
+            "s_mov_b64": 2,
+            "s_or_b32": 7,
+            "s_waitcnt": 2,
+            "s_xor_b32": 2,
+            "v_add_f32_e32": 1,
+            "v_and_or_b32": 1,
+            "v_bfrev_b32_e32": 1,
+            "v_cmp_gt_i32_e32": 1,
+            "v_cndmask_b32_e32": 1,
+            "v_lshlrev_b32_e32": 2,
+            "v_max_f32_e32": 1,
+            "v_or_b32_e32": 2,
+            "v_readfirstlane_b32": 1
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 2
+        }
+      ],
+      "complete": true,
+      "completed_profile_launches": 3,
+      "counters": {
+        "profiles": [
+          {
+            "steady_dispatches": [
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36536.0,
+                  "TCC_MISS_sum": 65736.0,
+                  "TCC_REQ_sum": 102272.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.479012345679,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 128,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.724342928660825,
+                "l2_hits": 36536.0,
+                "l2_misses": 65736.0,
+                "l2_tag_requests": 102272.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.375,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65740.0,
+                  "TCC_REQ_sum": 102260.0,
+                  "TCP_TCC_READ_REQ_sum": 34808.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.9853658536585,
+                "hbm_read_bytes": 4225408.0,
+                "hbm_total_bytes": 8419712.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 129,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34808.0,
+                "l1_to_l2_total_requests": 100344.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.712888715040094,
+                "l2_hits": 36520.0,
+                "l2_misses": 65740.0,
+                "l2_tag_requests": 102260.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.0,
+                  "TCC_HIT_sum": 36552.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102291.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.868292682927,
+                "hbm_read_bytes": 4225024.0,
+                "hbm_total_bytes": 8419328.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 130,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.73334897498314,
+                "l2_hits": 36552.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102291.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36552.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102291.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.5185185185187,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 131,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.73334897498314,
+                "l2_hits": 36552.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102291.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.375,
+                  "TCC_HIT_sum": 36560.0,
+                  "TCC_MISS_sum": 65741.0,
+                  "TCC_REQ_sum": 102301.0,
+                  "TCP_TCC_READ_REQ_sum": 34880.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.6765432098764,
+                "hbm_read_bytes": 4225408.0,
+                "hbm_total_bytes": 8419712.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 132,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34880.0,
+                "l1_to_l2_total_requests": 100416.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.73767607354767,
+                "l2_hits": 36560.0,
+                "l2_misses": 65741.0,
+                "l2_tag_requests": 102301.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.125,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102259.0,
+                  "TCP_TCC_READ_REQ_sum": 34824.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3320.0,
+                "hbm_bandwidth_gbps": 2535.980722891566,
+                "hbm_read_bytes": 4225152.0,
+                "hbm_total_bytes": 8419456.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 133,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34824.0,
+                "l1_to_l2_total_requests": 100360.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71323795460546,
+                "l2_hits": 36520.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102259.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.25,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65740.0,
+                  "TCC_REQ_sum": 102260.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.637037037037,
+                "hbm_read_bytes": 4225280.0,
+                "hbm_total_bytes": 8419584.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 134,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.712888715040094,
+                "l2_hits": 36520.0,
+                "l2_misses": 65740.0,
+                "l2_tag_requests": 102260.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36528.0,
+                  "TCC_MISS_sum": 65742.0,
+                  "TCC_REQ_sum": 102270.0,
+                  "TCP_TCC_READ_REQ_sum": 34880.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.829268292683,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 135,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34880.0,
+                "l1_to_l2_total_requests": 100416.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71721912584336,
+                "l2_hits": 36528.0,
+                "l2_misses": 65742.0,
+                "l2_tag_requests": 102270.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36560.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102299.0,
+                  "TCP_TCC_READ_REQ_sum": 34824.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3320.0,
+                "hbm_bandwidth_gbps": 2535.865060240964,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 136,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34824.0,
+                "l1_to_l2_total_requests": 100360.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.738374764171695,
+                "l2_hits": 36560.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102299.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.625,
+                  "TCC_HIT_sum": 36528.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102267.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.4395061728396,
+                "hbm_read_bytes": 4224640.0,
+                "hbm_total_bytes": 8418944.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 137,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71826688961249,
+                "l2_hits": 36528.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102267.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.375,
+                  "TCC_HIT_sum": 36560.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102299.0,
+                  "TCP_TCC_READ_REQ_sum": 34840.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.3604938271606,
+                "hbm_read_bytes": 4224384.0,
+                "hbm_total_bytes": 8418688.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 138,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34840.0,
+                "l1_to_l2_total_requests": 100376.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.738374764171695,
+                "l2_hits": 36560.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102299.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.625,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65738.0,
+                  "TCC_REQ_sum": 102250.0,
+                  "TCP_TCC_READ_REQ_sum": 34840.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.7512195121953,
+                "hbm_read_bytes": 4224640.0,
+                "hbm_total_bytes": 8418944.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 139,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34840.0,
+                "l1_to_l2_total_requests": 100376.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70855745721271,
+                "l2_hits": 36512.0,
+                "l2_misses": 65738.0,
+                "l2_tag_requests": 102250.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.375,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65738.0,
+                  "TCC_REQ_sum": 102250.0,
+                  "TCP_TCC_READ_REQ_sum": 34840.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.673170731707,
+                "hbm_read_bytes": 4224384.0,
+                "hbm_total_bytes": 8418688.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 140,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34840.0,
+                "l1_to_l2_total_requests": 100376.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70855745721271,
+                "l2_hits": 36512.0,
+                "l2_misses": 65738.0,
+                "l2_tag_requests": 102250.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.625,
+                  "TCC_HIT_sum": 36496.0,
+                  "TCC_MISS_sum": 65737.0,
+                  "TCC_REQ_sum": 102233.0,
+                  "TCP_TCC_READ_REQ_sum": 34840.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3200.0,
+                "hbm_bandwidth_gbps": 2630.92,
+                "hbm_read_bytes": 4224640.0,
+                "hbm_total_bytes": 8418944.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 141,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34840.0,
+                "l1_to_l2_total_requests": 100376.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69884479571176,
+                "l2_hits": 36496.0,
+                "l2_misses": 65737.0,
+                "l2_tag_requests": 102233.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36504.0,
+                  "TCC_MISS_sum": 65743.0,
+                  "TCC_REQ_sum": 102247.0,
+                  "TCP_TCC_READ_REQ_sum": 34800.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.790243902439,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 142,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34800.0,
+                "l1_to_l2_total_requests": 100336.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70178098134909,
+                "l2_hits": 36504.0,
+                "l2_misses": 65743.0,
+                "l2_tag_requests": 102247.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.625,
+                  "TCC_HIT_sum": 36496.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102235.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.4395061728396,
+                "hbm_read_bytes": 4224640.0,
+                "hbm_total_bytes": 8418944.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 143,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69814642734875,
+                "l2_hits": 36496.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102235.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36480.0,
+                  "TCC_MISS_sum": 65737.0,
+                  "TCC_REQ_sum": 102217.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3200.0,
+                "hbm_bandwidth_gbps": 2631.0,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 144,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.68877975287868,
+                "l2_hits": 36480.0,
+                "l2_misses": 65737.0,
+                "l2_tag_requests": 102217.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.375,
+                  "TCC_HIT_sum": 36544.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102283.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.9853658536585,
+                "hbm_read_bytes": 4225408.0,
+                "hbm_total_bytes": 8419712.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 145,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.72832239961675,
+                "l2_hits": 36544.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102283.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102251.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3360.0,
+                "hbm_bandwidth_gbps": 2505.6761904761906,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 146,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.708208232682324,
+                "l2_hits": 36512.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102251.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36584.0,
+                  "TCC_MISS_sum": 65738.0,
+                  "TCC_REQ_sum": 102322.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3320.0,
+                "hbm_bandwidth_gbps": 2535.9036144578313,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 147,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.75379683743476,
+                "l2_hits": 36584.0,
+                "l2_misses": 65738.0,
+                "l2_tag_requests": 102322.0
+              }
+            ],
+            "steady_state": {
+              "dispatch_count": 20,
+              "duration_ns": 3280.0,
+              "hbm_bandwidth_gbps": 2566.9853658536585,
+              "hbm_read_bytes": 4224832.0,
+              "hbm_total_bytes": 8419136.0,
+              "hbm_write_bytes": 4194304.0,
+              "l1_cache_line_accesses": 196608.0,
+              "l1_to_l2_read_requests": 34840.0,
+              "l1_to_l2_total_requests": 100376.0,
+              "l1_to_l2_write_requests": 65536.0,
+              "l2_hit_rate_percent": 35.71522854022441,
+              "l2_hits": 36524.0,
+              "l2_misses": 65739.0,
+              "l2_tag_requests": 102263.5
+            },
+            "target_dispatch_count": 42
+          },
+          {
+            "steady_dispatches": [
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.375,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65734.0,
+                  "TCC_REQ_sum": 102254.0,
+                  "TCP_TCC_READ_REQ_sum": 34880.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.673170731707,
+                "hbm_read_bytes": 4224384.0,
+                "hbm_total_bytes": 8418688.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 128,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34880.0,
+                "l1_to_l2_total_requests": 100416.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.714984254894674,
+                "l2_hits": 36520.0,
+                "l2_misses": 65734.0,
+                "l2_tag_requests": 102254.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.5,
+                  "TCC_HIT_sum": 36496.0,
+                  "TCC_MISS_sum": 65731.0,
+                  "TCC_REQ_sum": 102227.0,
+                  "TCP_TCC_READ_REQ_sum": 34880.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.712195121951,
+                "hbm_read_bytes": 4224512.0,
+                "hbm_total_bytes": 8418816.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 129,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34880.0,
+                "l1_to_l2_total_requests": 100416.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.700940064757845,
+                "l2_hits": 36496.0,
+                "l2_misses": 65731.0,
+                "l2_tag_requests": 102227.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36488.0,
+                  "TCC_MISS_sum": 65734.0,
+                  "TCC_REQ_sum": 102222.0,
+                  "TCP_TCC_READ_REQ_sum": 34880.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.790243902439,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 130,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34880.0,
+                "l1_to_l2_total_requests": 100416.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69486020621784,
+                "l2_hits": 36488.0,
+                "l2_misses": 65734.0,
+                "l2_tag_requests": 102222.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.5,
+                  "TCC_HIT_sum": 36488.0,
+                  "TCC_MISS_sum": 65735.0,
+                  "TCC_REQ_sum": 102223.0,
+                  "TCP_TCC_READ_REQ_sum": 34840.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.712195121951,
+                "hbm_read_bytes": 4224512.0,
+                "hbm_total_bytes": 8418816.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 131,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34840.0,
+                "l1_to_l2_total_requests": 100376.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69451102002485,
+                "l2_hits": 36488.0,
+                "l2_misses": 65735.0,
+                "l2_tag_requests": 102223.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.625,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65736.0,
+                  "TCC_REQ_sum": 102248.0,
+                  "TCP_TCC_READ_REQ_sum": 34816.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3320.0,
+                "hbm_bandwidth_gbps": 2535.8265060240965,
+                "hbm_read_bytes": 4224640.0,
+                "hbm_total_bytes": 8418944.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 132,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34816.0,
+                "l1_to_l2_total_requests": 100352.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.709255926766296,
+                "l2_hits": 36512.0,
+                "l2_misses": 65736.0,
+                "l2_tag_requests": 102248.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36496.0,
+                  "TCC_MISS_sum": 65732.0,
+                  "TCC_REQ_sum": 102228.0,
+                  "TCP_TCC_READ_REQ_sum": 34880.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.829268292683,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 133,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34880.0,
+                "l1_to_l2_total_requests": 100416.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70059083617013,
+                "l2_hits": 36496.0,
+                "l2_misses": 65732.0,
+                "l2_tag_requests": 102228.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65734.0,
+                  "TCC_REQ_sum": 102246.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3321.0,
+                "hbm_bandwidth_gbps": 2535.101475459199,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 134,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70995442364494,
+                "l2_hits": 36512.0,
+                "l2_misses": 65734.0,
+                "l2_tag_requests": 102246.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.625,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65735.0,
+                  "TCC_REQ_sum": 102255.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.4395061728396,
+                "hbm_read_bytes": 4224640.0,
+                "hbm_total_bytes": 8418944.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 135,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71463498117451,
+                "l2_hits": 36520.0,
+                "l2_misses": 65735.0,
+                "l2_tag_requests": 102255.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65732.0,
+                  "TCC_REQ_sum": 102244.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.5185185185187,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 136,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71065294785024,
+                "l2_hits": 36512.0,
+                "l2_misses": 65732.0,
+                "l2_tag_requests": 102244.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36488.0,
+                  "TCC_MISS_sum": 65732.0,
+                  "TCC_REQ_sum": 102220.0,
+                  "TCP_TCC_READ_REQ_sum": 34872.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3400.0,
+                "hbm_bandwidth_gbps": 2476.235294117647,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 137,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34872.0,
+                "l1_to_l2_total_requests": 100408.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69555859909998,
+                "l2_hits": 36488.0,
+                "l2_misses": 65732.0,
+                "l2_tag_requests": 102220.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36496.0,
+                  "TCC_MISS_sum": 65735.0,
+                  "TCC_REQ_sum": 102231.0,
+                  "TCP_TCC_READ_REQ_sum": 34880.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3281.0,
+                "hbm_bandwidth_gbps": 2566.0079244132885,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 138,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34880.0,
+                "l1_to_l2_total_requests": 100416.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69954319139987,
+                "l2_hits": 36496.0,
+                "l2_misses": 65735.0,
+                "l2_tag_requests": 102231.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.5,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65735.0,
+                  "TCC_REQ_sum": 102255.0,
+                  "TCP_TCC_READ_REQ_sum": 34824.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.4,
+                "hbm_read_bytes": 4224512.0,
+                "hbm_total_bytes": 8418816.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 139,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34824.0,
+                "l1_to_l2_total_requests": 100360.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71463498117451,
+                "l2_hits": 36520.0,
+                "l2_misses": 65735.0,
+                "l2_tag_requests": 102255.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.5,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65734.0,
+                  "TCC_REQ_sum": 102254.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.712195121951,
+                "hbm_read_bytes": 4224512.0,
+                "hbm_total_bytes": 8418816.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 140,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.714984254894674,
+                "l2_hits": 36520.0,
+                "l2_misses": 65734.0,
+                "l2_tag_requests": 102254.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.625,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65734.0,
+                  "TCC_REQ_sum": 102254.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.7512195121953,
+                "hbm_read_bytes": 4224640.0,
+                "hbm_total_bytes": 8418944.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 141,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.714984254894674,
+                "l2_hits": 36520.0,
+                "l2_misses": 65734.0,
+                "l2_tag_requests": 102254.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36488.0,
+                  "TCC_MISS_sum": 65734.0,
+                  "TCC_REQ_sum": 102222.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.5185185185187,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 142,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69486020621784,
+                "l2_hits": 36488.0,
+                "l2_misses": 65734.0,
+                "l2_tag_requests": 102222.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.125,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65733.0,
+                  "TCC_REQ_sum": 102253.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3200.0,
+                "hbm_bandwidth_gbps": 2631.08,
+                "hbm_read_bytes": 4225152.0,
+                "hbm_total_bytes": 8419456.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 143,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71533353544639,
+                "l2_hits": 36520.0,
+                "l2_misses": 65733.0,
+                "l2_tag_requests": 102253.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.875,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65733.0,
+                  "TCC_REQ_sum": 102253.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3240.0,
+                "hbm_bandwidth_gbps": 2598.5185185185187,
+                "hbm_read_bytes": 4224896.0,
+                "hbm_total_bytes": 8419200.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 144,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71533353544639,
+                "l2_hits": 36520.0,
+                "l2_misses": 65733.0,
+                "l2_tag_requests": 102253.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.125,
+                  "TCC_HIT_sum": 36552.0,
+                  "TCC_MISS_sum": 65735.0,
+                  "TCC_REQ_sum": 102287.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3321.0,
+                "hbm_bandwidth_gbps": 2535.217103282144,
+                "hbm_read_bytes": 4225152.0,
+                "hbm_total_bytes": 8419456.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 145,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.73474635095369,
+                "l2_hits": 36552.0,
+                "l2_misses": 65735.0,
+                "l2_tag_requests": 102287.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36536.0,
+                  "TCC_MISS_sum": 65737.0,
+                  "TCC_REQ_sum": 102273.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.790243902439,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 146,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.72399362490589,
+                "l2_hits": 36536.0,
+                "l2_misses": 65737.0,
+                "l2_tag_requests": 102273.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4125.75,
+                  "TCC_HIT_sum": 36536.0,
+                  "TCC_MISS_sum": 65735.0,
+                  "TCC_REQ_sum": 102271.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3280.0,
+                "hbm_bandwidth_gbps": 2566.790243902439,
+                "hbm_read_bytes": 4224768.0,
+                "hbm_total_bytes": 8419072.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 147,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.72469223924671,
+                "l2_hits": 36536.0,
+                "l2_misses": 65735.0,
+                "l2_tag_requests": 102271.0
+              }
+            ],
+            "steady_state": {
+              "dispatch_count": 20,
+              "duration_ns": 3280.0,
+              "hbm_bandwidth_gbps": 2566.7707317073173,
+              "hbm_read_bytes": 4224768.0,
+              "hbm_total_bytes": 8419072.0,
+              "hbm_write_bytes": 4194304.0,
+              "l1_cache_line_accesses": 196608.0,
+              "l1_to_l2_read_requests": 34864.0,
+              "l1_to_l2_total_requests": 100400.0,
+              "l1_to_l2_write_requests": 65536.0,
+              "l2_hit_rate_percent": 35.71264396451238,
+              "l2_hits": 36516.0,
+              "l2_misses": 65734.0,
+              "l2_tag_requests": 102250.5
+            },
+            "target_dispatch_count": 42
+          },
+          {
+            "steady_dispatches": [
+              {
+                "counters": {
+                  "FETCH_SIZE": 4127.0,
+                  "TCC_HIT_sum": 36552.0,
+                  "TCC_MISS_sum": 65740.0,
+                  "TCC_REQ_sum": 102292.0,
+                  "TCP_TCC_READ_REQ_sum": 34840.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3600.0,
+                "hbm_bandwidth_gbps": 2338.9866666666667,
+                "hbm_read_bytes": 4226048.0,
+                "hbm_total_bytes": 8420352.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 128,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34840.0,
+                "l1_to_l2_total_requests": 100376.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.73299964806632,
+                "l2_hits": 36552.0,
+                "l2_misses": 65740.0,
+                "l2_tag_requests": 102292.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.75,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65736.0,
+                  "TCC_REQ_sum": 102248.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3600.0,
+                "hbm_bandwidth_gbps": 2338.9155555555553,
+                "hbm_read_bytes": 4225792.0,
+                "hbm_total_bytes": 8420096.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 129,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.709255926766296,
+                "l2_hits": 36512.0,
+                "l2_misses": 65736.0,
+                "l2_tag_requests": 102248.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.625,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102251.0,
+                  "TCP_TCC_READ_REQ_sum": 34848.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3440.0,
+                "hbm_bandwidth_gbps": 2447.66511627907,
+                "hbm_read_bytes": 4225664.0,
+                "hbm_total_bytes": 8419968.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 130,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34848.0,
+                "l1_to_l2_total_requests": 100384.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.708208232682324,
+                "l2_hits": 36512.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102251.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4127.375,
+                  "TCC_HIT_sum": 36536.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102275.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3440.0,
+                "hbm_bandwidth_gbps": 2447.8883720930235,
+                "hbm_read_bytes": 4226432.0,
+                "hbm_total_bytes": 8420736.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 131,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.72329503788805,
+                "l2_hits": 36536.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102275.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.625,
+                  "TCC_HIT_sum": 36544.0,
+                  "TCC_MISS_sum": 65740.0,
+                  "TCC_REQ_sum": 102284.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3400.0,
+                "hbm_bandwidth_gbps": 2476.4611764705883,
+                "hbm_read_bytes": 4225664.0,
+                "hbm_total_bytes": 8419968.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 132,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.72797309452114,
+                "l2_hits": 36544.0,
+                "l2_misses": 65740.0,
+                "l2_tag_requests": 102284.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.5,
+                  "TCC_HIT_sum": 36504.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102243.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3400.0,
+                "hbm_bandwidth_gbps": 2476.423529411765,
+                "hbm_read_bytes": 4225536.0,
+                "hbm_total_bytes": 8419840.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 133,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70317772365834,
+                "l2_hits": 36504.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102243.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4127.0,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102251.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3440.0,
+                "hbm_bandwidth_gbps": 2447.7767441860465,
+                "hbm_read_bytes": 4226048.0,
+                "hbm_total_bytes": 8420352.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 134,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.708208232682324,
+                "l2_hits": 36512.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102251.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4127.0,
+                  "TCC_HIT_sum": 36496.0,
+                  "TCC_MISS_sum": 65738.0,
+                  "TCC_REQ_sum": 102234.0,
+                  "TCP_TCC_READ_REQ_sum": 34824.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3400.0,
+                "hbm_bandwidth_gbps": 2476.5741176470588,
+                "hbm_read_bytes": 4226048.0,
+                "hbm_total_bytes": 8420352.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 135,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34824.0,
+                "l1_to_l2_total_requests": 100360.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.69849560811472,
+                "l2_hits": 36496.0,
+                "l2_misses": 65738.0,
+                "l2_tag_requests": 102234.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.25,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102259.0,
+                  "TCP_TCC_READ_REQ_sum": 34816.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3520.0,
+                "hbm_bandwidth_gbps": 2391.927272727273,
+                "hbm_read_bytes": 4225280.0,
+                "hbm_total_bytes": 8419584.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 136,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34816.0,
+                "l1_to_l2_total_requests": 100352.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71323795460546,
+                "l2_hits": 36520.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102259.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.75,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65741.0,
+                  "TCC_REQ_sum": 102261.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3480.0,
+                "hbm_bandwidth_gbps": 2419.5678160919542,
+                "hbm_read_bytes": 4225792.0,
+                "hbm_total_bytes": 8420096.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 137,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.71253948230508,
+                "l2_hits": 36520.0,
+                "l2_misses": 65741.0,
+                "l2_tag_requests": 102261.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.625,
+                  "TCC_HIT_sum": 36544.0,
+                  "TCC_MISS_sum": 65737.0,
+                  "TCC_REQ_sum": 102281.0,
+                  "TCP_TCC_READ_REQ_sum": 34832.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3440.0,
+                "hbm_bandwidth_gbps": 2447.66511627907,
+                "hbm_read_bytes": 4225664.0,
+                "hbm_total_bytes": 8419968.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 138,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34832.0,
+                "l1_to_l2_total_requests": 100368.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.72902103029888,
+                "l2_hits": 36544.0,
+                "l2_misses": 65737.0,
+                "l2_tag_requests": 102281.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4127.0,
+                  "TCC_HIT_sum": 36552.0,
+                  "TCC_MISS_sum": 65740.0,
+                  "TCC_REQ_sum": 102292.0,
+                  "TCP_TCC_READ_REQ_sum": 34848.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3400.0,
+                "hbm_bandwidth_gbps": 2476.5741176470588,
+                "hbm_read_bytes": 4226048.0,
+                "hbm_total_bytes": 8420352.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 139,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34848.0,
+                "l1_to_l2_total_requests": 100384.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.73299964806632,
+                "l2_hits": 36552.0,
+                "l2_misses": 65740.0,
+                "l2_tag_requests": 102292.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.75,
+                  "TCC_HIT_sum": 36504.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102243.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3480.0,
+                "hbm_bandwidth_gbps": 2419.5678160919542,
+                "hbm_read_bytes": 4225792.0,
+                "hbm_total_bytes": 8420096.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 140,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70317772365834,
+                "l2_hits": 36504.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102243.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4127.125,
+                  "TCC_HIT_sum": 36528.0,
+                  "TCC_MISS_sum": 65737.0,
+                  "TCC_REQ_sum": 102265.0,
+                  "TCP_TCC_READ_REQ_sum": 34864.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3480.0,
+                "hbm_bandwidth_gbps": 2419.67816091954,
+                "hbm_read_bytes": 4226176.0,
+                "hbm_total_bytes": 8420480.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 141,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34864.0,
+                "l1_to_l2_total_requests": 100400.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.718965432943826,
+                "l2_hits": 36528.0,
+                "l2_misses": 65737.0,
+                "l2_tag_requests": 102265.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.875,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65737.0,
+                  "TCC_REQ_sum": 102257.0,
+                  "TCP_TCC_READ_REQ_sum": 34824.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3480.0,
+                "hbm_bandwidth_gbps": 2419.6045977011495,
+                "hbm_read_bytes": 4225920.0,
+                "hbm_total_bytes": 8420224.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 142,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34824.0,
+                "l1_to_l2_total_requests": 100360.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.713936454228076,
+                "l2_hits": 36520.0,
+                "l2_misses": 65737.0,
+                "l2_tag_requests": 102257.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.5,
+                  "TCC_HIT_sum": 36512.0,
+                  "TCC_MISS_sum": 65738.0,
+                  "TCC_REQ_sum": 102250.0,
+                  "TCP_TCC_READ_REQ_sum": 34848.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3440.0,
+                "hbm_bandwidth_gbps": 2447.6279069767443,
+                "hbm_read_bytes": 4225536.0,
+                "hbm_total_bytes": 8419840.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 143,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34848.0,
+                "l1_to_l2_total_requests": 100384.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.70855745721271,
+                "l2_hits": 36512.0,
+                "l2_misses": 65738.0,
+                "l2_tag_requests": 102250.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.25,
+                  "TCC_HIT_sum": 36504.0,
+                  "TCC_MISS_sum": 65737.0,
+                  "TCC_REQ_sum": 102241.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3400.0,
+                "hbm_bandwidth_gbps": 2476.348235294118,
+                "hbm_read_bytes": 4225280.0,
+                "hbm_total_bytes": 8419584.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 144,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.7038761357968,
+                "l2_hits": 36504.0,
+                "l2_misses": 65737.0,
+                "l2_tag_requests": 102241.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4127.375,
+                  "TCC_HIT_sum": 36560.0,
+                  "TCC_MISS_sum": 65739.0,
+                  "TCC_REQ_sum": 102299.0,
+                  "TCP_TCC_READ_REQ_sum": 34824.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3480.0,
+                "hbm_bandwidth_gbps": 2419.751724137931,
+                "hbm_read_bytes": 4226432.0,
+                "hbm_total_bytes": 8420736.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 145,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34824.0,
+                "l1_to_l2_total_requests": 100360.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.738374764171695,
+                "l2_hits": 36560.0,
+                "l2_misses": 65739.0,
+                "l2_tag_requests": 102299.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.5,
+                  "TCC_HIT_sum": 36520.0,
+                  "TCC_MISS_sum": 65740.0,
+                  "TCC_REQ_sum": 102260.0,
+                  "TCP_TCC_READ_REQ_sum": 34856.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3440.0,
+                "hbm_bandwidth_gbps": 2447.6279069767443,
+                "hbm_read_bytes": 4225536.0,
+                "hbm_total_bytes": 8419840.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 146,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34856.0,
+                "l1_to_l2_total_requests": 100392.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.712888715040094,
+                "l2_hits": 36520.0,
+                "l2_misses": 65740.0,
+                "l2_tag_requests": 102260.0
+              },
+              {
+                "counters": {
+                  "FETCH_SIZE": 4126.625,
+                  "TCC_HIT_sum": 36480.0,
+                  "TCC_MISS_sum": 65736.0,
+                  "TCC_REQ_sum": 102216.0,
+                  "TCP_TCC_READ_REQ_sum": 34872.0,
+                  "TCP_TCC_WRITE_REQ_sum": 65536.0,
+                  "TCP_TOTAL_CACHE_ACCESSES_sum": 196608.0,
+                  "WRITE_SIZE": 4096.0
+                },
+                "duration_ns": 3400.0,
+                "hbm_bandwidth_gbps": 2476.4611764705883,
+                "hbm_read_bytes": 4225664.0,
+                "hbm_total_bytes": 8419968.0,
+                "hbm_write_bytes": 4194304.0,
+                "index": 147,
+                "kernel_name": "bias_relu_kernel.kd",
+                "l1_cache_line_accesses": 196608.0,
+                "l1_to_l2_read_requests": 34872.0,
+                "l1_to_l2_total_requests": 100408.0,
+                "l1_to_l2_write_requests": 65536.0,
+                "l2_hit_rate_percent": 35.68912890349847,
+                "l2_hits": 36480.0,
+                "l2_misses": 65736.0,
+                "l2_tag_requests": 102216.0
+              }
+            ],
+            "steady_state": {
+              "dispatch_count": 20,
+              "duration_ns": 3440.0,
+              "hbm_bandwidth_gbps": 2447.646511627907,
+              "hbm_read_bytes": 4225792.0,
+              "hbm_total_bytes": 8420096.0,
+              "hbm_write_bytes": 4194304.0,
+              "l1_cache_line_accesses": 196608.0,
+              "l1_to_l2_read_requests": 34848.0,
+              "l1_to_l2_total_requests": 100384.0,
+              "l1_to_l2_write_requests": 65536.0,
+              "l2_hit_rate_percent": 35.71271409867259,
+              "l2_hits": 36520.0,
+              "l2_misses": 65739.0,
+              "l2_tag_requests": 102258.0
+            },
+            "target_dispatch_count": 42
+          }
+        ],
+        "steady_state": {
+          "dispatches_per_launch": [
+            20,
+            20,
+            20
+          ],
+          "duration_ns": 3280.0,
+          "duration_ns_by_launch": [
+            3280.0,
+            3280.0,
+            3440.0
+          ],
+          "hbm_bandwidth_gbps": 2566.7707317073173,
+          "hbm_bandwidth_gbps_by_launch": [
+            2566.9853658536585,
+            2566.7707317073173,
+            2447.646511627907
+          ],
+          "hbm_read_bytes": 4224832.0,
+          "hbm_read_bytes_by_launch": [
+            4224832.0,
+            4224768.0,
+            4225792.0
+          ],
+          "hbm_total_bytes": 8419136.0,
+          "hbm_total_bytes_by_launch": [
+            8419136.0,
+            8419072.0,
+            8420096.0
+          ],
+          "hbm_write_bytes": 4194304.0,
+          "hbm_write_bytes_by_launch": [
+            4194304.0,
+            4194304.0,
+            4194304.0
+          ],
+          "l1_cache_line_accesses": 196608.0,
+          "l1_cache_line_accesses_by_launch": [
+            196608.0,
+            196608.0,
+            196608.0
+          ],
+          "l1_to_l2_read_requests": 34848.0,
+          "l1_to_l2_read_requests_by_launch": [
+            34840.0,
+            34864.0,
+            34848.0
+          ],
+          "l1_to_l2_total_requests": 100384.0,
+          "l1_to_l2_total_requests_by_launch": [
+            100376.0,
+            100400.0,
+            100384.0
+          ],
+          "l1_to_l2_write_requests": 65536.0,
+          "l1_to_l2_write_requests_by_launch": [
+            65536.0,
+            65536.0,
+            65536.0
+          ],
+          "l2_hit_rate_percent": 35.71271409867259,
+          "l2_hit_rate_percent_by_launch": [
+            35.71522854022441,
+            35.71264396451238,
+            35.71271409867259
+          ],
+          "l2_hits": 36520.0,
+          "l2_hits_by_launch": [
+            36524.0,
+            36516.0,
+            36520.0
+          ],
+          "l2_misses": 65739.0,
+          "l2_misses_by_launch": [
+            65739.0,
+            65734.0,
+            65739.0
+          ],
+          "l2_tag_requests": 102258.0,
+          "l2_tag_requests_by_launch": [
+            102263.5,
+            102250.5,
+            102258.0
+          ],
+          "profile_launch_count": 3
+        }
+      },
+      "fixed_outer_order": [
+        "feature"
+      ],
+      "grammar": "canonical",
+      "inner_mode_indices": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "inner_mode_order": [
+        "feature",
+        "feature",
+        "feature",
+        "feature",
+        "feature",
+        "feature",
+        "feature",
+        "feature"
+      ],
+      "inner_tile_shape": [
+        256
+      ],
+      "inner_word": "ffffffff",
+      "inner_word_runs": 1,
+      "layout": "counter_256_ffffffff",
+      "mapping_id": "mapping_0899bb1953bc",
+      "panel_rank": 1,
+      "profile_checkpoints": [
+        "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles/bias_relu/counter_candidate_d6aa0044edb3/launch-1/profile.json",
+        "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles/bias_relu/counter_candidate_d6aa0044edb3/launch-2/profile.json",
+        "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles/bias_relu/counter_candidate_d6aa0044edb3/launch-3/profile.json"
+      ],
+      "quotient_rank": 1,
+      "quotient_score": 32768.0,
+      "requested_profile_launches": 3,
+      "structural_validation": {
+        "all_accepted": true,
+        "by_launch": [
+          {
+            "accepted": true,
+            "candidate_execution_layout": {
+              "bases": {
+                "block": [],
+                "lane": [
+                  [
+                    1
+                  ],
+                  [
+                    2
+                  ],
+                  [
+                    4
+                  ],
+                  [
+                    8
+                  ],
+                  [
+                    16
+                  ],
+                  [
+                    32
+                  ]
+                ],
+                "register": [],
+                "warp": [
+                  [
+                    64
+                  ],
+                  [
+                    128
+                  ]
+                ]
+              },
+              "blocked": {
+                "order": [
+                  0
+                ],
+                "sizePerThread": [
+                  1
+                ],
+                "threadsPerWarp": [
+                  64
+                ],
+                "warpsPerCTA": [
+                  4
+                ]
+              },
+              "input_sizes": {
+                "block": 1,
+                "lane": 64,
+                "register": 1,
+                "warp": 4
+              },
+              "output_shape": [
+                256
+              ]
+            },
+            "candidate_load_opcode_counts": {
+              "buffer_load_dword": 2,
+              "s_load_dwordx2": 1,
+              "s_load_dwordx8": 1
+            },
+            "candidate_spills": 0,
+            "execution_layout_matches_reference": true,
+            "load_instruction_structure_matches_reference": true,
+            "no_candidate_spills": true,
+            "reference_execution_layout": {
+              "bases": {
+                "block": [],
+                "lane": [
+                  [
+                    1
+                  ],
+                  [
+                    2
+                  ],
+                  [
+                    4
+                  ],
+                  [
+                    8
+                  ],
+                  [
+                    16
+                  ],
+                  [
+                    32
+                  ]
+                ],
+                "register": [],
+                "warp": [
+                  [
+                    64
+                  ],
+                  [
+                    128
+                  ]
+                ]
+              },
+              "blocked": {
+                "order": [
+                  0
+                ],
+                "sizePerThread": [
+                  1
+                ],
+                "threadsPerWarp": [
+                  64
+                ],
+                "warpsPerCTA": [
+                  4
+                ]
+              },
+              "input_sizes": {
+                "block": 1,
+                "lane": 64,
+                "register": 1,
+                "warp": 4
+              },
+              "output_shape": [
+                256
+              ]
+            },
+            "reference_load_opcode_counts": {
+              "buffer_load_dword": 2,
+              "s_load_dwordx2": 1,
+              "s_load_dwordx8": 1
+            },
+            "reference_spills": 0
+          },
+          {
+            "accepted": true,
+            "candidate_execution_layout": {
+              "bases": {
+                "block": [],
+                "lane": [
+                  [
+                    1
+                  ],
+                  [
+                    2
+                  ],
+                  [
+                    4
+                  ],
+                  [
+                    8
+                  ],
+                  [
+                    16
+                  ],
+                  [
+                    32
+                  ]
+                ],
+                "register": [],
+                "warp": [
+                  [
+                    64
+                  ],
+                  [
+                    128
+                  ]
+                ]
+              },
+              "blocked": {
+                "order": [
+                  0
+                ],
+                "sizePerThread": [
+                  1
+                ],
+                "threadsPerWarp": [
+                  64
+                ],
+                "warpsPerCTA": [
+                  4
+                ]
+              },
+              "input_sizes": {
+                "block": 1,
+                "lane": 64,
+                "register": 1,
+                "warp": 4
+              },
+              "output_shape": [
+                256
+              ]
+            },
+            "candidate_load_opcode_counts": {
+              "buffer_load_dword": 2,
+              "s_load_dwordx2": 1,
+              "s_load_dwordx8": 1
+            },
+            "candidate_spills": 0,
+            "execution_layout_matches_reference": true,
+            "load_instruction_structure_matches_reference": true,
+            "no_candidate_spills": true,
+            "reference_execution_layout": {
+              "bases": {
+                "block": [],
+                "lane": [
+                  [
+                    1
+                  ],
+                  [
+                    2
+                  ],
+                  [
+                    4
+                  ],
+                  [
+                    8
+                  ],
+                  [
+                    16
+                  ],
+                  [
+                    32
+                  ]
+                ],
+                "register": [],
+                "warp": [
+                  [
+                    64
+                  ],
+                  [
+                    128
+                  ]
+                ]
+              },
+              "blocked": {
+                "order": [
+                  0
+                ],
+                "sizePerThread": [
+                  1
+                ],
+                "threadsPerWarp": [
+                  64
+                ],
+                "warpsPerCTA": [
+                  4
+                ]
+              },
+              "input_sizes": {
+                "block": 1,
+                "lane": 64,
+                "register": 1,
+                "warp": 4
+              },
+              "output_shape": [
+                256
+              ]
+            },
+            "reference_load_opcode_counts": {
+              "buffer_load_dword": 2,
+              "s_load_dwordx2": 1,
+              "s_load_dwordx8": 1
+            },
+            "reference_spills": 0
+          },
+          {
+            "accepted": true,
+            "candidate_execution_layout": {
+              "bases": {
+                "block": [],
+                "lane": [
+                  [
+                    1
+                  ],
+                  [
+                    2
+                  ],
+                  [
+                    4
+                  ],
+                  [
+                    8
+                  ],
+                  [
+                    16
+                  ],
+                  [
+                    32
+                  ]
+                ],
+                "register": [],
+                "warp": [
+                  [
+                    64
+                  ],
+                  [
+                    128
+                  ]
+                ]
+              },
+              "blocked": {
+                "order": [
+                  0
+                ],
+                "sizePerThread": [
+                  1
+                ],
+                "threadsPerWarp": [
+                  64
+                ],
+                "warpsPerCTA": [
+                  4
+                ]
+              },
+              "input_sizes": {
+                "block": 1,
+                "lane": 64,
+                "register": 1,
+                "warp": 4
+              },
+              "output_shape": [
+                256
+              ]
+            },
+            "candidate_load_opcode_counts": {
+              "buffer_load_dword": 2,
+              "s_load_dwordx2": 1,
+              "s_load_dwordx8": 1
+            },
+            "candidate_spills": 0,
+            "execution_layout_matches_reference": true,
+            "load_instruction_structure_matches_reference": true,
+            "no_candidate_spills": true,
+            "reference_execution_layout": {
+              "bases": {
+                "block": [],
+                "lane": [
+                  [
+                    1
+                  ],
+                  [
+                    2
+                  ],
+                  [
+                    4
+                  ],
+                  [
+                    8
+                  ],
+                  [
+                    16
+                  ],
+                  [
+                    32
+                  ]
+                ],
+                "register": [],
+                "warp": [
+                  [
+                    64
+                  ],
+                  [
+                    128
+                  ]
+                ]
+              },
+              "blocked": {
+                "order": [
+                  0
+                ],
+                "sizePerThread": [
+                  1
+                ],
+                "threadsPerWarp": [
+                  64
+                ],
+                "warpsPerCTA": [
+                  4
+                ]
+              },
+              "input_sizes": {
+                "block": 1,
+                "lane": 64,
+                "register": 1,
+                "warp": 4
+              },
+              "output_shape": [
+                256
+              ]
+            },
+            "reference_load_opcode_counts": {
+              "buffer_load_dword": 2,
+              "s_load_dwordx2": 1,
+              "s_load_dwordx8": 1
+            },
+            "reference_spills": 0
+          }
+        ],
+        "execution_layout_matches_reference": true,
+        "load_instruction_structure_matches_reference": true,
+        "no_spills": true
+      },
+      "word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+      "xor_count": 0
+    }
+  ],
+  "case": "bias_relu",
+  "complete": true,
+  "configuration": {
+    "cache_mode": "warm",
+    "candidate_order": "cyclic rotation by profiler launch",
+    "candidate_panel_schema": 1,
+    "case": "bias_relu",
+    "counter_passes_per_profile": 3,
+    "panel_mode": "fixed_tile_levels",
+    "panel_tile_shape": [
+      256
+    ],
+    "profile_iterations": 20,
+    "profile_launches": 3,
+    "profile_warmup": 5,
+    "requested_retained_candidates": 8,
+    "rocprof": "/opt/rocm-7.0.2/bin/rocprof",
+    "temporal_mode": "issue",
+    "transaction_bytes": 128
+  },
+  "correct": true,
+  "counter_definitions": {
+    "FETCH_SIZE": "KiB fetched from memory",
+    "TCC_HIT_sum": "TCC/L2 cache hits",
+    "TCC_MISS_sum": "TCC/L2 cache misses",
+    "TCC_REQ_sum": "requests processed by the TCC/L2 tag blocks",
+    "TCP_TCC_READ_REQ_sum": "read requests sent from TCP/L1 to TCC/L2",
+    "TCP_TCC_WRITE_REQ_sum": "write requests sent from TCP/L1 to TCC/L2",
+    "TCP_TOTAL_CACHE_ACCESSES_sum": "TCP/L1 cache-line tag accesses, including hits and misses",
+    "WRITE_SIZE": "KiB written to memory"
+  },
+  "experiment": "triton_stage1_quotient_level_counters",
+  "kernel_name": "bias_relu_kernel",
+  "measurement_scope": {
+    "aggregation": "median of the final target dispatches within a profiler launch, then median across independent launches",
+    "hardware": "whole-kernel counters with all other operands fixed",
+    "process_isolation": "one rocprof invocation per mapping and launch",
+    "quotient": "issue-only target-operand transaction quotient"
+  },
+  "missing_profiles": [],
+  "operand_shape": [
+    1024
+  ],
+  "panel": {
+    "candidates": [
+      {
+        "a_rows": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "address_expression_runs": 1,
+        "candidate_id": "counter_candidate_d6aa0044edb3",
+        "fixed_outer_order": [
+          "feature"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inner_mode_order": [
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature"
+        ],
+        "inner_tile_shape": [
+          256
+        ],
+        "inner_word": "ffffffff",
+        "inner_word_runs": 1,
+        "layout": "counter_256_ffffffff",
+        "mapping_id": "mapping_0899bb1953bc",
+        "panel_rank": 1,
+        "quotient_rank": 1,
+        "quotient_score": 32768.0,
+        "word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+        "xor_count": 0
+      }
+    ],
+    "enumerated_word_count": 1,
+    "fixed_outer_order": [
+      "feature"
+    ],
+    "grouping": "quotient",
+    "mode": "fixed_tile_levels",
+    "objective": "issue_only",
+    "outer_layout": "row_major_tiles",
+    "quotient_levels": [
+      32768.0
+    ],
+    "representative_count": 1,
+    "selection": "minimum full address-expression runs, then stable canonical word",
+    "tile_grammars": [
+      {
+        "canonical_word_count": 1,
+        "quotient_levels": [
+          32768.0
+        ],
+        "tile_exponents": [
+          8
+        ],
+        "tile_shape": [
+          256
+        ]
+      }
+    ],
+    "unique_mapping_count": 1
+  },
+  "stage": 1,
+  "statistics": {
+    "free_intercept_linear_fit": null,
+    "observation_count": 1,
+    "primary_hardware_metric": "l1_cache_line_accesses",
+    "tie_aware_spearman": null
+  },
+  "target_operand": "bias",
+  "theory_validation": null
+}
