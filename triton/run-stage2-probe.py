@@ -16,6 +16,7 @@ from stage1_common import (
     benchmark_layouts,
     benchmark_layouts_isolated,
     compiled_codegen_statistics,
+    distribution_version,
     execution_layout_from_compiled,
     execution_layout_record,
     issue_events,
@@ -333,7 +334,7 @@ def run_probe(args) -> dict[str, object]:
         "process": {
             "pid": os.getpid(),
             "torch_version": torch.__version__,
-            "triton_version": triton.__version__,
+            "triton_version": distribution_version("triton"),
             "device": torch.cuda.get_device_name(torch.cuda.current_device()),
         },
         "correct": True,

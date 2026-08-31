@@ -5,11 +5,21 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import hashlib
+from importlib import metadata
 import json
 import re
 import statistics
 
 import torch
+
+
+def distribution_version(name: str) -> str:
+    """Read installed distribution metadata without importing its package."""
+
+    try:
+        return metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return "unknown"
 
 
 def positive_integer(value: str) -> int:

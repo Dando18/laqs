@@ -18,6 +18,7 @@ from stage1_common import (
     benchmark_layouts,
     canonical_layout_metadata,
     compiled_codegen_statistics,
+    distribution_version,
     layout_rows,
     pack_tensor,
     positive_integer,
@@ -353,7 +354,7 @@ def run_experiment(args: argparse.Namespace) -> dict[str, object]:
         "process": {
             "pid": os.getpid(),
             "torch_version": torch.__version__,
-            "triton_version": triton.__version__,
+            "triton_version": distribution_version("triton"),
             "device": torch.cuda.get_device_name(torch.cuda.current_device()),
         },
         "solver": {

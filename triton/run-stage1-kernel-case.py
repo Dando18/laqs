@@ -14,6 +14,7 @@ import triton
 
 from stage1_common import (
     compressed_temporal_edges,
+    distribution_version,
     execution_layout_from_compiled,
     execution_layout_record,
     issue_events,
@@ -93,7 +94,7 @@ def result_record(case, matrix, blocked, execution, events, ranking, **metadata)
         "process": {
             "pid": os.getpid(),
             "torch_version": torch.__version__,
-            "triton_version": triton.__version__,
+            "triton_version": distribution_version("triton"),
             "device": torch.cuda.get_device_name(torch.cuda.current_device()),
         },
         "correct": bool(ranking["correct"]),
@@ -163,6 +164,7 @@ def bias_relu(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout_spec=((block,), ("feature",)),
     )
     return result_record(
         "bias_relu", matrix, blocked, execution, events, ranking, rows=rows
@@ -229,6 +231,7 @@ def softmax_bias(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout_spec=((n,), ("feature",)),
     )
     return result_record(
         "softmax_bias", matrix, blocked, execution, events, ranking
@@ -301,6 +304,7 @@ def embedding_bag(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout_spec=((dimensions,), ("dimension",)),
     )
     return result_record(
         "embedding_bag",
@@ -384,6 +388,7 @@ def gemv(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout_spec=((block,), ("row",)),
     )
     return result_record("gemv", matrix, blocked, execution, events, ranking)
 
@@ -483,6 +488,7 @@ def mvt(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout_spec=((block,), ("row",)),
     )
     return result_record("mvt", matrix, blocked, execution, events, ranking)
 
@@ -565,6 +571,7 @@ def gesummv(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout_spec=((block,), ("row",)),
     )
     return result_record(
         "gesummv", matrix, blocked, execution, events, ranking
@@ -676,6 +683,7 @@ def stencil5(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout_spec=((block,), ("column",)),
     )
     return result_record(
         "stencil5", matrix, blocked, execution, events, ranking
@@ -706,11 +714,20 @@ def parse_arguments(argv=None):
         choices=("issue", "union", "split"),
         default="issue",
     )
-    parser.add_argument(
+    profile_group = parser.add_mutually_exclusive_group()
+    profile_group.add_argument(
         "--profile-layout",
         choices=("default", "selected"),
         help="finish with isolated steady-state dispatches of this layout",
     )
+    profile_group.add_argument(
+        "--profile-rows",
+        type=int,
+        nargs="+",
+        help="finish with an explicitly supplied full-rank address mapping",
+    )
+    parser.add_argument("--profile-candidate-id")
+    parser.add_argument("--profile-quotient-score", type=float)
     parser.add_argument(
         "--profile-cache-mode",
         choices=("warm", "thrashed"),
@@ -723,6 +740,14 @@ def parse_arguments(argv=None):
     parser.add_argument(
         "--cache-thrash-bytes", type=positive_integer, default=256 << 20
     )
+    parser.add_argument(
+        "--counter-panel",
+        choices=("fixed_tile_levels", "tile_layouts"),
+        help="enumerate an issue-only canonical counter candidate panel",
+    )
+    parser.add_argument(
+        "--panel-tile-shape", type=positive_integer, nargs="+"
+    )
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)
@@ -732,6 +757,20 @@ def main():
     repository = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository))
     args = parse_arguments()
+    if args.profile_rows is None and (
+        args.profile_candidate_id is not None
+        or args.profile_quotient_score is not None
+    ):
+        raise ValueError(
+            "profile candidate metadata requires --profile-rows"
+        )
+    if (
+        args.counter_panel == "fixed_tile_levels"
+        and args.panel_tile_shape is None
+    ):
+        raise ValueError(
+            "fixed_tile_levels requires --panel-tile-shape"
+        )
     if not torch.cuda.is_available():
         raise RuntimeError("the kernel breadth case requires a Flux GPU")
     result = RUNNERS[args.case](args)

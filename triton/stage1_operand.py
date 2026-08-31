@@ -11,6 +11,8 @@ from stage1_common import (
     benchmark_layouts,
     canonical_layout_metadata,
     compiled_codegen_statistics,
+    execution_layout_from_compiled,
+    execution_layout_record,
     layout_rows,
     pack_tensor,
     require_aligned,
@@ -36,6 +38,7 @@ def rank_persistent_operand(
     temporal_model: dict[str, object] | None = None,
     temporal_mode: str = "issue",
     benchmark: Callable | None = None,
+    execution_layout_spec: tuple[tuple[int, ...], tuple[str, ...]] | None = None,
 ) -> dict[str, object]:
     """Solve, compile, validate, and time every retained operand layout."""
 
@@ -75,6 +78,32 @@ def rank_persistent_operand(
         args.transaction_bytes,
         {matrix.name: tuple(temporal_edges)},
     )
+    counter_panel = None
+    panel_mode = getattr(args, "counter_panel", None)
+    if panel_mode is not None:
+        from stage1_counter_candidates import canonical_counter_panel
+
+        if temporal_mode != "issue":
+            raise ValueError("counter panels require issue-only scoring")
+        if panel_mode == "fixed_tile_levels":
+            tile_shape = getattr(args, "panel_tile_shape", None)
+            if tile_shape is None:
+                raise ValueError(
+                    "fixed-tile counter panels require --panel-tile-shape"
+                )
+            panel_tile_shapes = (tuple(tile_shape),)
+            group_by_tile = False
+        else:
+            panel_tile_shapes = inner_tile_shapes
+            group_by_tile = True
+        counter_panel = canonical_counter_panel(
+            matrix,
+            issue_component,
+            panel_tile_shapes,
+            group_by_tile=group_by_tile,
+        )
+        counter_panel["mode"] = panel_mode
+        counter_panel["objective"] = "issue_only"
 
     def component_scores(layout):
         issue_score = weighted_component_region_count(
@@ -201,11 +230,137 @@ def rank_persistent_operand(
     default = next(record for record in records if record["layout"] == "row_major")
     profile_target = None
     profile_layout = getattr(args, "profile_layout", None)
-    if profile_layout is not None:
-        target = default if profile_layout == "default" else selected
-        target_launch = launches[str(target["candidate_id"])]
+    explicit_profile_rows = getattr(args, "profile_rows", None)
+    if profile_layout is not None or explicit_profile_rows is not None:
+        if explicit_profile_rows is None:
+            target = default if profile_layout == "default" else selected
+            target_launch = launches[str(target["candidate_id"])]
+            target_compiled = compiled[str(target["candidate_id"])]
+            target_role = profile_layout
+        else:
+            from relay import LinearInnerLayout
+            from relay.gf2 import invert_matrix_rows
+
+            rows = tuple(int(row) for row in explicit_profile_rows)
+            if len(rows) != matrix.total_bits:
+                raise ValueError(
+                    "--profile-rows must provide one row per logical bit"
+                )
+            invert_matrix_rows(rows, matrix.total_bits)
+            mapping_id = stable_id("mapping", list(rows))
+            candidate_id = (
+                getattr(args, "profile_candidate_id", None)
+                or stable_id("counter_candidate", list(rows))
+            )
+            source = sources_by_mapping.get(mapping_id)
+            if source is None:
+                source = pack_tensor(logical_operand, rows).to("cuda")
+                sources_by_mapping[mapping_id] = source
+            require_aligned(candidate_id, source, args.transaction_bytes)
+            output = make_output()
+            target_launch = make_launch(source, output, rows)
+            target_compiled = target_launch()
+            torch.cuda.synchronize()
+            validate(candidate_id, output)
+            quotient_score = getattr(args, "profile_quotient_score", None)
+            profile_layout_object = LinearInnerLayout(
+                name=str(candidate_id),
+                matrix_name=matrix.name,
+                tile_exponents=matrix.mode_bits,
+                a_rows=rows,
+                outer_order=tuple(reversed(range(matrix.rank))),
+            )
+            profile_layout_object.validate(matrix)
+            verified_quotient_score = float(
+                weighted_component_region_count(
+                    matrix, profile_layout_object, issue_component
+                )
+            )
+            if quotient_score is not None and abs(
+                float(quotient_score) - verified_quotient_score
+            ) > 1e-9:
+                raise ValueError(
+                    f"{candidate_id}: supplied issue quotient "
+                    f"{quotient_score} does not match verified score "
+                    f"{verified_quotient_score}"
+                )
+            quotient_score = verified_quotient_score
+            target = {
+                "candidate_id": candidate_id,
+                "mapping_id": mapping_id,
+                "a_rows": list(rows),
+                "quotient_score": quotient_score,
+                "quotient_components": {
+                    "issue": quotient_score,
+                    "temporal": 0.0,
+                },
+                "issue_quotient_score_verified": True,
+            }
+            target_role = "candidate"
+
+        if execution_layout_spec is None:
+            raise ValueError(
+                "profile targets require an execution-layout extraction spec"
+            )
+        reference_compiled = compiled[str(default["candidate_id"])]
+        reference_codegen = compiled_codegen_statistics(reference_compiled)
+        target_codegen = compiled_codegen_statistics(target_compiled)
+        reference_blocked, reference_execution = execution_layout_from_compiled(
+            reference_compiled, *execution_layout_spec
+        )
+        target_blocked, target_execution = execution_layout_from_compiled(
+            target_compiled, *execution_layout_spec
+        )
+        reference_execution_record = execution_layout_record(
+            reference_blocked, reference_execution
+        )
+        target_execution_record = execution_layout_record(
+            target_blocked, target_execution
+        )
+
+        def load_signature(codegen):
+            return {
+                opcode: count
+                for opcode, count in codegen["opcode_counts"].items()
+                if "load" in opcode
+            }
+
+        reference_loads = load_signature(reference_codegen)
+        target_loads = load_signature(target_codegen)
+        structural_validation = {
+            "execution_layout_matches_reference": (
+                target_execution_record == reference_execution_record
+            ),
+            "reference_execution_layout": reference_execution_record,
+            "candidate_execution_layout": target_execution_record,
+            "load_instruction_structure_matches_reference": (
+                target_loads == reference_loads
+            ),
+            "reference_load_opcode_counts": reference_loads,
+            "candidate_load_opcode_counts": target_loads,
+            "reference_spills": reference_codegen["n_spills"],
+            "candidate_spills": target_codegen["n_spills"],
+            "no_candidate_spills": target_codegen["n_spills"] == 0,
+        }
+        structural_validation["accepted"] = all(
+            structural_validation[name]
+            for name in (
+                "execution_layout_matches_reference",
+                "load_instruction_structure_matches_reference",
+                "no_candidate_spills",
+            )
+        )
+        if not structural_validation["accepted"]:
+            raise ValueError(
+                f"{target['candidate_id']}: counter candidate changed the "
+                "execution layout, load structure, or spill state"
+            )
+
         cache_mode = args.profile_cache_mode
-        prepare = lambda: None
+
+        def prepare():
+            return None
+
         if cache_mode == "thrashed":
             from stage1_kernels import cache_thrash_kernel
 
@@ -229,18 +384,24 @@ def rank_persistent_operand(
             target_launch()
         torch.cuda.synchronize()
         profile_target = {
-            "role": profile_layout,
+            "role": target_role,
             "candidate_id": target["candidate_id"],
             "mapping_id": target["mapping_id"],
             "a_rows": target["a_rows"],
             "quotient_score": target["quotient_score"],
             "quotient_components": target["quotient_components"],
+            "issue_quotient_score_verified": target.get(
+                "issue_quotient_score_verified",
+                explicit_profile_rows is None,
+            ),
             "cache_mode": cache_mode,
             "cache_thrash_bytes": (
                 args.cache_thrash_bytes if cache_mode == "thrashed" else 0
             ),
             "warmup_dispatches": args.profile_warmup,
             "profiled_dispatches": args.profile_iterations,
+            "compiled_codegen": target_codegen,
+            "structural_validation": structural_validation,
         }
     temporal_record = {
         "mode": temporal_mode,
@@ -294,6 +455,7 @@ def rank_persistent_operand(
             "candidate_count": array_result.all_candidate_count,
             "retained_candidates": len(retained),
         },
+        "counter_panel": counter_panel,
         "profile_target": profile_target,
         "correct": True,
     }

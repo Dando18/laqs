@@ -249,3 +249,36 @@ def rank_correlation(
         return result
 
     return float(statistics.correlation(ranks(left), ranks(right)))
+
+
+def linear_fit(
+    predictor: Sequence[float], response: Sequence[float]
+) -> dict[str, float | None]:
+    """Fit ``response = intercept + slope * predictor`` by least squares."""
+
+    if len(predictor) != len(response):
+        raise ValueError("linear-fit inputs must have equal lengths")
+    if len(predictor) < 2:
+        raise ValueError("linear fit requires at least two observations")
+    x = [float(value) for value in predictor]
+    y = [float(value) for value in response]
+    x_mean = statistics.mean(x)
+    y_mean = statistics.mean(y)
+    x_variation = sum((value - x_mean) ** 2 for value in x)
+    if x_variation == 0.0:
+        raise ValueError("linear fit requires varying predictor values")
+    slope = sum(
+        (x_value - x_mean) * (y_value - y_mean)
+        for x_value, y_value in zip(x, y)
+    ) / x_variation
+    intercept = y_mean - slope * x_mean
+    residual = sum(
+        (y_value - (intercept + slope * x_value)) ** 2
+        for x_value, y_value in zip(x, y)
+    )
+    total = sum((value - y_mean) ** 2 for value in y)
+    return {
+        "slope": float(slope),
+        "intercept": float(intercept),
+        "r_squared": float(1.0 - residual / total) if total else None,
+    }

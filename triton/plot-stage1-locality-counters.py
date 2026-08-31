@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create PDF figures from a Triton Stage-1 locality-counter report."""
+"""Create a paper-ready heatmap from Stage-1 locality counters."""
 
 from __future__ import annotations
 
@@ -11,22 +11,21 @@ import tempfile
 
 
 HEATMAP_METRICS = (
-    ("issue_quotient", "Modeled issue quotient"),
-    ("objective_quotient", "Full objective quotient"),
-    ("l1_cache_line_accesses", "TCP cache-line accesses"),
-    ("l1_to_l2_read_requests", "TCP→TCC read requests"),
-    ("l2_tag_requests", "L2 tag requests"),
-    ("l2_misses", "L2 misses"),
-    ("hbm_read_bytes", "HBM read bytes"),
-    ("duration_ns", "Profiled duration"),
+    ("issue_quotient", "Quotient score"),
+    ("l1_cache_line_accesses", "TCP_TOTAL_CACHE_ACCESSES_sum"),
+    ("l1_to_l2_read_requests", "TCP_TCC_READ_REQ_sum"),
+    ("l2_tag_requests", "TCC_REQ_sum"),
 )
 
-SCATTER_METRICS = (
-    ("l1_cache_line_accesses", "TCP cache-line accesses", "o", "#0072B2"),
-    ("l1_to_l2_read_requests", "TCP→TCC reads", "s", "#D55E00"),
-    ("l2_tag_requests", "L2 tag requests", "^", "#009E73"),
-    ("l2_misses", "L2 misses", "D", "#CC79A7"),
-)
+CASE_LABELS = {
+    "bias_relu": "Bias + ReLU",
+    "softmax_bias": "Softmax + bias",
+    "embedding_bag": "Embedding bag",
+    "gemv": "GEMV",
+    "mvt": "MVT",
+    "gesummv": "GESUMMV",
+    "stencil5": "5-point stencil",
+}
 
 
 def parse_arguments(argv=None):
@@ -40,173 +39,162 @@ def parse_arguments(argv=None):
     return parser.parse_args(argv)
 
 
-def load_pairs(path: Path):
+def load_report(path: Path):
     report = json.loads(path.read_text(encoding="utf-8"))
     if report.get("experiment") != "triton_stage1_locality_counters":
         raise ValueError(f"{path} is not a Triton locality-counter report")
-    pairs = []
-    for case, case_record in report.get("cases", {}).items():
-        for cache_mode, pair in case_record["cache_modes"].items():
-            pairs.append((case, cache_mode, pair))
-    if not pairs:
+    if not report.get("cases"):
         raise ValueError(f"{path} contains no complete layout pairs")
-    return report, pairs
+    return report
 
 
 def reduction(pair: dict[str, object], metric: str) -> float | None:
     if metric == "issue_quotient":
         return pair["quotient"]["issue"]["reduction"]
-    if metric == "objective_quotient":
-        return pair["quotient"]["objective"]["reduction"]
     return pair["hardware_comparison"][metric]["reduction"]
 
 
-def render_reduction_matrix(pairs, output: Path) -> None:
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import TwoSlopeNorm
+def _configure_font(plt) -> str:
+    from matplotlib import font_manager
+
+    for family in ("Gill Sans", "Gill Sans MT"):
+        try:
+            font_manager.findfont(family, fallback_to_default=False)
+        except ValueError:
+            continue
+        plt.rcParams["font.family"] = family
+        return family
+    plt.rcParams["font.family"] = "DejaVu Sans"
+    return "DejaVu Sans"
+
+
+def _values(report, case_order, cache_mode):
     import numpy as np
 
-    labels = [f"{case} ({cache_mode})" for case, cache_mode, _pair in pairs]
-    values = np.asarray(
+    return np.asarray(
         [
             [
                 (
                     np.nan
-                    if reduction(pair, metric) is None
-                    else 100 * reduction(pair, metric)
+                    if reduction(
+                        report["cases"][case]["cache_modes"][cache_mode],
+                        metric,
+                    )
+                    is None
+                    else 100.0
+                    * reduction(
+                        report["cases"][case]["cache_modes"][cache_mode],
+                        metric,
+                    )
                 )
                 for metric, _label in HEATMAP_METRICS
             ]
-            for _case, _cache_mode, pair in pairs
+            for case in case_order
         ]
     )
-    finite = np.abs(values[np.isfinite(values)])
-    limit = max(10.0, float(np.max(finite)) if finite.size else 10.0)
-    figure, axis = plt.subplots(figsize=(14.2, 4.0 + 0.42 * len(pairs)))
-    image = axis.imshow(
-        values,
-        aspect="auto",
-        cmap="RdBu",
-        norm=TwoSlopeNorm(vmin=-limit, vcenter=0.0, vmax=limit),
-    )
-    axis.set_xticks(
-        range(len(HEATMAP_METRICS)),
-        [label for _metric, label in HEATMAP_METRICS],
-        rotation=30,
-        ha="right",
-    )
-    axis.set_yticks(range(len(labels)), labels)
-    axis.tick_params(labelsize=10)
-    for row in range(values.shape[0]):
-        for column in range(values.shape[1]):
-            value = values[row, column]
-            label = "n/a" if not np.isfinite(value) else f"{value:+.1f}%"
-            color = (
-                "white"
-                if np.isfinite(value) and abs(value) > 0.58 * limit
-                else "black"
-            )
-            axis.text(
-                column,
-                row,
-                label,
-                ha="center",
-                va="center",
-                fontsize=9,
-                color=color,
-            )
-    axis.set_title(
-        "LAQS-selected versus Triton row-major: locality predictions and counters",
-        fontsize=15,
-        pad=14,
-    )
-    colorbar = figure.colorbar(image, ax=axis, pad=0.02)
-    colorbar.set_label("Reduction relative to row-major (%)", fontsize=11)
-    figure.tight_layout()
-    output.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(output, bbox_inches="tight")
-    plt.close(figure)
 
 
-def render_prediction_scatter(pairs, output: Path) -> None:
+def render_reduction_matrix(report, output: Path) -> str:
     import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
+    import numpy as np
 
-    cache_modes = [
-        mode for mode in ("warm", "thrashed") if any(pair[1] == mode for pair in pairs)
+    font_family = _configure_font(plt)
+    cases = report["cases"]
+    case_order = [
+        case
+        for case in report["configuration"].get("case_order", cases)
+        if case in cases
     ]
+    labels = [CASE_LABELS.get(case, case) for case in case_order]
     figure, axes = plt.subplots(
         1,
-        len(cache_modes),
-        figsize=(7.2 * len(cache_modes), 6.2),
-        squeeze=False,
-        sharex=True,
+        2,
+        figsize=(13.6, 5.8),
         sharey=True,
+        layout="constrained",
     )
-    all_values = [0.0]
-    for column, cache_mode in enumerate(cache_modes):
-        axis = axes[0][column]
-        selected_pairs = [pair for pair in pairs if pair[1] == cache_mode]
-        for metric, label, marker, color in SCATTER_METRICS:
-            points = []
-            for case, _mode, pair in selected_pairs:
-                x_value = reduction(pair, "issue_quotient")
-                y_value = reduction(pair, metric)
-                if x_value is None or y_value is None:
-                    continue
-                points.append((100 * x_value, 100 * y_value, case))
-            if not points:
-                continue
-            x_values = [point[0] for point in points]
-            y_values = [point[1] for point in points]
-            all_values.extend(x_values)
-            all_values.extend(y_values)
-            axis.scatter(
-                x_values,
-                y_values,
-                marker=marker,
-                s=76,
-                facecolors="none",
-                edgecolors=color,
-                linewidths=1.8,
-                label=label,
-            )
-            if metric == "l1_cache_line_accesses":
-                for x_value, y_value, case in points:
-                    axis.annotate(
-                        case,
-                        (x_value, y_value),
-                        xytext=(5, 4),
-                        textcoords="offset points",
-                        fontsize=9,
-                    )
-        axis.axhline(0.0, color="black", linewidth=0.8)
-        axis.axvline(0.0, color="black", linewidth=0.8)
-        axis.grid(True, linestyle=":", linewidth=0.7)
-        axis.set_title(f"{cache_mode.capitalize()} cache", fontsize=14)
-        axis.set_xlabel("Modeled issue-quotient reduction (%)", fontsize=12)
-        if column == 0:
-            axis.set_ylabel("Measured counter reduction (%)", fontsize=12)
-        axis.legend(fontsize=9, loc="best")
-    lower = min(all_values) - 5.0
-    upper = max(all_values) + 5.0
-    for axis in axes[0]:
-        axis.plot(
-            [lower, upper],
-            [lower, upper],
-            color="0.45",
-            linestyle="--",
-            label="equal reduction",
+    color_map = plt.get_cmap("Blues").copy()
+    color_map.set_bad("#f2f2f2")
+    normalization = Normalize(vmin=0.0, vmax=100.0)
+    image = None
+
+    for axis, cache_mode, title in zip(
+        axes,
+        ("warm", "thrashed"),
+        ("Warm", "Cache-thrashed"),
+    ):
+        values = _values(report, case_order, cache_mode)
+        image = axis.pcolormesh(
+            np.arange(values.shape[1] + 1),
+            np.arange(values.shape[0] + 1),
+            np.clip(values, 0.0, 100.0),
+            cmap=color_map,
+            norm=normalization,
+            shading="flat",
+            edgecolors="white",
+            linewidth=1.6,
         )
-        axis.set_xlim(lower, upper)
-        axis.set_ylim(lower, upper)
+        axis.set_xlim(0, values.shape[1])
+        axis.set_ylim(values.shape[0], 0)
+        axis.set_xticks(
+            np.arange(len(HEATMAP_METRICS)) + 0.5,
+            [label for _metric, label in HEATMAP_METRICS],
+            rotation=27,
+            ha="right",
+            rotation_mode="anchor",
+        )
+        axis.set_yticks(np.arange(len(labels)) + 0.5, labels)
+        axis.tick_params(axis="both", labelsize=10.5, length=0)
+        axis.set_title(title, fontsize=14, pad=9)
+        for spine in axis.spines.values():
+            spine.set_visible(False)
+
+        for row in range(values.shape[0]):
+            for column in range(values.shape[1]):
+                value = values[row, column]
+                label = "n/a" if not np.isfinite(value) else f"{value:.1f}%"
+                color = (
+                    "white"
+                    if np.isfinite(value) and value >= 55.0
+                    else "#1a1a1a"
+                )
+                axis.text(
+                    column + 0.5,
+                    row + 0.5,
+                    label,
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                    color=color,
+                )
+
+    axes[0].set_ylabel("Kernel", fontsize=12)
     figure.suptitle(
-        "Does a lower LAQS transaction quotient produce fewer memory requests?",
-        fontsize=15,
+        "LAQS-selected versus Triton default: % change in quotient and counter values",
+        fontsize=15.5,
     )
-    figure.tight_layout()
+    assert image is not None
+    colorbar = figure.colorbar(
+        image,
+        ax=axes,
+        location="right",
+        pad=0.025,
+        shrink=0.91,
+        aspect=28,
+    )
+    colorbar.set_label(
+        "Reduction relative to Triton default (%)", fontsize=11.5
+    )
+    colorbar.ax.tick_params(labelsize=10, length=0)
+    colorbar.outline.set_visible(False)
+    for spine in colorbar.ax.spines.values():
+        spine.set_visible(False)
+
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")
     plt.close(figure)
+    return font_family
 
 
 def main() -> None:
@@ -215,18 +203,15 @@ def main() -> None:
     cache_dir.mkdir(exist_ok=True)
     os.environ.setdefault("MPLCONFIGDIR", str(cache_dir))
     report_path = args.report.resolve()
-    _report, pairs = load_pairs(report_path)
+    report = load_report(report_path)
     output_dir = (
         args.output_dir.resolve()
         if args.output_dir
         else report_path.with_suffix("").with_name(report_path.stem + "-plots")
     )
     matrix = output_dir / "locality-counter-reductions.pdf"
-    scatter = output_dir / "quotient-vs-memory-requests.pdf"
-    render_reduction_matrix(pairs, matrix)
-    render_prediction_scatter(pairs, scatter)
-    print(f"Wrote {matrix}")
-    print(f"Wrote {scatter}")
+    font_family = render_reduction_matrix(report, matrix)
+    print(f"Wrote {matrix} using {font_family}")
 
 
 if __name__ == "__main__":

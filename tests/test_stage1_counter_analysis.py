@@ -14,6 +14,7 @@ from stage1_counter_analysis import (
     COUNTER_FIELDS,
     aggregate_profiles,
     compare_summaries,
+    linear_fit,
     parse_counter_csv,
     rank_correlation,
 )
@@ -116,6 +117,13 @@ class Stage1CounterAnalysisTests(unittest.TestCase):
             rank_correlation((1, 1, 2, 3), (4, 4, 2, 1)), -1.0
         )
         self.assertIsNone(rank_correlation((1, 1), (1, 2)))
+
+    def test_linear_fit_has_free_intercept(self) -> None:
+        fit = linear_fit((1, 2, 3), (5, 7, 9))
+
+        self.assertAlmostEqual(fit["slope"], 2.0)
+        self.assertAlmostEqual(fit["intercept"], 3.0)
+        self.assertAlmostEqual(fit["r_squared"], 1.0)
 
 
 if __name__ == "__main__":

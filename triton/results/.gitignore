@@ -3,4 +3,6 @@ stage1-*-breadth-cases/
 stage1-kernel-temporal-*-cases/
 stage1-locality-counter-profiles/
 stage1-locality-counters-plots/
+stage1-layout-counter-scatter-profiles/
+stage1-quotient-level-counter-profiles/
 stage2-probe-processes/

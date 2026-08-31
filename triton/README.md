@@ -275,8 +275,8 @@ selections can be profiled into independent checkpoint namespaces by adding
 aggregate `--json` path.
 
 The aggregate JSON retains raw dispatch counters and writes a flat CSV beside
-it. Render the comparison matrix and quotient-versus-request scatter plots
-without a GPU:
+it. Render the paper-ready warm/cache-thrashed comparison heatmap without a
+GPU:
 
 ```bash
 .venv/bin/python triton/plot-stage1-locality-counters.py \
@@ -294,6 +294,71 @@ formation. TCP-to-TCC reads, L2 misses, and HBM bytes are progressively
 downstream and may stay flat when the new layout turns repeated line accesses
 into TCP hits. None of these reductions is expected to be proportional to
 whole-kernel runtime speedup.
+
+### Sweep quotient levels and persistent tile layouts
+
+Two resumable counter experiments test the quotient model directly. The first
+fixes one persistent tile, exhaustively enumerates its canonical grammar,
+deduplicates physical mappings, and retains the mapping with the fewest full
+address-expression runs at every distinct issue-quotient level. For GESUMMV's
+64x64 tile this checks all 924 canonical mappings and profiles six quotient
+levels. The default uses three independent warm-cache profiler launches per
+mapping, with 20 final target dispatches and cyclically rotated mapping order.
+
+Each profile contains the existing three gfx942 counter passes. The worker
+rejects a mapping unless its extracted execution LinearLayout and assembly load
+opcode counts equal the row-major reference and it compiles without spills.
+Run at most six profiles in each five-minute allocation and repeat the command
+until the report says `complete: true`:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-quotient-level-counters.py \
+  --case gesummv --tile-shape 64 64 --max-profiles 6
+```
+
+Then render the raw quotient/TCP relationship and Spearman correlation without
+a GPU. The completed GESUMMV measurements were identical across all three
+profiler launches at every quotient level, so their zero-height min--max ranges
+are omitted from the plot; this is worth stating in the figure caption.
+
+```bash
+.venv/bin/python triton/plot-stage1-quotient-level-counters.py \
+  triton/results/stage1-gesummv-quotient-level-counters.json
+```
+
+Submit complete replacement runs for all seven kernels on separate exclusive
+nodes with a longer, non-`pdebug` allocation:
+
+```bash
+bash triton/submit-stage1-quotient-level-counters.sh
+```
+
+The submission script requests one task and one GPU on each exclusive node,
+uses a 30-minute wall time, and passes `--rerun` so every kernel's existing
+panel, profiles, aggregate JSON, and CSV are replaced. Set
+`RELAY_QUOTIENT_COUNTER_WALL_TIME` to override the wall time.
+
+The second experiment uses every inner-tile hypothesis already declared by
+the selected kernel case. It retains one minimum-run representative per
+tile/quotient pair and deduplicates identical full mappings across tiles. The
+GESUMMV panel contains 27 mappings across 64x1 through 64x64 tiles. Its default
+is one isolated profiler launch per mapping; repeat this command until complete:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-layout-counter-scatter.py \
+  --case gesummv --max-profiles 6
+
+.venv/bin/python triton/plot-stage1-layout-counter-scatter.py \
+  triton/results/stage1-gesummv-layout-counter-scatter.json
+```
+
+Both runners accept any case in the seven-kernel suite. Use `--case` and, for
+the fixed-level experiment, a rank-matching `--tile-shape`; case-specific
+checkpoint and aggregate paths are selected automatically. `--metric` changes
+the scatter plot's hardware measure, and `--profile-launches 3` adds independent
+launch replication to the cross-tile experiment.
 
 ## Run the controlled Stage-2 probe
 
