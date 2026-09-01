@@ -72,6 +72,51 @@ uv uses copy mode by default in this script because its cache and the workspace
 may not support hardlinks across their mount points. Override this with
 `RELAY_TRITON_UV_LINK_MODE` if needed.
 
+## Install and run on Matrix
+
+Matrix uses an entirely separate CUDA installation under `triton/.venv-matrix`:
+
+```bash
+bash triton/install-matrix.sh
+srun -n1 -G1 -p pdebug -t 00:05:00 bash triton/run-baseline-matrix.sh
+```
+
+The installer creates the environment in
+`/usr/WS1/$USER/record-replay/relay/triton/.venv-matrix` and symlinks it into
+the repository. It also uses Matrix-only build, ccache, uv-cache, and runtime-cache
+paths. Because an editable Triton build places its platform-specific extension
+in its source tree, the installer makes a commit-pinned source clone in the
+same `/usr/WS1` directory. This prevents the CUDA build from replacing the
+ROCm extension used by `triton/.venv` on Tuolumne.
+
+The defaults are the `cuda/13.1.1` module and the PyTorch `cu130` nightly
+channel. Override them with `RELAY_TRITON_MATRIX_CUDA_MODULE` and
+`RELAY_TRITON_MATRIX_TORCH_INDEX`. Other Matrix-specific locations and build
+settings use the `RELAY_TRITON_MATRIX_*` variables documented in
+`install-matrix.sh`. The installer enables uv's native TLS mode by default so
+package downloads use Matrix's system certificate store; set
+`RELAY_TRITON_MATRIX_UV_NATIVE_TLS=false` to override it.
+
+### Profile Stage 1 quotient levels on Matrix
+
+Submit one five-minute, one-H100 Slurm job for each targeted Stage 1 kernel:
+
+```bash
+bash triton/submit-stage1-quotient-level-counters-matrix.sh
+```
+
+The Matrix jobs use Nsight Compute 2025.3 and write separate `*-matrix.json`,
+`*-matrix.csv`, profile, and log paths, leaving the Tuolumne/rocprof results
+unchanged. On Matrix's H100, `memory_l1_tag_requests_global` is not directly
+collectable. The jobs therefore collect the requested fallback
+`l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum`, the total number of 32-byte
+L1TEX sectors requested by global loads. Nsight Compute cache flushing is
+disabled so the worker's explicit warmup controls the warm-cache experiment.
+
+Jobs are resumable from completed per-profile checkpoints. Run the submission
+command again if a case reaches the five-minute limit; already completed
+profiles are retained.
+
 ## Validate the induced RELAY hypergraph
 
 The stage-0 probe checks that a compiled one-wave Triton tile load and RELAY's

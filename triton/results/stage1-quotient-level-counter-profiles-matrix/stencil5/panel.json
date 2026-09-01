@@ -1,0 +1,685 @@
+{
+  "artifacts": {
+    "worker_json": "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/stencil5/worker.json"
+  },
+  "command": [
+    "/g/g16/dnicho/record-replay/relay/triton/.venv-matrix/bin/python",
+    "/g/g16/dnicho/record-replay/relay/triton/run-stage1-kernel-case.py",
+    "--case",
+    "stencil5",
+    "--transaction-bytes",
+    "128",
+    "--candidates",
+    "8",
+    "--samples",
+    "1",
+    "--iterations",
+    "1",
+    "--warmup",
+    "1",
+    "--temporal-mode",
+    "issue",
+    "--counter-panel",
+    "fixed_tile_levels",
+    "--panel-tile-shape",
+    "64",
+    "64",
+    "--json",
+    "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/stencil5/worker.json",
+    "--quiet"
+  ],
+  "configuration": {
+    "candidate_panel_schema": 1,
+    "case": "stencil5",
+    "panel_mode": "fixed_tile_levels",
+    "panel_tile_shape": [
+      64,
+      64
+    ],
+    "requested_retained_candidates": 8,
+    "temporal_mode": "issue",
+    "transaction_bytes": 128
+  },
+  "correct": true,
+  "execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [
+        [
+          1
+        ]
+      ],
+      "warp": []
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        2
+      ],
+      "threadsPerWarp": [
+        32
+      ],
+      "warpsPerCTA": [
+        1
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 32,
+      "register": 2,
+      "warp": 1
+    },
+    "output_shape": [
+      64
+    ]
+  },
+  "experiment": "triton_stage1_quotient_level_panel_nvidia",
+  "kernel": "stencil5",
+  "kernel_name": "stencil5_kernel",
+  "operand_shape": [
+    512,
+    512
+  ],
+  "panel": {
+    "candidates": [
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          16384,
+          32768,
+          65536,
+          131072,
+          64,
+          128,
+          256
+        ],
+        "address_expression_runs": 4,
+        "candidate_id": "counter_candidate_3792efd6b063",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "inner_mode_order": [
+          "column",
+          "column",
+          "column",
+          "column",
+          "column",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "cccccrrrrrrc",
+        "inner_word_runs": 3,
+        "layout": "counter_64x64_cccccrrrrrrc",
+        "mapping_id": "mapping_8663479fe626",
+        "panel_rank": 1,
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "word": "columncolumncolumncolumncolumnrowrowrowrowrowrowcolumncolumncolumncolumnrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          64,
+          128,
+          256
+        ],
+        "address_expression_runs": 4,
+        "candidate_id": "counter_candidate_31db106ce32b",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "column",
+          "column",
+          "column",
+          "column",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "ccccrrrrrrcc",
+        "inner_word_runs": 3,
+        "layout": "counter_64x64_ccccrrrrrrcc",
+        "mapping_id": "mapping_bdacdc868999",
+        "panel_rank": 2,
+        "quotient_rank": 2,
+        "quotient_score": 171008.0,
+        "word": "columncolumncolumncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumnrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          64,
+          128,
+          256
+        ],
+        "address_expression_runs": 4,
+        "candidate_id": "counter_candidate_141d41276044",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "column",
+          "column",
+          "column",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "cccrrrrrrccc",
+        "inner_word_runs": 3,
+        "layout": "counter_64x64_cccrrrrrrccc",
+        "mapping_id": "mapping_c7ede7efc31c",
+        "panel_rank": 3,
+        "quotient_rank": 3,
+        "quotient_score": 334848.0,
+        "word": "columncolumncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumnrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          64,
+          128,
+          256
+        ],
+        "address_expression_runs": 4,
+        "candidate_id": "counter_candidate_1df1486b4e94",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "column",
+          "column",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "ccrrrrrrcccc",
+        "inner_word_runs": 3,
+        "layout": "counter_64x64_ccrrrrrrcccc",
+        "mapping_id": "mapping_5659330e97a2",
+        "panel_rank": 4,
+        "quotient_rank": 4,
+        "quotient_score": 662528.0,
+        "word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumnrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          64,
+          128,
+          256
+        ],
+        "address_expression_runs": 4,
+        "candidate_id": "counter_candidate_fab639bf50a6",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "column",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column",
+          "column",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "crrrrrrccccc",
+        "inner_word_runs": 3,
+        "layout": "counter_64x64_crrrrrrccccc",
+        "mapping_id": "mapping_e5a497d4064a",
+        "panel_rank": 5,
+        "quotient_rank": 5,
+        "quotient_score": 1309696.0,
+        "word": "columnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          64,
+          128,
+          256
+        ],
+        "address_expression_runs": 3,
+        "candidate_id": "counter_candidate_a8c6d2cfd80e",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column",
+          "column",
+          "column",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "rrrrrrcccccc",
+        "inner_word_runs": 2,
+        "layout": "counter_64x64_rrrrrrcccccc",
+        "mapping_id": "mapping_f55838613db2",
+        "panel_rank": 6,
+        "quotient_rank": 6,
+        "quotient_score": 1310720.0,
+        "word": "rowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrow",
+        "xor_count": 0
+      }
+    ],
+    "enumerated_word_count": 924,
+    "fixed_outer_order": [
+      "column",
+      "row"
+    ],
+    "grouping": "quotient",
+    "mode": "fixed_tile_levels",
+    "objective": "issue_only",
+    "outer_layout": "row_major_tiles",
+    "quotient_levels": [
+      89088.0,
+      171008.0,
+      334848.0,
+      662528.0,
+      1309696.0,
+      1310720.0
+    ],
+    "representative_count": 6,
+    "selection": "minimum full address-expression runs, then stable canonical word",
+    "tile_grammars": [
+      {
+        "canonical_word_count": 924,
+        "quotient_levels": [
+          89088.0,
+          171008.0,
+          334848.0,
+          662528.0,
+          1309696.0,
+          1310720.0
+        ],
+        "tile_exponents": [
+          6,
+          6
+        ],
+        "tile_shape": [
+          64,
+          64
+        ]
+      }
+    ],
+    "unique_mapping_count": 924
+  },
+  "process": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "pid": 1411450,
+    "torch_version": "2.15.0.dev20260831+cu130",
+    "triton_version": "3.8.0+gitb1233aa3"
+  },
+  "reference_layout": {
+    "a_rows": [
+      512,
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536,
+      131072,
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256
+    ],
+    "candidate_id": "candidate_b5bcb875fed4",
+    "compiled_codegen": {
+      "assembly_bytes": 66303,
+      "assembly_format": "ptx",
+      "assembly_instruction_count": 1232,
+      "binary_bytes": 64584,
+      "binary_format": "cubin",
+      "branch_instruction_count": 0,
+      "ir": {
+        "llir": {
+          "bytes": 52519,
+          "lines": 681
+        },
+        "source": {
+          "bytes": 65958,
+          "lines": 933
+        },
+        "ttgir": {
+          "bytes": 136979,
+          "lines": 1515
+        },
+        "ttir": {
+          "bytes": 123827,
+          "lines": 1516
+        }
+      },
+      "load_instruction_count": 0,
+      "n_max_threads": 1024,
+      "n_regs": 64,
+      "n_spills": 0,
+      "opcode_counts": {
+        "add.f32": 8,
+        "add.s32": 5,
+        "add.s64": 3,
+        "and.b32": 164,
+        "bfe.u32": 12,
+        "ld.global.b32": 10,
+        "mad.wide.s32": 1,
+        "mad.wide.u32": 11,
+        "max.u32": 2,
+        "min.u32": 2,
+        "mov.u32": 12,
+        "or.b32": 436,
+        "ret": 1,
+        "shl.b32": 84,
+        "shr.u32": 398,
+        "st.global.v2.b32": 1,
+        "xor.b32": 82
+      },
+      "shared_bytes": 0,
+      "store_instruction_count": 0,
+      "xor_instruction_count": 82
+    },
+    "exact": true,
+    "fixed_outer_order": [
+      "column",
+      "row"
+    ],
+    "flag_id": "flag_fb3ba776fa6e",
+    "grammar": "canonical",
+    "inner_tile_shape": [
+      512,
+      512
+    ],
+    "inner_word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+    "layout": "row_major",
+    "mapping_id": "mapping_0442430c2716",
+    "note": "standard control",
+    "packing_bound": 40960.0,
+    "quotient_components": {
+      "issue": 89088.0,
+      "temporal": 800768.0
+    },
+    "quotient_rank": 1,
+    "quotient_score": 89088.0,
+    "runs": 2,
+    "runtime_ms": 0.023552000522613525,
+    "solver_rank": 2,
+    "timing": {
+      "mean_ms": 0.023552000522613525,
+      "median_ms": 0.023552000522613525,
+      "min_ms": 0.023552000522613525,
+      "samples_ms": [
+        0.023552000522613525
+      ],
+      "stdev_ms": 0.0
+    },
+    "word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+    "xor_count": 0
+  },
+  "target_operand": "field"
+}

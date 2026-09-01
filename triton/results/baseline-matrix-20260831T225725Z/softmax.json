@@ -1,0 +1,21 @@
+{
+    "tritonbench_softmax_fwd[x_(4096, 1024)-naive_softmax]_latency": "0.015168000012636185",
+    "tritonbench_softmax_fwd[x_(4096, 1024)-naive_softmax]_gbps": 1106.0928260827536,
+    "tritonbench_softmax_fwd[x_(4096, 1024)-triton_softmax]_latency": "0.011071999557316303",
+    "tritonbench_softmax_fwd[x_(4096, 1024)-triton_softmax]_speedup": 1.3699422524464673,
+    "tritonbench_softmax_fwd[x_(4096, 1024)-triton_softmax]_gbps": 1515.283297578686,
+    "tritonbench_softmax_fwd[x_(4096, 1024)-triton_softmax]_accuracy": 1.0,
+    "tritonbench_softmax_fwd[x_average-naive_softmax]_latency": null,
+    "tritonbench_softmax_fwd[x_average-naive_softmax]_gbps": 1106.0928260827536,
+    "tritonbench_softmax_fwd[x_average-triton_softmax]_latency": null,
+    "tritonbench_softmax_fwd[x_average-triton_softmax]_speedup": 1.3699422524464673,
+    "tritonbench_softmax_fwd[x_average-triton_softmax]_gbps": 1515.283297578686,
+    "tritonbench_softmax_fwd[x_average-triton_softmax]_accuracy": 1.0,
+    "tritonbench_softmax_fwd[naive_softmax]-latency-avg": 0.015168000012636185,
+    "tritonbench_softmax_fwd[naive_softmax]-gbps-avg": 1106.0928260827536,
+    "tritonbench_softmax_fwd[triton_softmax]-latency-avg": 0.011071999557316303,
+    "tritonbench_softmax_fwd[triton_softmax]-speedup-avg": 1.3699422524464673,
+    "tritonbench_softmax_fwd[triton_softmax]-gbps-avg": 1515.283297578686,
+    "tritonbench_softmax_fwd[triton_softmax]-accuracy-avg": 1.0,
+    "tritonbench_softmax_fwd-pass": 1
+}

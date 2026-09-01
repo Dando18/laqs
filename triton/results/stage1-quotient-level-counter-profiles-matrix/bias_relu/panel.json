@@ -1,0 +1,297 @@
+{
+  "artifacts": {
+    "worker_json": "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/bias_relu/worker.json"
+  },
+  "command": [
+    "/g/g16/dnicho/record-replay/relay/triton/.venv-matrix/bin/python",
+    "/g/g16/dnicho/record-replay/relay/triton/run-stage1-kernel-case.py",
+    "--case",
+    "bias_relu",
+    "--transaction-bytes",
+    "128",
+    "--candidates",
+    "8",
+    "--samples",
+    "1",
+    "--iterations",
+    "1",
+    "--warmup",
+    "1",
+    "--temporal-mode",
+    "issue",
+    "--counter-panel",
+    "fixed_tile_levels",
+    "--panel-tile-shape",
+    "256",
+    "--json",
+    "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/bias_relu/worker.json",
+    "--quiet"
+  ],
+  "configuration": {
+    "candidate_panel_schema": 1,
+    "case": "bias_relu",
+    "panel_mode": "fixed_tile_levels",
+    "panel_tile_shape": [
+      256
+    ],
+    "requested_retained_candidates": 8,
+    "temporal_mode": "issue",
+    "transaction_bytes": 128
+  },
+  "correct": true,
+  "execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [
+        [
+          1
+        ]
+      ],
+      "warp": [
+        [
+          64
+        ],
+        [
+          128
+        ]
+      ]
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        2
+      ],
+      "threadsPerWarp": [
+        32
+      ],
+      "warpsPerCTA": [
+        4
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 32,
+      "register": 2,
+      "warp": 4
+    },
+    "output_shape": [
+      256
+    ]
+  },
+  "experiment": "triton_stage1_quotient_level_panel_nvidia",
+  "kernel": "bias_relu",
+  "kernel_name": "bias_relu_kernel",
+  "operand_shape": [
+    1024
+  ],
+  "panel": {
+    "candidates": [
+      {
+        "a_rows": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "address_expression_runs": 1,
+        "candidate_id": "counter_candidate_d6aa0044edb3",
+        "fixed_outer_order": [
+          "feature"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "inner_mode_order": [
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature",
+          "feature"
+        ],
+        "inner_tile_shape": [
+          256
+        ],
+        "inner_word": "ffffffff",
+        "inner_word_runs": 1,
+        "layout": "counter_256_ffffffff",
+        "mapping_id": "mapping_0899bb1953bc",
+        "panel_rank": 1,
+        "quotient_rank": 1,
+        "quotient_score": 65536.0,
+        "word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+        "xor_count": 0
+      }
+    ],
+    "enumerated_word_count": 1,
+    "fixed_outer_order": [
+      "feature"
+    ],
+    "grouping": "quotient",
+    "mode": "fixed_tile_levels",
+    "objective": "issue_only",
+    "outer_layout": "row_major_tiles",
+    "quotient_levels": [
+      65536.0
+    ],
+    "representative_count": 1,
+    "selection": "minimum full address-expression runs, then stable canonical word",
+    "tile_grammars": [
+      {
+        "canonical_word_count": 1,
+        "quotient_levels": [
+          65536.0
+        ],
+        "tile_exponents": [
+          8
+        ],
+        "tile_shape": [
+          256
+        ]
+      }
+    ],
+    "unique_mapping_count": 1
+  },
+  "process": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "pid": 1395399,
+    "torch_version": "2.15.0.dev20260831+cu130",
+    "triton_version": "3.8.0+gitb1233aa3"
+  },
+  "reference_layout": {
+    "a_rows": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512
+    ],
+    "candidate_id": "candidate_256a94c2d4b6",
+    "compiled_codegen": {
+      "assembly_bytes": 10787,
+      "assembly_format": "ptx",
+      "assembly_instruction_count": 48,
+      "binary_bytes": 7632,
+      "binary_format": "cubin",
+      "branch_instruction_count": 0,
+      "ir": {
+        "llir": {
+          "bytes": 6757,
+          "lines": 108
+        },
+        "source": {
+          "bytes": 34791,
+          "lines": 495
+        },
+        "ttgir": {
+          "bytes": 20371,
+          "lines": 248
+        },
+        "ttir": {
+          "bytes": 19129,
+          "lines": 248
+        }
+      },
+      "load_instruction_count": 0,
+      "n_max_threads": 1024,
+      "n_regs": 14,
+      "n_spills": 0,
+      "opcode_counts": {
+        "add.f32": 2,
+        "add.s64": 3,
+        "and.b32": 5,
+        "bfe.u32": 1,
+        "ld.global.b32": 2,
+        "ld.global.v2.b32": 1,
+        "mad.wide.u32": 1,
+        "max.f32": 2,
+        "mov.u32": 6,
+        "mul.wide.s32": 1,
+        "or.b32": 9,
+        "ret": 1,
+        "setp.lt.s32": 1,
+        "shl.b32": 4,
+        "shr.u32": 7,
+        "xor.b32": 2
+      },
+      "shared_bytes": 0,
+      "store_instruction_count": 0,
+      "xor_instruction_count": 2
+    },
+    "exact": true,
+    "fixed_outer_order": [
+      "feature"
+    ],
+    "flag_id": "flag_2667d16399d0",
+    "grammar": "canonical",
+    "inner_tile_shape": [
+      1024
+    ],
+    "inner_word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+    "layout": "row_major",
+    "mapping_id": "mapping_0899bb1953bc",
+    "note": "standard control",
+    "packing_bound": 32768.0,
+    "quotient_components": {
+      "issue": 65536.0,
+      "temporal": 0.0
+    },
+    "quotient_rank": 1,
+    "quotient_score": 65536.0,
+    "runs": 1,
+    "runtime_ms": 0.01849599927663803,
+    "solver_rank": 5,
+    "timing": {
+      "mean_ms": 0.01849599927663803,
+      "median_ms": 0.01849599927663803,
+      "min_ms": 0.01849599927663803,
+      "samples_ms": [
+        0.01849599927663803
+      ],
+      "stdev_ms": 0.0
+    },
+    "word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+    "xor_count": 0
+  },
+  "target_operand": "bias"
+}

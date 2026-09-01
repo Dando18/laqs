@@ -10,6 +10,82 @@ import os
 from pathlib import Path
 import tempfile
 
+from stage1_counter_analysis import rank_correlation
+
+
+METRICS = {
+    "TCP_TOTAL_CACHE_ACCESSES_sum": {
+        "field": "l1_cache_line_accesses",
+        "title": "First-level Cache Accesses",
+        "raw_label": "First-Level Cache Accesses",
+        "normalized_label": "First-level cache accesses\nper issue cohort",
+        "suffix": "tcp",
+    },
+    "TCP_TCC_READ_REQ_sum": {
+        "field": "l1_to_l2_read_requests",
+        "title": "L1-to-L2 Read Requests",
+        "raw_label": "L1-to-L2 Read Requests",
+        "normalized_label": "L1-to-L2 read requests\nper issue cohort",
+        "suffix": "tcp-tcc-read-req",
+    },
+    "TCC_REQ_sum": {
+        "field": "l2_tag_requests",
+        "title": "L2 Tag Requests",
+        "raw_label": "L2 Tag Requests",
+        "normalized_label": "L2 tag requests\nper issue cohort",
+        "suffix": "tcc-req",
+    },
+}
+
+
+def report_architecture(report: dict[str, object]) -> dict[str, str]:
+    configuration = report.get("configuration", {})
+    backend = configuration.get("profiler_backend")
+    if backend == "nvidia_ncu":
+        return {"display": "NVIDIA H100", "slug": "h100"}
+    if backend in (None, "amd_rocprof") and configuration.get("rocprof"):
+        return {"display": "AMD MI300A", "slug": "mi300a"}
+    raise ValueError("report does not identify an H100 or MI300A profiler")
+
+
+def report_metric_spec(
+    report: dict[str, object], metric: str
+) -> dict[str, str]:
+    architecture = report_architecture(report)
+    if architecture["slug"] != "h100":
+        return METRICS[metric]
+    if metric != "TCP_TOTAL_CACHE_ACCESSES_sum":
+        raise ValueError(f"H100 report does not contain {metric}")
+    return {
+        **METRICS[metric],
+        "title": "Global-load L1TEX Sectors",
+        "raw_label": "Global-load L1TEX Sectors",
+        "normalized_label": "Global-load L1TEX sectors\nper issue cohort",
+        "suffix": "l1tex-global-load-sectors",
+    }
+
+
+def default_output_path(
+    report_path: Path,
+    report: dict[str, object],
+    *,
+    metric: str,
+    normalize_per_issue: bool,
+) -> Path:
+    architecture = report_architecture(report)
+    stem = report_path.stem
+    for existing_tag in ("-matrix", "-h100", "-mi300a"):
+        if stem.endswith(existing_tag):
+            stem = stem[: -len(existing_tag)]
+            break
+    suffixes = [
+        architecture["slug"],
+        report_metric_spec(report, metric)["suffix"],
+    ]
+    if normalize_per_issue:
+        suffixes.append("normalized")
+    return report_path.with_name(f"{stem}-{'-'.join(suffixes)}.pdf")
+
 
 def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
@@ -17,12 +93,18 @@ def parse_arguments(argv=None):
     parser.add_argument(
         "--output",
         type=Path,
-        help="output PDF (default: REPORT stem plus -tcp.pdf)",
+        help="output PDF (default includes GPU, metric, and normalization)",
     )
     parser.add_argument(
         "--normalize-per-issue",
         action="store_true",
         help="divide cache accesses by the number of dynamic issue cohorts",
+    )
+    parser.add_argument(
+        "--metric",
+        choices=METRICS,
+        default="TCP_TOTAL_CACHE_ACCESSES_sum",
+        help="hardware counter to plot",
     )
     return parser.parse_args(argv)
 
@@ -116,10 +198,19 @@ def _saturated_suffix(values):
     return start, level
 
 
+def _compact_number(value: float) -> str:
+    if abs(value) >= 1_000_000:
+        return f"{value / 1_000_000:.3g}M"
+    if abs(value) >= 1_000:
+        return f"{value / 1_000:.3g}k"
+    return f"{value:g}"
+
+
 def render(
     report: dict[str, object],
     output: Path,
     *,
+    metric: str = "TCP_TOTAL_CACHE_ACCESSES_sum",
     normalize_per_issue: bool = False,
 ) -> str:
     import matplotlib.pyplot as plt
@@ -127,6 +218,7 @@ def render(
     import numpy as np
 
     font = _configure_font(plt)
+    architecture = report_architecture(report)
     candidates = sorted(
         (candidate for candidate in report["candidates"] if candidate["complete"]),
         key=lambda candidate: candidate["quotient_score"],
@@ -146,14 +238,22 @@ def render(
     else:
         cardinalities, dynamic_issue_cohorts = issue_axis
         x_label = "Quotient Score: 128-B regions per issue"
+    metric_spec = report_metric_spec(report, metric)
+    metric_field = metric_spec["field"]
     x = np.arange(len(candidates), dtype=float)
     launch_values = [
         candidate["counters"]["steady_state"][
-            "l1_cache_line_accesses_by_launch"
+            f"{metric_field}_by_launch"
         ]
         for candidate in candidates
     ]
     y = np.asarray(
+        [
+            candidate["counters"]["steady_state"][metric_field]
+            for candidate in candidates
+        ]
+    )
+    tcp_y = np.asarray(
         [
             candidate["counters"]["steady_state"]["l1_cache_line_accesses"]
             for candidate in candidates
@@ -165,9 +265,15 @@ def render(
         y /= dynamic_issue_cohorts
         y_min /= dynamic_issue_cohorts
         y_max /= dynamic_issue_cohorts
-    rho = report["statistics"]["tie_aware_spearman"]
+    rho = rank_correlation(cardinalities, y.tolist())
+    saturation = _saturated_suffix(tcp_y)
+    pre_saturation_end = saturation[0] if saturation is not None else len(y)
+    pre_saturation_rho = rank_correlation(
+        cardinalities[:pre_saturation_end],
+        y[:pre_saturation_end].tolist(),
+    )
 
-    figure, axis = plt.subplots(figsize=(8.0, 5.4), layout="constrained")
+    figure, axis = plt.subplots(figsize=(4.4, 4.0), layout="constrained")
     ranges = y_max - y_min
     if np.any(ranges > 0.0):
         axis.errorbar(
@@ -200,15 +306,20 @@ def render(
     axis.set_xlim(-0.5, len(x) - 0.5)
     axis.set_ylim(0.0, y_upper)
     axis.set_xticks(x)
-    axis.set_xticklabels([f"{value:g}" for value in cardinalities])
+    axis.set_xticklabels(
+        [
+            f"{value:g}" if issue_axis is not None else _compact_number(value)
+            for value in cardinalities
+        ]
+    )
     axis.set_yticks(y_ticks)
     axis.yaxis.set_major_formatter(FuncFormatter(lambda value, _pos: f"{value:,.0f}"))
     axis.set_xlabel(x_label, fontsize=13)
     axis.set_ylabel(
         (
-            "First-level cache accesses per issue cohort"
+            metric_spec["normalized_label"]
             if normalize_per_issue
-            else "Median First-Level Cache Accesses per Kernel"
+            else metric_spec["raw_label"]
         ),
         fontsize=13,
     )
@@ -218,25 +329,38 @@ def render(
             if issue_axis is not None
             else "Quotient Score"
         )
-        + " versus First-level Cache Accesses "
-        f"for {report['case'].upper()} Kernel",
-        fontsize=14,
-        pad=10,
+        + f" versus {metric_spec['title']}\n"
+        f"for {report['case'].replace('_', ' ').upper()} Kernel "
+        f"on {architecture['display']}",
+        fontsize=12.5,
+        pad=8,
     )
     rho_text = "n/a" if rho is None else f"{rho:.3f}"
+    pre_saturation_rho_text = (
+        "n/a"
+        if pre_saturation_rho is None
+        else f"{pre_saturation_rho:.3f}"
+    )
     axis.text(
         0.03,
-        0.97,
-        f"Spearman $\\rho$ = {rho_text}",
+        0.03,
+        f"Spearman $\\rho$ = {rho_text}\n"
+        "Pre-saturation Spearman "
+        f"$\\rho$ = {pre_saturation_rho_text}",
         transform=axis.transAxes,
         ha="left",
-        va="top",
+        va="bottom",
         fontsize=11,
         bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "alpha": 0.9},
+        zorder=4,
     )
-    saturation = _saturated_suffix(y) if issue_axis is not None else None
-    if saturation is not None:
-        saturation_start, saturation_level = saturation
+    if (
+        saturation is not None
+        and issue_axis is not None
+        and metric == "TCP_TOTAL_CACHE_ACCESSES_sum"
+    ):
+        saturation_start, _tcp_saturation_level = saturation
+        saturation_level = float(y[-1])
         axis.axhline(
             saturation_level,
             color="#666666",
@@ -245,14 +369,14 @@ def render(
             zorder=1,
         )
         axis.annotate(
-            "Fully uncoalesced: one first-level access per lane\n"
+            "Fully uncoalesced: one access per lane\n"
             "for both matrix loads",
             xy=(float(x[saturation_start]), saturation_level),
             xycoords="data",
-            xytext=(0.98, 0.96),
+            xytext=(0.98, 0.88),
             textcoords="axes fraction",
             ha="right",
-            va="top",
+            va="bottom",
             fontsize=10,
             arrowprops={
                 "arrowstyle": "-",
@@ -261,11 +385,8 @@ def render(
             },
         )
     axis.grid(axis="both", color="#dddddd", linewidth=0.7, zorder=0)
-    axis.tick_params(labelsize=11)
+    axis.tick_params(labelsize=12)
     axis.spines[["top", "right"]].set_visible(False)
-    if np.any(ranges > 0.0):
-        axis.legend(frameon=False, loc="lower right", fontsize=10.5)
-
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")
     plt.close(figure)
@@ -282,11 +403,17 @@ def main() -> None:
     output = (
         args.output.resolve()
         if args.output
-        else report_path.with_name(report_path.stem + "-tcp.pdf")
+        else default_output_path(
+            report_path,
+            report,
+            metric=args.metric,
+            normalize_per_issue=args.normalize_per_issue,
+        )
     )
     font = render(
         report,
         output,
+        metric=args.metric,
         normalize_per_issue=args.normalize_per_issue,
     )
     print(f"Wrote {output} using {font}")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 import sys
 import unittest
 
@@ -10,6 +11,7 @@ sys.path.insert(0, str(TRITON_EXPERIMENTS))
 
 from relay import Hyperedge, MatrixSpec, ObjectiveComponent
 from stage1_counter_candidates import canonical_counter_panel
+from stage1_counter_sweep import _gesummv_theory
 
 
 class Stage1CounterCandidateTests(unittest.TestCase):
@@ -60,6 +62,86 @@ class Stage1CounterCandidateTests(unittest.TestCase):
                 candidate["quotient_score"],
                 16_384 * (1 << (6 - low_row_bits)),
             )
+
+    def test_gesummv_theory_uses_execution_layout_width(self) -> None:
+        def panel_record(*, h100: bool):
+            words = [
+                "rrrrrrcccccc",
+                "crrrrrrccccc",
+                "ccrrrrrrcccc",
+                "cccrrrrrrccc",
+                "ccccrrrrrrcc",
+            ]
+            lane_bases = [[value] for value in (2, 4, 8, 16, 32)]
+            register_bases = [[1]]
+            dynamic_cohorts = 32_768
+            if not h100:
+                words.append("cccccrrrrrrc")
+                lane_bases = [[value] for value in (1, 2, 4, 8, 16, 32)]
+                register_bases = []
+                dynamic_cohorts = 16_384
+            candidates = []
+            for index, word in enumerate(words, 1):
+                row_bit = 0
+                column_bit = 10
+                physical_rows = []
+                for mode in word:
+                    if mode == "r":
+                        physical_rows.append(1 << row_bit)
+                        row_bit += 1
+                    else:
+                        physical_rows.append(1 << column_bit)
+                        column_bit += 1
+                candidates.append(
+                    {
+                        "candidate_id": f"candidate_{index}",
+                        "a_rows": physical_rows,
+                        "quotient_score": dynamic_cohorts * (1 << index),
+                    }
+                )
+            return {
+                "operand_shape": [1024, 1024],
+                "execution_layout": {
+                    "bases": {
+                        "lane": lane_bases,
+                        "register": register_bases,
+                    },
+                    "input_sizes": {
+                        "lane": 32 if h100 else 64,
+                        "register": 2 if h100 else 1,
+                    },
+                    "output_shape": [64],
+                },
+                "panel": {
+                    "enumerated_word_count": 924,
+                    "unique_mapping_count": 924,
+                    "quotient_levels": [
+                        candidate["quotient_score"]
+                        for candidate in candidates
+                    ],
+                    "candidates": candidates,
+                },
+            }
+
+        args = SimpleNamespace(
+            case="gesummv",
+            tile_shape=(64, 64),
+            transaction_bytes=128,
+        )
+        mi300a = _gesummv_theory(
+            args, panel_record(h100=False), "fixed_tile_levels"
+        )
+        h100 = _gesummv_theory(
+            args, panel_record(h100=True), "fixed_tile_levels"
+        )
+
+        self.assertEqual(mi300a["row_issue_dimension"], 6)
+        self.assertEqual(mi300a["register_issue_count"], 1)
+        self.assertEqual(mi300a["expected_quotient_scores"][0], 32_768)
+        self.assertEqual(h100["row_issue_dimension"], 5)
+        self.assertEqual(h100["register_issue_count"], 2)
+        self.assertEqual(h100["expected_quotient_scores"][0], 65_536)
+        self.assertEqual(h100["expected_quotient_scores"][-1], 1_048_576)
 
     def test_tile_panel_retains_one_representative_per_tile_level(self) -> None:
         panel = canonical_counter_panel(

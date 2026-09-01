@@ -145,6 +145,7 @@ def prepare_panel(
     panel_mode: str,
     checkpoint: Path,
     experiment: str,
+    worker_environment: dict[str, str] | None = None,
 ) -> dict[str, object]:
     configuration = _panel_configuration(args, panel_mode)
     current = _current_record(
@@ -167,7 +168,11 @@ def prepare_panel(
         command,
         check=True,
         cwd=Path(__file__).resolve().parents[1],
-        env=_worker_environment(),
+        env=(
+            _worker_environment()
+            if worker_environment is None
+            else worker_environment
+        ),
     )
     worker = json.loads(worker_json.read_text(encoding="utf-8"))
     panel = worker["ranking"]["counter_panel"]
@@ -374,33 +379,71 @@ def _gesummv_theory(
         return None
     panel = panel_record["panel"]
     shape = panel_record["operand_shape"]
-    expected_scores = [32768, 65536, 131072, 262144, 524288, 1048576]
     if panel["enumerated_word_count"] != 924:
         raise ValueError("GESUMMV 64x64 grammar did not enumerate 924 words")
     if panel["unique_mapping_count"] != 924:
         raise ValueError("GESUMMV 64x64 grammar did not yield 924 mappings")
-    if panel["quotient_levels"] != expected_scores:
-        raise ValueError("GESUMMV quotient levels disagree with the model")
-    dynamic_cohorts = (int(shape[0]) // 64) * int(shape[1])
+
+    execution = panel_record["execution_layout"]
+    output_shape = execution["output_shape"]
+    if len(output_shape) != 1 or int(output_shape[0]) != 64:
+        raise ValueError("GESUMMV theory requires a 64-element output layout")
+    lane_bits = []
+    for basis in execution["bases"]["lane"]:
+        if len(basis) != 1:
+            raise ValueError("GESUMMV lane basis must be one-dimensional")
+        value = int(basis[0])
+        if value <= 0 or value & (value - 1):
+            raise ValueError("GESUMMV lane basis must contain powers of two")
+        lane_bits.append(value.bit_length() - 1)
+    lane_width = int(execution["input_sizes"]["lane"])
+    register_width = int(execution["input_sizes"]["register"])
+    if lane_width != 1 << len(lane_bits):
+        raise ValueError("GESUMMV lane basis disagrees with the lane width")
+    if lane_width * register_width != 64:
+        raise ValueError("GESUMMV lane/register layout does not cover 64 outputs")
+    if int(shape[0]) % 64:
+        raise ValueError("GESUMMV row count must be divisible by 64")
+
+    low_address_dimension = 5
+    dynamic_cohorts = (
+        (int(shape[0]) // 64) * int(shape[1]) * register_width
+    )
     candidates = []
+    predicted_scores = []
     for candidate in panel["candidates"]:
-        low_modes = candidate["inner_mode_order"][:5]
-        row_bits = low_modes.count("row")
-        predicted = dynamic_cohorts * (1 << (6 - row_bits))
+        physical_rows = [int(value) for value in candidate["a_rows"]]
+        low_rows = physical_rows[:low_address_dimension]
+        low_lane_bits = sum(
+            any(row & (1 << bit) for row in low_rows)
+            for bit in lane_bits
+        )
+        cardinality = 1 << (len(lane_bits) - low_lane_bits)
+        predicted = dynamic_cohorts * cardinality
         if float(predicted) != float(candidate["quotient_score"]):
-            raise ValueError("GESUMMV candidate violates q_a = 2^(6-a)")
+            raise ValueError(
+                "GESUMMV candidate quotient disagrees with its execution layout"
+            )
+        predicted_scores.append(predicted)
         candidates.append(
             {
                 "candidate_id": candidate["candidate_id"],
-                "low_physical_row_bits": row_bits,
-                "issue_quotient_cardinality": 1 << (6 - row_bits),
+                "low_physical_row_bits": low_lane_bits,
+                "issue_quotient_cardinality": cardinality,
                 "dynamic_issue_cohorts": dynamic_cohorts,
                 "predicted_quotient_score": predicted,
             }
         )
+    expected_scores = sorted(set(predicted_scores))
+    if [float(value) for value in panel["quotient_levels"]] != [
+        float(value) for value in expected_scores
+    ]:
+        raise ValueError("GESUMMV quotient levels disagree with the model")
     return {
-        "low_address_dimension": 5,
-        "row_issue_dimension": 6,
+        "low_address_dimension": low_address_dimension,
+        "row_issue_dimension": len(lane_bits),
+        "lane_row_bits": lane_bits,
+        "register_issue_count": register_width,
         "dynamic_issue_cohorts": dynamic_cohorts,
         "expected_quotient_scores": expected_scores,
         "candidates": candidates,

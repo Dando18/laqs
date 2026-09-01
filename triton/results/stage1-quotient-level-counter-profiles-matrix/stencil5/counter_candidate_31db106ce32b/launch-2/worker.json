@@ -1,0 +1,1566 @@
+{
+  "correct": true,
+  "execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [
+        [
+          1
+        ]
+      ],
+      "warp": []
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        2
+      ],
+      "threadsPerWarp": [
+        32
+      ],
+      "warpsPerCTA": [
+        1
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 32,
+      "register": 2,
+      "warp": 1
+    },
+    "output_shape": [
+      64
+    ]
+  },
+  "experiment": "triton_stage1_kernel_breadth_case",
+  "induced_event_count": 38,
+  "kernel": "stencil5",
+  "operand_shape": [
+    512,
+    512
+  ],
+  "process": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "pid": 1413147,
+    "torch_version": "2.15.0.dev20260831+cu130",
+    "triton_version": "3.8.0+gitb1233aa3"
+  },
+  "ranking": {
+    "candidates": [
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_8648c305ae23",
+        "compiled_codegen": {
+          "assembly_bytes": 66303,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1232,
+          "binary_bytes": 64584,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 52519,
+              "lines": 681
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 64,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 5,
+            "add.s64": 3,
+            "and.b32": 164,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 436,
+            "ret": 1,
+            "shl.b32": 84,
+            "shr.u32": 398,
+            "st.global.v2.b32": 1,
+            "xor.b32": 82
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 82
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_21d4b8814ab1",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          1,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumn",
+        "layout": "c1x64_columncolumncolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_0442430c2716",
+        "note": "exact canonical grid DP",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 2,
+        "runtime_ms": 18.28041648864746,
+        "solver_rank": 1,
+        "timing": {
+          "mean_ms": 18.28041648864746,
+          "median_ms": 18.28041648864746,
+          "min_ms": 18.28041648864746,
+          "samples_ms": [
+            18.28041648864746
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_b5bcb875fed4",
+        "compiled_codegen": {
+          "assembly_bytes": 66303,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1232,
+          "binary_bytes": 64584,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 52519,
+              "lines": 681
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 64,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 5,
+            "add.s64": 3,
+            "and.b32": 164,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 436,
+            "ret": 1,
+            "shl.b32": 84,
+            "shr.u32": 398,
+            "st.global.v2.b32": 1,
+            "xor.b32": 82
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 82
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_fb3ba776fa6e",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          512,
+          512
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+        "layout": "row_major",
+        "mapping_id": "mapping_0442430c2716",
+        "note": "standard control",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 2,
+        "runtime_ms": 18.3002872467041,
+        "solver_rank": 2,
+        "timing": {
+          "mean_ms": 18.3002872467041,
+          "median_ms": 18.3002872467041,
+          "min_ms": 18.3002872467041,
+          "samples_ms": [
+            18.3002872467041
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          1,
+          32768,
+          65536,
+          131072,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_fae725e891e5",
+        "compiled_codegen": {
+          "assembly_bytes": 69740,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1234,
+          "binary_bytes": 64200,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 60609,
+              "lines": 753
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 64,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 6,
+            "add.s64": 3,
+            "and.b32": 181,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 441,
+            "ret": 1,
+            "shl.b32": 89,
+            "shr.u32": 372,
+            "st.global.v2.b32": 1,
+            "xor.b32": 82
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 82
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_a481db3e3339",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          2,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumnrow",
+        "layout": "c2x64_columncolumncolumncolumncolumncolumnrow_outercolumnrow",
+        "mapping_id": "mapping_c5b058f50a34",
+        "note": "exact canonical grid DP",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 4,
+        "runtime_ms": 18.13599967956543,
+        "solver_rank": 3,
+        "timing": {
+          "mean_ms": 18.13599967956543,
+          "median_ms": 18.13599967956543,
+          "min_ms": 18.13599967956543,
+          "samples_ms": [
+            18.13599967956543
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumnrowcolumncolumncolumnrowrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          1,
+          2,
+          32768,
+          65536,
+          131072,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_97c10a66a8d5",
+        "compiled_codegen": {
+          "assembly_bytes": 76650,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1164,
+          "binary_bytes": 61128,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 64799,
+              "lines": 837
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 62,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 5,
+            "add.s64": 1,
+            "and.b32": 184,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 409,
+            "ret": 1,
+            "shl.b32": 88,
+            "shr.u32": 324,
+            "st.global.v2.b32": 1,
+            "xor.b32": 93
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 93
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_3b1024fd4966",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          4,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumnrowrow",
+        "layout": "c4x64_columncolumncolumncolumncolumncolumnrowrow_outercolumnrow",
+        "mapping_id": "mapping_61b62bec5a57",
+        "note": "exact canonical grid DP",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 4,
+        "runtime_ms": 18.5296630859375,
+        "solver_rank": 4,
+        "timing": {
+          "mean_ms": 18.5296630859375,
+          "median_ms": 18.5296630859375,
+          "min_ms": 18.5296630859375,
+          "samples_ms": [
+            18.5296630859375
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumnrowrowcolumncolumncolumnrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          1,
+          2,
+          4,
+          32768,
+          65536,
+          131072,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_9e9f879799d9",
+        "compiled_codegen": {
+          "assembly_bytes": 72934,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1227,
+          "binary_bytes": 66248,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 58578,
+              "lines": 752
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 64,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 5,
+            "and.b32": 180,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 445,
+            "ret": 1,
+            "shl.b32": 88,
+            "shr.u32": 362,
+            "st.global.v2.b32": 1,
+            "xor.b32": 87
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 87
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_786d30927145",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          8,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumnrowrowrow",
+        "layout": "c8x64_columncolumncolumncolumncolumncolumnrowrowrow_outercolumnrow",
+        "mapping_id": "mapping_a5a7394fca9b",
+        "note": "exact canonical grid DP",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 4,
+        "runtime_ms": 18.15532875061035,
+        "solver_rank": 5,
+        "timing": {
+          "mean_ms": 18.15532875061035,
+          "median_ms": 18.15532875061035,
+          "min_ms": 18.15532875061035,
+          "samples_ms": [
+            18.15532875061035
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumnrowrowrowcolumncolumncolumnrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          1,
+          2,
+          4,
+          8,
+          32768,
+          65536,
+          131072,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_21d5f3538dd6",
+        "compiled_codegen": {
+          "assembly_bytes": 72056,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1233,
+          "binary_bytes": 64328,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 57908,
+              "lines": 747
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 64,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 5,
+            "and.b32": 177,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 447,
+            "ret": 1,
+            "shl.b32": 87,
+            "shr.u32": 372,
+            "st.global.v2.b32": 1,
+            "xor.b32": 85
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 85
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_aad85ff8b5e8",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          16,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumnrowrowrowrow",
+        "layout": "c16x64_columncolumncolumncolumncolumncolumnrowrowrowrow_outercolumnrow",
+        "mapping_id": "mapping_6001462ac0df",
+        "note": "exact canonical grid DP",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 4,
+        "runtime_ms": 18.2063045501709,
+        "solver_rank": 6,
+        "timing": {
+          "mean_ms": 18.2063045501709,
+          "median_ms": 18.2063045501709,
+          "min_ms": 18.2063045501709,
+          "samples_ms": [
+            18.2063045501709
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumnrowrowrowrowcolumncolumncolumnrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32768,
+          65536,
+          131072,
+          32,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_aeb14b91edb5",
+        "compiled_codegen": {
+          "assembly_bytes": 68219,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1272,
+          "binary_bytes": 65352,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 55748,
+              "lines": 716
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 64,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 5,
+            "and.b32": 173,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 467,
+            "ret": 1,
+            "shl.b32": 87,
+            "shr.u32": 398,
+            "st.global.v2.b32": 1,
+            "xor.b32": 82
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 82
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_d6c9e3586fe8",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          32,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumnrowrowrowrowrow",
+        "layout": "c32x64_columncolumncolumncolumncolumncolumnrowrowrowrowrow_outercolumnrow",
+        "mapping_id": "mapping_11c99109baf4",
+        "note": "exact canonical grid DP",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 4,
+        "runtime_ms": 18.40598487854004,
+        "solver_rank": 7,
+        "timing": {
+          "mean_ms": 18.40598487854004,
+          "median_ms": 18.40598487854004,
+          "min_ms": 18.40598487854004,
+          "samples_ms": [
+            18.40598487854004
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumnrowrowrowrowrowcolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          512,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          32768,
+          65536,
+          131072,
+          64,
+          128,
+          256
+        ],
+        "candidate_id": "candidate_5404fcc0d6ae",
+        "compiled_codegen": {
+          "assembly_bytes": 67894,
+          "assembly_format": "ptx",
+          "assembly_instruction_count": 1260,
+          "binary_bytes": 66632,
+          "binary_format": "cubin",
+          "branch_instruction_count": 0,
+          "ir": {
+            "llir": {
+              "bytes": 54535,
+              "lines": 701
+            },
+            "source": {
+              "bytes": 65958,
+              "lines": 933
+            },
+            "ttgir": {
+              "bytes": 136979,
+              "lines": 1515
+            },
+            "ttir": {
+              "bytes": 123827,
+              "lines": 1516
+            }
+          },
+          "load_instruction_count": 0,
+          "n_max_threads": 1024,
+          "n_regs": 64,
+          "n_spills": 0,
+          "opcode_counts": {
+            "add.f32": 8,
+            "add.s32": 5,
+            "add.s64": 1,
+            "and.b32": 170,
+            "bfe.u32": 12,
+            "ld.global.b32": 10,
+            "mad.wide.s32": 1,
+            "mad.wide.u32": 11,
+            "max.u32": 2,
+            "min.u32": 2,
+            "mov.u32": 12,
+            "or.b32": 457,
+            "ret": 1,
+            "shl.b32": 87,
+            "shr.u32": 398,
+            "st.global.v2.b32": 1,
+            "xor.b32": 82
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 0,
+          "xor_instruction_count": 82
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_ae238edebae7",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumnrowrowrowrowrowrow",
+        "layout": "c64x64_columncolumncolumncolumncolumncolumnrowrowrowrowrowrow_outercolumnrow",
+        "mapping_id": "mapping_12800e4d5845",
+        "note": "exact canonical grid DP",
+        "packing_bound": 40960.0,
+        "quotient_components": {
+          "issue": 89088.0,
+          "temporal": 800768.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 89088.0,
+        "runs": 4,
+        "runtime_ms": 18.301599502563477,
+        "solver_rank": 8,
+        "timing": {
+          "mean_ms": 18.301599502563477,
+          "median_ms": 18.301599502563477,
+          "min_ms": 18.301599502563477,
+          "samples_ms": [
+            18.301599502563477
+          ],
+          "stdev_ms": 0.0
+        },
+        "word": "columncolumncolumncolumncolumncolumnrowrowrowrowrowrowcolumncolumncolumnrowrowrow",
+        "xor_count": 0
+      }
+    ],
+    "correct": true,
+    "counter_panel": null,
+    "default": {
+      "a_rows": [
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256
+      ],
+      "candidate_id": "candidate_b5bcb875fed4",
+      "compiled_codegen": {
+        "assembly_bytes": 66303,
+        "assembly_format": "ptx",
+        "assembly_instruction_count": 1232,
+        "binary_bytes": 64584,
+        "binary_format": "cubin",
+        "branch_instruction_count": 0,
+        "ir": {
+          "llir": {
+            "bytes": 52519,
+            "lines": 681
+          },
+          "source": {
+            "bytes": 65958,
+            "lines": 933
+          },
+          "ttgir": {
+            "bytes": 136979,
+            "lines": 1515
+          },
+          "ttir": {
+            "bytes": 123827,
+            "lines": 1516
+          }
+        },
+        "load_instruction_count": 0,
+        "n_max_threads": 1024,
+        "n_regs": 64,
+        "n_spills": 0,
+        "opcode_counts": {
+          "add.f32": 8,
+          "add.s32": 5,
+          "add.s64": 3,
+          "and.b32": 164,
+          "bfe.u32": 12,
+          "ld.global.b32": 10,
+          "mad.wide.s32": 1,
+          "mad.wide.u32": 11,
+          "max.u32": 2,
+          "min.u32": 2,
+          "mov.u32": 12,
+          "or.b32": 436,
+          "ret": 1,
+          "shl.b32": 84,
+          "shr.u32": 398,
+          "st.global.v2.b32": 1,
+          "xor.b32": 82
+        },
+        "shared_bytes": 0,
+        "store_instruction_count": 0,
+        "xor_instruction_count": 82
+      },
+      "exact": true,
+      "fixed_outer_order": [
+        "column",
+        "row"
+      ],
+      "flag_id": "flag_fb3ba776fa6e",
+      "grammar": "canonical",
+      "inner_tile_shape": [
+        512,
+        512
+      ],
+      "inner_word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+      "layout": "row_major",
+      "mapping_id": "mapping_0442430c2716",
+      "note": "standard control",
+      "packing_bound": 40960.0,
+      "quotient_components": {
+        "issue": 89088.0,
+        "temporal": 800768.0
+      },
+      "quotient_rank": 1,
+      "quotient_score": 89088.0,
+      "runs": 2,
+      "runtime_ms": 18.3002872467041,
+      "solver_rank": 2,
+      "timing": {
+        "mean_ms": 18.3002872467041,
+        "median_ms": 18.3002872467041,
+        "min_ms": 18.3002872467041,
+        "samples_ms": [
+          18.3002872467041
+        ],
+        "stdev_ms": 0.0
+      },
+      "word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+      "xor_count": 0
+    },
+    "default_quotient": 89088.0,
+    "default_runtime_ms": 18.3002872467041,
+    "laqs_made_no_change": true,
+    "measured_speedup": 1.0010869970095584,
+    "objective": "stencil5.issue.128B",
+    "objective_components": [
+      "stencil5.issue.128B"
+    ],
+    "packing_lower_bound": 40960.0,
+    "predicted_transaction_reduction": 0.0,
+    "profile_target": {
+      "a_rows": [
+        512,
+        1024,
+        2048,
+        4096,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        64,
+        128,
+        256
+      ],
+      "cache_mode": "warm",
+      "cache_thrash_bytes": 0,
+      "candidate_id": "counter_candidate_31db106ce32b",
+      "compiled_codegen": {
+        "assembly_bytes": 67947,
+        "assembly_format": "ptx",
+        "assembly_instruction_count": 1260,
+        "binary_bytes": 66760,
+        "binary_format": "cubin",
+        "branch_instruction_count": 0,
+        "ir": {
+          "llir": {
+            "bytes": 54596,
+            "lines": 701
+          },
+          "source": {
+            "bytes": 65958,
+            "lines": 933
+          },
+          "ttgir": {
+            "bytes": 136979,
+            "lines": 1515
+          },
+          "ttir": {
+            "bytes": 123827,
+            "lines": 1516
+          }
+        },
+        "load_instruction_count": 0,
+        "n_max_threads": 1024,
+        "n_regs": 64,
+        "n_spills": 0,
+        "opcode_counts": {
+          "add.f32": 8,
+          "add.s32": 5,
+          "add.s64": 1,
+          "and.b32": 170,
+          "bfe.u32": 12,
+          "ld.global.b32": 10,
+          "mad.wide.s32": 1,
+          "mad.wide.u32": 11,
+          "max.u32": 2,
+          "min.u32": 2,
+          "mov.u32": 12,
+          "or.b32": 457,
+          "ret": 1,
+          "shl.b32": 87,
+          "shr.u32": 398,
+          "st.global.v2.b32": 1,
+          "xor.b32": 82
+        },
+        "shared_bytes": 0,
+        "store_instruction_count": 0,
+        "xor_instruction_count": 82
+      },
+      "issue_quotient_score_verified": true,
+      "mapping_id": "mapping_bdacdc868999",
+      "profiled_dispatches": 20,
+      "quotient_components": {
+        "issue": 171008.0,
+        "temporal": 0.0
+      },
+      "quotient_score": 171008.0,
+      "role": "candidate",
+      "structural_validation": {
+        "accepted": true,
+        "candidate_execution_layout": {
+          "bases": {
+            "block": [],
+            "lane": [
+              [
+                2
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ],
+              [
+                16
+              ],
+              [
+                32
+              ]
+            ],
+            "register": [
+              [
+                1
+              ]
+            ],
+            "warp": []
+          },
+          "blocked": {
+            "order": [
+              0
+            ],
+            "sizePerThread": [
+              2
+            ],
+            "threadsPerWarp": [
+              32
+            ],
+            "warpsPerCTA": [
+              1
+            ]
+          },
+          "input_sizes": {
+            "block": 1,
+            "lane": 32,
+            "register": 2,
+            "warp": 1
+          },
+          "output_shape": [
+            64
+          ]
+        },
+        "candidate_load_opcode_counts": {},
+        "candidate_spills": 0,
+        "execution_layout_matches_reference": true,
+        "load_instruction_structure_matches_reference": true,
+        "no_candidate_spills": true,
+        "reference_execution_layout": {
+          "bases": {
+            "block": [],
+            "lane": [
+              [
+                2
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ],
+              [
+                16
+              ],
+              [
+                32
+              ]
+            ],
+            "register": [
+              [
+                1
+              ]
+            ],
+            "warp": []
+          },
+          "blocked": {
+            "order": [
+              0
+            ],
+            "sizePerThread": [
+              2
+            ],
+            "threadsPerWarp": [
+              32
+            ],
+            "warpsPerCTA": [
+              1
+            ]
+          },
+          "input_sizes": {
+            "block": 1,
+            "lane": 32,
+            "register": 2,
+            "warp": 1
+          },
+          "output_shape": [
+            64
+          ]
+        },
+        "reference_load_opcode_counts": {},
+        "reference_spills": 0
+      },
+      "warmup_dispatches": 5
+    },
+    "rank_quality": {
+      "candidate_count": 7,
+      "distinct_mapping_count": 7,
+      "duplicate_mapping_runtime_spread": [
+        {
+          "absolute_spread_ms": 0.019870758056640625,
+          "candidate_ids": [
+            "candidate_8648c305ae23",
+            "candidate_b5bcb875fed4"
+          ],
+          "count": 2,
+          "mapping_id": "mapping_0442430c2716",
+          "max_runtime_ms": 18.3002872467041,
+          "min_runtime_ms": 18.28041648864746,
+          "relative_spread": 0.001086997009558388
+        }
+      ],
+      "equal_quotient_score_runtime_spread": [
+        {
+          "absolute_spread_ms": 0.3936634063720703,
+          "candidate_ids": [
+            "candidate_8648c305ae23",
+            "candidate_fae725e891e5",
+            "candidate_97c10a66a8d5",
+            "candidate_9e9f879799d9",
+            "candidate_21d5f3538dd6",
+            "candidate_aeb14b91edb5",
+            "candidate_5404fcc0d6ae"
+          ],
+          "count": 7,
+          "max_runtime_ms": 18.5296630859375,
+          "min_runtime_ms": 18.13599967956543,
+          "quotient_score": 89088.0,
+          "relative_spread": 0.02170618732507079
+        }
+      ],
+      "fastest_candidate_id": "candidate_fae725e891e5",
+      "fastest_runtime_ms": 18.13599967956543,
+      "mapping_deduplication": {
+        "key": "mapping_id",
+        "policy": "keep first candidate in input solver order",
+        "removed": [
+          {
+            "candidate_id": "candidate_b5bcb875fed4",
+            "mapping_id": "mapping_0442430c2716",
+            "representative_candidate_id": "candidate_8648c305ae23"
+          }
+        ]
+      },
+      "quotient_order_candidate_ids": [
+        "candidate_8648c305ae23",
+        "candidate_fae725e891e5",
+        "candidate_97c10a66a8d5",
+        "candidate_9e9f879799d9",
+        "candidate_21d5f3538dd6",
+        "candidate_aeb14b91edb5",
+        "candidate_5404fcc0d6ae"
+      ],
+      "rank_correlation": {
+        "lower_is_better": true,
+        "method": "spearman_tie_aware",
+        "rho": null,
+        "sample_count": 7
+      },
+      "ranking_population": "distinct_physical_mappings",
+      "regret": {
+        "top_1": {
+          "candidate_count": 1,
+          "regret": 0.007962991378123618,
+          "selected_candidate_id": "candidate_8648c305ae23",
+          "selected_runtime_ms": 18.28041648864746
+        },
+        "top_2": {
+          "candidate_count": 2,
+          "regret": 0.0,
+          "selected_candidate_id": "candidate_fae725e891e5",
+          "selected_runtime_ms": 18.13599967956543
+        },
+        "top_3": {
+          "candidate_count": 3,
+          "regret": 0.0,
+          "selected_candidate_id": "candidate_fae725e891e5",
+          "selected_runtime_ms": 18.13599967956543
+        },
+        "top_4": {
+          "candidate_count": 4,
+          "regret": 0.0,
+          "selected_candidate_id": "candidate_fae725e891e5",
+          "selected_runtime_ms": 18.13599967956543
+        },
+        "top_5": {
+          "candidate_count": 5,
+          "regret": 0.0,
+          "selected_candidate_id": "candidate_fae725e891e5",
+          "selected_runtime_ms": 18.13599967956543
+        }
+      },
+      "removed_duplicate_mapping_count": 1,
+      "retained_candidate_count": 8,
+      "runtime_metric": "runtime_ms",
+      "same_flag_runtime_spread": {
+        "available": false,
+        "groups": []
+      },
+      "tie_breaking": "input solver order"
+    },
+    "search_scope": {
+      "fixed_outer_order": [
+        "column",
+        "row"
+      ],
+      "grammar": "canonical_inner_tile",
+      "inner_tile_shapes": [
+        [
+          1,
+          64
+        ],
+        [
+          2,
+          64
+        ],
+        [
+          4,
+          64
+        ],
+        [
+          8,
+          64
+        ],
+        [
+          16,
+          64
+        ],
+        [
+          32,
+          64
+        ],
+        [
+          64,
+          64
+        ]
+      ],
+      "outer_layout": "row_major_tiles",
+      "temporal_mode": "issue",
+      "tile_policy": "explicit_hypothesis_sweep_v1"
+    },
+    "selected": {
+      "a_rows": [
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256
+      ],
+      "candidate_id": "candidate_8648c305ae23",
+      "compiled_codegen": {
+        "assembly_bytes": 66303,
+        "assembly_format": "ptx",
+        "assembly_instruction_count": 1232,
+        "binary_bytes": 64584,
+        "binary_format": "cubin",
+        "branch_instruction_count": 0,
+        "ir": {
+          "llir": {
+            "bytes": 52519,
+            "lines": 681
+          },
+          "source": {
+            "bytes": 65958,
+            "lines": 933
+          },
+          "ttgir": {
+            "bytes": 136979,
+            "lines": 1515
+          },
+          "ttir": {
+            "bytes": 123827,
+            "lines": 1516
+          }
+        },
+        "load_instruction_count": 0,
+        "n_max_threads": 1024,
+        "n_regs": 64,
+        "n_spills": 0,
+        "opcode_counts": {
+          "add.f32": 8,
+          "add.s32": 5,
+          "add.s64": 3,
+          "and.b32": 164,
+          "bfe.u32": 12,
+          "ld.global.b32": 10,
+          "mad.wide.s32": 1,
+          "mad.wide.u32": 11,
+          "max.u32": 2,
+          "min.u32": 2,
+          "mov.u32": 12,
+          "or.b32": 436,
+          "ret": 1,
+          "shl.b32": 84,
+          "shr.u32": 398,
+          "st.global.v2.b32": 1,
+          "xor.b32": 82
+        },
+        "shared_bytes": 0,
+        "store_instruction_count": 0,
+        "xor_instruction_count": 82
+      },
+      "exact": true,
+      "fixed_outer_order": [
+        "column",
+        "row"
+      ],
+      "flag_id": "flag_21d4b8814ab1",
+      "grammar": "canonical",
+      "inner_tile_shape": [
+        1,
+        64
+      ],
+      "inner_word": "columncolumncolumncolumncolumncolumn",
+      "layout": "c1x64_columncolumncolumncolumncolumncolumn_outercolumnrow",
+      "mapping_id": "mapping_0442430c2716",
+      "note": "exact canonical grid DP",
+      "packing_bound": 40960.0,
+      "quotient_components": {
+        "issue": 89088.0,
+        "temporal": 800768.0
+      },
+      "quotient_rank": 1,
+      "quotient_score": 89088.0,
+      "runs": 2,
+      "runtime_ms": 18.28041648864746,
+      "solver_rank": 1,
+      "timing": {
+        "mean_ms": 18.28041648864746,
+        "median_ms": 18.28041648864746,
+        "min_ms": 18.28041648864746,
+        "samples_ms": [
+          18.28041648864746
+        ],
+        "stdev_ms": 0.0
+      },
+      "word": "columncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+      "xor_count": 0
+    },
+    "selected_quotient": 89088.0,
+    "selected_runtime_ms": 18.28041648864746,
+    "solver": {
+      "candidate_count": 49,
+      "elapsed_seconds": 1.1809479370131157,
+      "name": "stencil5",
+      "retained_candidates": 8
+    },
+    "temporal_model": {
+      "active_in_objective": false,
+      "availability": "modeled",
+      "dynamic_scalar_accesses": 1310720,
+      "edge_family": "per_hardware_location_nonoverlapping",
+      "mode": "issue",
+      "reason": null,
+      "representative_edge_count": 81,
+      "streams": [
+        {
+          "compression": "exact_xor_translation_classes",
+          "dynamic_fibers": 262144,
+          "dynamic_scalar_accesses": 1310720,
+          "fiber": "per_hardware_location",
+          "representative_edge_count": 81,
+          "stream": "stencil5.neighborhood",
+          "stride_elements": null,
+          "window_elements": null
+        }
+      ]
+    }
+  },
+  "stage": 1,
+  "target_operand": "field"
+}

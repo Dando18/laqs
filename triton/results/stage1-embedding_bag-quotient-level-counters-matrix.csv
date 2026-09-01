@@ -1,0 +1,7 @@
+case,candidate_id,mapping_id,inner_tile_shape,inner_word,quotient_score,address_expression_runs,xor_count,completed_profile_launches,complete,l1_cache_line_accesses,l1_cache_line_accesses_min,l1_cache_line_accesses_max,duration_ns,duration_ns_min,duration_ns_max
+embedding_bag,counter_candidate_2b54bb8df6a2,mapping_3ad6353aa87a,"[64, 128]",dddddddrrrrrr,65536.0,2,0,3,True,294912.0,294912.0,294912.0,12048.0,12032.0,12128.0
+embedding_bag,counter_candidate_59b5c368722f,mapping_9617533aa12b,"[64, 128]",rdddddddrrrrr,131072.0,3,0,3,True,557056.0,557056.0,557056.0,18864.0,18848.0,19008.0
+embedding_bag,counter_candidate_7b8815b68759,mapping_98b98554384a,"[64, 128]",rrdddddddrrrr,262144.0,3,0,3,True,1081344.0,1081344.0,1081344.0,18688.0,18576.0,18752.0
+embedding_bag,counter_candidate_9543b0aa576a,mapping_f543538b90f1,"[64, 128]",rrrdddddddrrr,524288.0,3,0,3,True,2129920.0,2129920.0,2129920.0,18448.0,18432.0,18560.0
+embedding_bag,counter_candidate_f7dd276850de,mapping_2244684a6513,"[64, 128]",rrrrdddddddrr,1048576.0,3,0,3,True,2129920.0,2129920.0,2129920.0,19712.0,19696.0,19840.0
+embedding_bag,counter_candidate_4038ace1e3b3,mapping_87b6aa3ad4dd,"[64, 128]",rrrrrrddddddd,2097152.0,3,0,3,True,2129920.0,2129920.0,2129920.0,20224.0,20160.0,20256.0

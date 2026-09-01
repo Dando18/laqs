@@ -1,0 +1,717 @@
+{
+  "artifacts": {
+    "raw_csv": "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/softmax_bias/counter_candidate_983e12424ba3/launch-3/counters.csv",
+    "worker_json": "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/softmax_bias/counter_candidate_983e12424ba3/launch-3/worker.json"
+  },
+  "candidate": {
+    "a_rows": [
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536,
+      131072,
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512
+    ],
+    "address_expression_runs": 2,
+    "candidate_id": "counter_candidate_983e12424ba3",
+    "fixed_outer_order": [
+      "feature",
+      "row"
+    ],
+    "grammar": "canonical",
+    "inner_mode_indices": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "inner_mode_order": [
+      "feature",
+      "feature",
+      "feature",
+      "feature",
+      "feature",
+      "feature",
+      "feature",
+      "feature",
+      "row",
+      "row",
+      "row",
+      "row",
+      "row",
+      "row"
+    ],
+    "inner_tile_shape": [
+      64,
+      256
+    ],
+    "inner_word": "ffffffffrrrrrr",
+    "inner_word_runs": 2,
+    "layout": "counter_64x256_ffffffffrrrrrr",
+    "mapping_id": "mapping_0fadc8968e5d",
+    "panel_rank": 1,
+    "quotient_rank": 1,
+    "quotient_score": 16384.0,
+    "word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturerowrowrowrowrowrowrowrowrowrow",
+    "xor_count": 0
+  },
+  "command": [
+    "/collab/usr/global/tools/nvidia/nvhpc/toss_4_x86_64_ib/nvhpc-25.9/Linux_x86_64/25.9/profilers/13.0/Nsight_Compute/ncu",
+    "--csv",
+    "--page",
+    "raw",
+    "--print-units",
+    "base",
+    "--metrics",
+    "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum,gpu__time_duration.sum",
+    "--kernel-name-base",
+    "function",
+    "--kernel-name",
+    "regex:softmax_bias_kernel",
+    "--cache-control",
+    "none",
+    "--target-processes",
+    "application-only",
+    "--log-file",
+    "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/softmax_bias/counter_candidate_983e12424ba3/launch-3/counters.csv",
+    "/g/g16/dnicho/record-replay/relay/triton/.venv-matrix/bin/python",
+    "/g/g16/dnicho/record-replay/relay/triton/run-stage1-kernel-case.py",
+    "--case",
+    "softmax_bias",
+    "--transaction-bytes",
+    "128",
+    "--candidates",
+    "8",
+    "--samples",
+    "1",
+    "--iterations",
+    "1",
+    "--warmup",
+    "1",
+    "--temporal-mode",
+    "issue",
+    "--profile-rows",
+    "1024",
+    "2048",
+    "4096",
+    "8192",
+    "16384",
+    "32768",
+    "65536",
+    "131072",
+    "1",
+    "2",
+    "4",
+    "8",
+    "16",
+    "32",
+    "64",
+    "128",
+    "256",
+    "512",
+    "--profile-candidate-id",
+    "counter_candidate_983e12424ba3",
+    "--profile-quotient-score",
+    "16384.0",
+    "--profile-cache-mode",
+    "warm",
+    "--profile-warmup",
+    "5",
+    "--profile-iterations",
+    "20",
+    "--json",
+    "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/softmax_bias/counter_candidate_983e12424ba3/launch-3/worker.json",
+    "--quiet"
+  ],
+  "configuration": {
+    "a_rows": [
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536,
+      131072,
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512
+    ],
+    "cache_mode": "warm",
+    "candidate_id": "counter_candidate_983e12424ba3",
+    "case": "softmax_bias",
+    "counter_metrics": [
+      "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum",
+      "gpu__time_duration.sum"
+    ],
+    "fallback_used": true,
+    "kernel_name": "softmax_bias_kernel",
+    "mapping_id": "mapping_0fadc8968e5d",
+    "ncu": "/collab/usr/global/tools/nvidia/nvhpc/toss_4_x86_64_ib/nvhpc-25.9/Linux_x86_64/25.9/profilers/13.0/Nsight_Compute/ncu",
+    "ncu_cache_control": "none",
+    "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum",
+    "profile_iterations": 20,
+    "profile_launch": 3,
+    "profile_schema": 3,
+    "profile_warmup": 5,
+    "profiler_backend": "nvidia_ncu",
+    "quotient_score": 16384.0,
+    "requested_primary_counter": "memory_l1_tag_requests_global",
+    "requested_retained_candidates": 8,
+    "temporal_mode": "issue",
+    "transaction_bytes": 128
+  },
+  "correct": true,
+  "counter_profile": {
+    "steady_dispatches": [
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 31,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 32,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4384.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4384.0,
+        "index": 33,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4512.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4512.0,
+        "index": 34,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4544.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4544.0,
+        "index": 35,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4512.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4512.0,
+        "index": 36,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4512.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4512.0,
+        "index": 37,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 38,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 39,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4384.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4384.0,
+        "index": 40,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4384.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4384.0,
+        "index": 41,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4512.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4512.0,
+        "index": 42,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4512.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4512.0,
+        "index": 43,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4512.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4512.0,
+        "index": 44,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4480.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4480.0,
+        "index": 45,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 46,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 47,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 48,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4416.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4416.0,
+        "index": 49,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      },
+      {
+        "counters": {
+          "gpu__time_duration.sum": 4544.0,
+          "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum": 98304.0
+        },
+        "duration_ns": 4544.0,
+        "index": 50,
+        "kernel_name": "softmax_bias_kernel",
+        "l1_cache_line_accesses": 98304.0,
+        "primary_counter": "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+      }
+    ],
+    "steady_state": {
+      "dispatch_count": 20,
+      "duration_ns": 4416.0,
+      "l1_cache_line_accesses": 98304.0
+    },
+    "target_dispatch_count": 51
+  },
+  "execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [
+        [
+          1
+        ]
+      ],
+      "warp": [
+        [
+          64
+        ],
+        [
+          128
+        ]
+      ]
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        2
+      ],
+      "threadsPerWarp": [
+        32
+      ],
+      "warpsPerCTA": [
+        4
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 32,
+      "register": 2,
+      "warp": 4
+    },
+    "output_shape": [
+      256
+    ]
+  },
+  "experiment": "triton_stage1_quotient_level_counter_profile_nvidia",
+  "layout": {
+    "a_rows": [
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536,
+      131072,
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512
+    ],
+    "cache_mode": "warm",
+    "cache_thrash_bytes": 0,
+    "candidate_id": "counter_candidate_983e12424ba3",
+    "compiled_codegen": {
+      "assembly_bytes": 26999,
+      "assembly_format": "ptx",
+      "assembly_instruction_count": 234,
+      "binary_bytes": 17872,
+      "binary_format": "cubin",
+      "branch_instruction_count": 0,
+      "ir": {
+        "llir": {
+          "bytes": 19707,
+          "lines": 302
+        },
+        "source": {
+          "bytes": 61853,
+          "lines": 874
+        },
+        "ttgir": {
+          "bytes": 34962,
+          "lines": 413
+        },
+        "ttir": {
+          "bytes": 33002,
+          "lines": 413
+        }
+      },
+      "load_instruction_count": 0,
+      "n_max_threads": 1024,
+      "n_regs": 30,
+      "n_spills": 0,
+      "opcode_counts": {
+        "add.f32": 10,
+        "add.s32": 2,
+        "add.s64": 5,
+        "and.b32": 24,
+        "bar.sync": 3,
+        "bfe.u32": 2,
+        "div.full.f32": 2,
+        "ex2.approx.f32": 2,
+        "ld.global.b32": 2,
+        "ld.global.v2.b32": 1,
+        "ld.shared.b32": 2,
+        "mad.wide.u32": 2,
+        "max.f32": 8,
+        "mov.b32": 1,
+        "mov.u32": 6,
+        "mul.f32": 2,
+        "mul.wide.s32": 1,
+        "mul.wide.u32": 1,
+        "or.b32": 54,
+        "ret": 1,
+        "shfl.sync.bfly.b32": 14,
+        "shl.b32": 13,
+        "shr.u32": 50,
+        "st.global.v2.b32": 1,
+        "st.shared.b32": 2,
+        "sub.f32": 2,
+        "xor.b32": 21
+      },
+      "shared_bytes": 16,
+      "store_instruction_count": 0,
+      "xor_instruction_count": 21
+    },
+    "issue_quotient_score_verified": true,
+    "mapping_id": "mapping_0fadc8968e5d",
+    "profiled_dispatches": 20,
+    "quotient_components": {
+      "issue": 16384.0,
+      "temporal": 0.0
+    },
+    "quotient_score": 16384.0,
+    "role": "candidate",
+    "structural_validation": {
+      "accepted": true,
+      "candidate_execution_layout": {
+        "bases": {
+          "block": [],
+          "lane": [
+            [
+              2
+            ],
+            [
+              4
+            ],
+            [
+              8
+            ],
+            [
+              16
+            ],
+            [
+              32
+            ]
+          ],
+          "register": [
+            [
+              1
+            ]
+          ],
+          "warp": [
+            [
+              64
+            ],
+            [
+              128
+            ]
+          ]
+        },
+        "blocked": {
+          "order": [
+            0
+          ],
+          "sizePerThread": [
+            2
+          ],
+          "threadsPerWarp": [
+            32
+          ],
+          "warpsPerCTA": [
+            4
+          ]
+        },
+        "input_sizes": {
+          "block": 1,
+          "lane": 32,
+          "register": 2,
+          "warp": 4
+        },
+        "output_shape": [
+          256
+        ]
+      },
+      "candidate_load_opcode_counts": {},
+      "candidate_spills": 0,
+      "execution_layout_matches_reference": true,
+      "load_instruction_structure_matches_reference": true,
+      "no_candidate_spills": true,
+      "reference_execution_layout": {
+        "bases": {
+          "block": [],
+          "lane": [
+            [
+              2
+            ],
+            [
+              4
+            ],
+            [
+              8
+            ],
+            [
+              16
+            ],
+            [
+              32
+            ]
+          ],
+          "register": [
+            [
+              1
+            ]
+          ],
+          "warp": [
+            [
+              64
+            ],
+            [
+              128
+            ]
+          ]
+        },
+        "blocked": {
+          "order": [
+            0
+          ],
+          "sizePerThread": [
+            2
+          ],
+          "threadsPerWarp": [
+            32
+          ],
+          "warpsPerCTA": [
+            4
+          ]
+        },
+        "input_sizes": {
+          "block": 1,
+          "lane": 32,
+          "register": 2,
+          "warp": 4
+        },
+        "output_shape": [
+          256
+        ]
+      },
+      "reference_load_opcode_counts": {},
+      "reference_spills": 0
+    },
+    "warmup_dispatches": 5
+  },
+  "operand_shape": [
+    1024,
+    256
+  ],
+  "process": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "pid": 1400702,
+    "torch_version": "2.15.0.dev20260831+cu130",
+    "triton_version": "3.8.0+gitb1233aa3"
+  },
+  "target_operand": "bias"
+}

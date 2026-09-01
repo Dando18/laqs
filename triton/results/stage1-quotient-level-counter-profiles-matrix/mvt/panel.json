@@ -1,0 +1,479 @@
+{
+  "artifacts": {
+    "worker_json": "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/mvt/worker.json"
+  },
+  "command": [
+    "/g/g16/dnicho/record-replay/relay/triton/.venv-matrix/bin/python",
+    "/g/g16/dnicho/record-replay/relay/triton/run-stage1-kernel-case.py",
+    "--case",
+    "mvt",
+    "--transaction-bytes",
+    "128",
+    "--candidates",
+    "8",
+    "--samples",
+    "1",
+    "--iterations",
+    "1",
+    "--warmup",
+    "1",
+    "--temporal-mode",
+    "issue",
+    "--counter-panel",
+    "fixed_tile_levels",
+    "--panel-tile-shape",
+    "64",
+    "64",
+    "--json",
+    "/g/g16/dnicho/record-replay/relay/triton/results/stage1-quotient-level-counter-profiles-matrix/mvt/worker.json",
+    "--quiet"
+  ],
+  "configuration": {
+    "candidate_panel_schema": 1,
+    "case": "mvt",
+    "panel_mode": "fixed_tile_levels",
+    "panel_tile_shape": [
+      64,
+      64
+    ],
+    "requested_retained_candidates": 8,
+    "temporal_mode": "issue",
+    "transaction_bytes": 128
+  },
+  "correct": true,
+  "execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [
+        [
+          1
+        ]
+      ],
+      "warp": []
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        2
+      ],
+      "threadsPerWarp": [
+        32
+      ],
+      "warpsPerCTA": [
+        1
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 32,
+      "register": 2,
+      "warp": 1
+    },
+    "output_shape": [
+      64
+    ]
+  },
+  "experiment": "triton_stage1_quotient_level_panel_nvidia",
+  "kernel": "mvt",
+  "kernel_name": "mvt_kernel",
+  "operand_shape": [
+    1024,
+    1024
+  ],
+  "panel": {
+    "candidates": [
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "address_expression_runs": 4,
+        "candidate_id": "counter_candidate_a0977940d8fb",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "column",
+          "column",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "ccrrrrrrcccc",
+        "inner_word_runs": 3,
+        "layout": "counter_64x64_ccrrrrrrcccc",
+        "mapping_id": "mapping_0ac2dcc7b3fb",
+        "panel_rank": 1,
+        "quotient_rank": 1,
+        "quotient_score": 786432.0,
+        "word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "address_expression_runs": 3,
+        "candidate_id": "counter_candidate_792bcce411df",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column",
+          "column",
+          "column",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "rrrrrrcccccc",
+        "inner_word_runs": 2,
+        "layout": "counter_64x64_rrrrrrcccccc",
+        "mapping_id": "mapping_006423de7947",
+        "panel_rank": 2,
+        "quotient_rank": 2,
+        "quotient_score": 1114112.0,
+        "word": "rowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "address_expression_runs": 4,
+        "candidate_id": "counter_candidate_c1fb31771026",
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "grammar": "canonical",
+        "inner_mode_indices": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "inner_mode_order": [
+          "column",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "row",
+          "column",
+          "column",
+          "column",
+          "column",
+          "column"
+        ],
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "crrrrrrccccc",
+        "inner_word_runs": 3,
+        "layout": "counter_64x64_crrrrrrccccc",
+        "mapping_id": "mapping_b035d0be6f95",
+        "panel_rank": 3,
+        "quotient_rank": 3,
+        "quotient_score": 1179648.0,
+        "word": "columnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      }
+    ],
+    "enumerated_word_count": 924,
+    "fixed_outer_order": [
+      "column",
+      "row"
+    ],
+    "grouping": "quotient",
+    "mode": "fixed_tile_levels",
+    "objective": "issue_only",
+    "outer_layout": "row_major_tiles",
+    "quotient_levels": [
+      786432.0,
+      1114112.0,
+      1179648.0
+    ],
+    "representative_count": 3,
+    "selection": "minimum full address-expression runs, then stable canonical word",
+    "tile_grammars": [
+      {
+        "canonical_word_count": 924,
+        "quotient_levels": [
+          786432.0,
+          1114112.0,
+          1179648.0
+        ],
+        "tile_exponents": [
+          6,
+          6
+        ],
+        "tile_shape": [
+          64,
+          64
+        ]
+      }
+    ],
+    "unique_mapping_count": 924
+  },
+  "process": {
+    "device": "NVIDIA H100 80GB HBM3",
+    "pid": 1404767,
+    "torch_version": "2.15.0.dev20260831+cu130",
+    "triton_version": "3.8.0+gitb1233aa3"
+  },
+  "reference_layout": {
+    "a_rows": [
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536,
+      131072,
+      262144,
+      524288,
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512
+    ],
+    "candidate_id": "candidate_54382ee0c896",
+    "compiled_codegen": {
+      "assembly_bytes": 30266,
+      "assembly_format": "ptx",
+      "assembly_instruction_count": 446,
+      "binary_bytes": 25944,
+      "binary_format": "cubin",
+      "branch_instruction_count": 0,
+      "ir": {
+        "llir": {
+          "bytes": 31920,
+          "lines": 463
+        },
+        "source": {
+          "bytes": 120584,
+          "lines": 1695
+        },
+        "ttgir": {
+          "bytes": 65961,
+          "lines": 736
+        },
+        "ttir": {
+          "bytes": 59687,
+          "lines": 739
+        }
+      },
+      "load_instruction_count": 0,
+      "n_max_threads": 1024,
+      "n_regs": 52,
+      "n_spills": 0,
+      "opcode_counts": {
+        "add.s32": 1,
+        "add.s64": 3,
+        "and.b32": 65,
+        "bfe.u32": 5,
+        "cvt.u32.u64": 1,
+        "fma.rn.f32": 4,
+        "ld.global.b32": 6,
+        "mad.wide.s32": 1,
+        "mad.wide.u32": 4,
+        "mov.b32": 3,
+        "mov.b64": 1,
+        "mov.u32": 8,
+        "or.b32": 153,
+        "ret": 1,
+        "setp.ne.b64": 1,
+        "shl.b32": 34,
+        "shr.u32": 117,
+        "st.global.v2.b32": 1,
+        "xor.b32": 37
+      },
+      "shared_bytes": 0,
+      "store_instruction_count": 0,
+      "xor_instruction_count": 37
+    },
+    "exact": true,
+    "fixed_outer_order": [
+      "column",
+      "row"
+    ],
+    "flag_id": "flag_93466fc87aaf",
+    "grammar": "canonical",
+    "inner_tile_shape": [
+      1024,
+      1024
+    ],
+    "inner_word": "columncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrowrow",
+    "layout": "row_major",
+    "mapping_id": "mapping_bb8fa8378c16",
+    "note": "standard control",
+    "packing_bound": 65536.0,
+    "quotient_components": {
+      "issue": 1114112.0,
+      "temporal": 1081344.0
+    },
+    "quotient_rank": 2,
+    "quotient_score": 1114112.0,
+    "runs": 2,
+    "runtime_ms": 0.3776960074901581,
+    "solver_rank": 11,
+    "timing": {
+      "mean_ms": 0.3776960074901581,
+      "median_ms": 0.3776960074901581,
+      "min_ms": 0.3776960074901581,
+      "samples_ms": [
+        0.3776960074901581
+      ],
+      "stdev_ms": 0.0
+    },
+    "word": "columncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrowrow",
+    "xor_count": 0
+  },
+  "target_operand": "matrix"
+}

@@ -1,0 +1,2 @@
+case,candidate_id,mapping_id,inner_tile_shape,inner_word,quotient_score,address_expression_runs,xor_count,completed_profile_launches,complete,l1_cache_line_accesses,l1_cache_line_accesses_min,l1_cache_line_accesses_max,duration_ns,duration_ns_min,duration_ns_max
+bias_relu,counter_candidate_d6aa0044edb3,mapping_0899bb1953bc,[256],ffffffff,65536.0,1,0,3,True,393216.0,393216.0,393216.0,5088.0,5088.0,5088.0

@@ -1,0 +1,6 @@
+case,candidate_id,mapping_id,inner_tile_shape,inner_word,quotient_score,address_expression_runs,xor_count,completed_profile_launches,complete,l1_cache_line_accesses,l1_cache_line_accesses_min,l1_cache_line_accesses_max,duration_ns,duration_ns_min,duration_ns_max
+gemv,counter_candidate_3905b57d523f,mapping_006423de7947,"[64, 64]",rrrrrrcccccc,65536.0,3,0,3,True,278528.0,278528.0,278528.0,303264.0,301184.0,303360.0
+gemv,counter_candidate_17bdf2dd6a6b,mapping_b035d0be6f95,"[64, 64]",crrrrrrccccc,131072.0,4,0,3,True,540672.0,540672.0,540672.0,240192.0,240192.0,240208.0
+gemv,counter_candidate_50b4dfb9d99d,mapping_0ac2dcc7b3fb,"[64, 64]",ccrrrrrrcccc,262144.0,4,0,3,True,1064960.0,1064960.0,1064960.0,218736.0,218688.0,220592.0
+gemv,counter_candidate_d7db69e11458,mapping_f0fb62a56baa,"[64, 64]",cccrrrrrrccc,524288.0,4,0,3,True,1064960.0,1064960.0,1064960.0,223040.0,222976.0,225024.0
+gemv,counter_candidate_534320303270,mapping_75fd9ff700e7,"[64, 64]",ccccrrrrrrcc,1048576.0,4,0,3,True,1064960.0,1064960.0,1064960.0,263696.0,263680.0,266048.0
