@@ -40,6 +40,8 @@ def run_worker(worker: Path, args, output: Path) -> dict[str, object]:
         str(output),
         "--quiet",
     ]
+    if args.register_fibers:
+        command.append("--register-fibers")
     subprocess.run(command, check=True)
     return json.loads(output.read_text(encoding="utf-8"))
 
@@ -122,6 +124,7 @@ def run_sweep(args) -> dict[str, object]:
                 "iterations_per_timing_batch": args.iterations,
                 "warmup_rounds": args.warmup,
                 "runtime_aggregation": "median_of_process_medians",
+                "register_fibers": args.register_fibers,
             }
         else:
             previous = json.loads(args.ranking_json.read_text(encoding="utf-8"))
@@ -136,24 +139,95 @@ def run_sweep(args) -> dict[str, object]:
                 raise ValueError(
                     "--transaction-bytes does not match --ranking-json"
                 )
+            if bool(configuration.get("register_fibers", False)) != (
+                args.register_fibers
+            ):
+                raise ValueError(
+                    "--register-fibers does not match --ranking-json"
+                )
         hardware_counters = None
-        if args.profile:
+        if args.profile or args.profile_all:
             counter_dir = temporary_path / "counters"
             counter_dir.mkdir()
-            default = profile_layout(
-                worker,
-                args,
-                label="default",
-                rows=aggregate["default"]["a_rows"],
-                output=counter_dir / "default.csv",
+            targets = (
+                aggregate["candidates"]
+                if args.profile_all
+                else (aggregate["default"], aggregate["selected"])
             )
-            selected = profile_layout(
-                worker,
-                args,
-                label="selected",
-                rows=aggregate["selected"]["a_rows"],
-                output=counter_dir / "selected.csv",
-            )
+            profiles = {}
+            for index, candidate in enumerate(targets, start=1):
+                candidate_id = str(candidate["candidate_id"])
+                if candidate_id in profiles:
+                    continue
+                profiles[candidate_id] = profile_layout(
+                    worker,
+                    args,
+                    label=(
+                        f"candidate {index}/{len(targets)} {candidate_id}"
+                        if args.profile_all
+                        else (
+                            "default"
+                            if candidate_id
+                            == aggregate["default"]["candidate_id"]
+                            else "selected"
+                        )
+                    ),
+                    rows=candidate["a_rows"],
+                    output=counter_dir / f"{candidate_id}.csv",
+                )
+            default = profiles[str(aggregate["default"]["candidate_id"])]
+            selected = profiles[str(aggregate["selected"]["candidate_id"])]
+            candidate_profiles = None
+            correlations = None
+            if args.profile_all:
+                from relay import spearman_rank_correlation
+
+                candidate_profiles = []
+                for candidate in aggregate["candidates"]:
+                    profile = profiles[str(candidate["candidate_id"])]
+                    candidate_profiles.append(
+                        {
+                            "candidate_id": candidate["candidate_id"],
+                            "mapping_id": candidate["mapping_id"],
+                            "word": candidate["word"],
+                            "quotient_score": candidate["quotient_score"],
+                            "register_fiber_normalized_excess": candidate[
+                                "register_fiber_normalized_excess"
+                            ],
+                            "register_aware_score": candidate[
+                                "register_aware_score"
+                            ],
+                            "profile": profile,
+                        }
+                    )
+                score_fields = (
+                    "quotient_score",
+                    "register_fiber_normalized_excess",
+                    "register_aware_score",
+                )
+                counter_fields = (
+                    "duration_ns",
+                    "l1_to_l2_read_requests",
+                    "l2_tag_requests",
+                    "l2_misses",
+                    "hbm_read_bytes",
+                )
+                correlations = {
+                    score: {
+                        counter: spearman_rank_correlation(
+                            [
+                                float(candidate[score])
+                                for candidate in candidate_profiles
+                            ],
+                            [
+                                float(candidate["profile"]["summary"][counter])
+                                for candidate in candidate_profiles
+                            ],
+                        )
+                        for counter in counter_fields
+                    }
+                    for score in score_fields
+                }
             hardware_counters = {
                 "scope": (
                     "whole-kernel counters; A and C are fixed, so the layout "
@@ -173,6 +247,8 @@ def run_sweep(args) -> dict[str, object]:
                 },
                 "default": default,
                 "selected": selected,
+                "candidate_profiles": candidate_profiles,
+                "tie_aware_spearman": correlations,
                 "comparison": counter_comparison(
                     default,
                     selected,
@@ -201,10 +277,16 @@ def parse_arguments(argv=None):
     parser.add_argument("--process-launches", type=positive_integer, default=3)
     parser.add_argument("--transaction-bytes", type=positive_integer, default=128)
     parser.add_argument("--candidates", type=positive_integer, default=8)
+    parser.add_argument("--register-fibers", action="store_true")
     parser.add_argument("--samples", type=positive_integer, default=21)
     parser.add_argument("--iterations", type=positive_integer, default=50)
     parser.add_argument("--warmup", type=positive_integer, default=10)
     parser.add_argument("--profile", action="store_true")
+    parser.add_argument(
+        "--profile-all",
+        action="store_true",
+        help="collect counters for every retained ranking candidate",
+    )
     parser.add_argument(
         "--ranking-json",
         type=Path,

@@ -20,6 +20,7 @@ from .objectives import Hyperedge
 from .scoring import transaction_region_ids
 
 if TYPE_CHECKING:
+    from .objectives import ObjectiveSpec
     from .solver import RelayProblem, SolverConfig
 
 
@@ -358,6 +359,167 @@ class InducedMemoryEvent:
         )
 
 
+@dataclass(frozen=True)
+class LinearLayoutResourceFiber:
+    """Logical edges induced by varying named LinearLayout input dimensions."""
+
+    name: str
+    varying_dimensions: tuple[str, ...]
+    edges_by_array: Mapping[str, tuple[Hyperedge, ...]]
+    hardware_fiber_count: int
+    omitted_singleton_count: int = 0
+
+    def at_scale(
+        self,
+        region_bytes: int,
+        *,
+        name: str | None = None,
+        search: bool = True,
+        description: str | None = None,
+    ) -> "ObjectiveSpec":
+        """Evaluate this scale-free hardware fiber at one address scale."""
+
+        from .objectives import ExplicitRegions
+
+        component_name = name or f"{self.name}.{region_bytes}B"
+        dimensions = " x ".join(self.varying_dimensions)
+        return ExplicitRegions(
+            component_name,
+            region_bytes,
+            self.edges_by_array,
+            provenance="triton-linear-layout-fiber",
+            search=search,
+            description=(
+                description
+                or f"Logical images of Triton {dimensions} hardware fibers"
+            ),
+        )
+
+
+def linear_layout_resource_fiber(
+    execution_layout: TritonLinearLayout,
+    induced_events: Iterable[InducedMemoryEvent],
+    *,
+    varying_dimensions: Sequence[str],
+    name: str | None = None,
+    include_singletons: bool = False,
+) -> LinearLayoutResourceFiber:
+    """Regroup induced accesses into images of hardware-coordinate fibers.
+
+    Events with the same site, group, order, array, access kind, width, and
+    dynamic weight form one execution stream. All complementary hardware
+    coordinates are fixed while ``varying_dimensions`` range over their full
+    LinearLayout domains. This turns, for example, lane-issue events indexed
+    by register into per-lane register-ownership edges.
+    """
+
+    dimensions = tuple(str(dimension) for dimension in varying_dimensions)
+    if not dimensions:
+        raise ValueError("a LinearLayout resource fiber needs a dimension")
+    if len(dimensions) != len(set(dimensions)):
+        raise ValueError("LinearLayout resource fiber dimensions must be unique")
+    unknown = sorted(set(dimensions) - set(execution_layout.input_dims))
+    if unknown:
+        raise ValueError(f"unknown LinearLayout fiber dimensions: {unknown}")
+
+    event_items = tuple(induced_events)
+    if not event_items:
+        raise ValueError("a LinearLayout resource fiber needs induced events")
+
+    input_dimensions = execution_layout.input_dims
+    input_dimension_set = set(input_dimensions)
+    complementary = tuple(
+        dimension
+        for dimension in input_dimensions
+        if dimension not in dimensions
+    )
+    varying_size = 1
+    for dimension in dimensions:
+        varying_size *= execution_layout.input_size(dimension)
+
+    stream_locations: dict[
+        tuple[str, str, str, int, str, int | None, float],
+        dict[HardwareLocation, Coord],
+    ] = {}
+    for induced in event_items:
+        event = induced.event
+        arrays = {access.array for access in event.accesses}
+        if len(arrays) != 1:
+            raise ValueError(
+                f"induced event {event.id} must access exactly one array"
+            )
+        array = next(iter(arrays))
+        for location, access in zip(induced.locations, event.accesses):
+            coordinates = location.as_dict()
+            if set(coordinates) != input_dimension_set:
+                raise ValueError(
+                    f"{event.id}: hardware location dimensions do not match "
+                    "the execution LinearLayout"
+                )
+            stream = (
+                array,
+                event.site,
+                event.group,
+                event.order,
+                access.kind,
+                access.width_bytes,
+                event.weight,
+            )
+            locations = stream_locations.setdefault(stream, {})
+            if location in locations:
+                raise ValueError(
+                    f"execution stream {event.site!r} contains duplicate "
+                    f"hardware location {coordinates}"
+                )
+            locations[location] = access.coord
+
+    fiber_name = name or "triton.fiber." + "_x_".join(dimensions)
+    edges: dict[str, list[Hyperedge]] = {}
+    hardware_fiber_count = 0
+    omitted_singletons = 0
+    for stream, location_points in stream_locations.items():
+        array, site, group, order, kind, width_bytes, weight = stream
+        del group, order, kind, width_bytes
+        fibers: dict[tuple[tuple[str, int], ...], list[Coord]] = {}
+        for location, point in location_points.items():
+            coordinates = location.as_dict()
+            fixed = tuple(
+                (dimension, coordinates[dimension])
+                for dimension in complementary
+            )
+            fibers.setdefault(fixed, []).append(point)
+        for fixed, points in sorted(fibers.items()):
+            if len(points) != varying_size:
+                raise ValueError(
+                    f"execution stream {site!r} has an incomplete "
+                    f"{dimensions} fiber at {dict(fixed)}: found {len(points)}, "
+                    f"expected {varying_size}"
+                )
+            hardware_fiber_count += 1
+            unique_points = set(points)
+            if len(unique_points) == 1 and not include_singletons:
+                omitted_singletons += 1
+                continue
+            fixed_label = ".".join(
+                f"{dimension}{value}" for dimension, value in fixed
+            )
+            edges.setdefault(array, []).append(
+                Hyperedge.make(
+                    points,
+                    weight=weight,
+                    source=f"{fiber_name}:{site}:{fixed_label}",
+                )
+            )
+
+    return LinearLayoutResourceFiber(
+        fiber_name,
+        dimensions,
+        {array: tuple(array_edges) for array, array_edges in edges.items()},
+        hardware_fiber_count,
+        omitted_singletons,
+    )
+
+
 def induce_memory_event(
     execution_layout: TritonLinearLayout,
     matrix: MatrixSpec,
@@ -432,6 +594,7 @@ def execution_conditioned_quotient_problem(
     temporal_edges: Mapping[str, Sequence[Hyperedge]] | None = None,
     temporal_mode: str = "issue",
     temporal_objective_name: str | None = None,
+    execution_fiber_objectives: Iterable["ObjectiveSpec"] = (),
     config: "SolverConfig | None" = None,
     objective_name: str | None = None,
     name: str = "triton_execution_conditioned_quotient",
@@ -492,6 +655,7 @@ def execution_conditioned_quotient_problem(
 
     issue = {array: tuple(items) for array, items in edges.items()}
     component_name = objective_name or f"triton.issue.{transaction_bytes}B"
+    fiber_objectives = tuple(execution_fiber_objectives)
     if temporal_mode == "issue":
         objectives = (
             ExplicitRegions(
@@ -504,6 +668,7 @@ def execution_conditioned_quotient_problem(
                     "LinearLayouts"
                 ),
             ),
+            *fiber_objectives,
         )
     elif temporal_mode == "union":
         combined = {array: list(items) for array, items in issue.items()}
@@ -523,6 +688,7 @@ def execution_conditioned_quotient_problem(
                     "temporal fibers"
                 ),
             ),
+            *fiber_objectives,
         )
     else:
         temporal_name = temporal_objective_name
@@ -549,6 +715,7 @@ def execution_conditioned_quotient_problem(
                     "ordered issue steps"
                 ),
             ),
+            *fiber_objectives,
         )
     return RelayProblem(
         matrices=matrix_items,

@@ -64,6 +64,7 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
     from relay import (
         MatrixSpec,
         low_address_flag,
+        linear_layout_resource_fiber,
         row_major_layout,
         summarize_rank_quality,
         weighted_component_region_count,
@@ -96,14 +97,36 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         weight=occurrences,
         coordinate_map=lambda coord: coord,
     )
+    register_fiber = linear_layout_resource_fiber(
+        execution,
+        events,
+        varying_dimensions=("register",),
+        name="gemm_prepacked_b.register",
+    )
+    register_bytes = matrix.element_bytes * execution.input_size("register")
+    register_objective = register_fiber.at_scale(
+        register_bytes,
+        name=f"gemm_prepacked_b.register.{register_bytes}B",
+    )
+    register_component = register_objective.build(
+        {matrix.name: matrix}, {}, ()
+    )[0]
+    fiber_objectives = (
+        (register_objective,) if args.register_fibers else ()
+    )
     objective, problem, result = solve_layouts(
         (matrix,),
         events,
         args,
         "gemm_prepacked_b",
         inner_tile_shapes={matrix.name: ((TILE_SIZE, TILE_SIZE),)},
+        execution_fiber_objectives=fiber_objectives,
+        normalize_objectives=args.register_fibers,
     )
     component = result.components[0]
+    objective_names = (
+        (objective,) if isinstance(objective, str) else tuple(objective)
+    )
     retained = result.arrays[matrix.name].candidates
     default_score = weighted_component_region_count(
         matrix, default_layout, component
@@ -116,8 +139,11 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
     sources_by_mapping = {
         stable_id("mapping", list(default_rows)): default_b,
     }
-    score_levels = sorted(
-        {float(candidate.scores[objective]) for candidate in retained}
+    quotient_levels = sorted(
+        {float(candidate.scores[component.name]) for candidate in retained}
+    )
+    objective_levels = sorted(
+        {problem.config.policy.key(candidate.scores)[0] for candidate in retained}
     )
     for solver_rank, candidate in enumerate(retained, start=1):
         layout = candidate.layout
@@ -142,12 +168,41 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         launches[candidate_id] = launch
         outputs[candidate_id] = output
         compiled_candidates[candidate_id] = launch()
-        score = float(candidate.scores[objective])
+        score = float(candidate.scores[component.name])
+        objective_score = problem.config.policy.key(candidate.scores)[0]
+        if args.register_fibers:
+            objective_score -= len(objective_names)
+        quotient_components = {}
+        for component_name in objective_names:
+            raw = float(candidate.scores[component_name])
+            bound = float(candidate.packing_bounds[component_name])
+            quotient_components[component_name] = {
+                "quotient_score": raw,
+                "packing_bound": bound,
+                "normalized_excess": raw / bound - 1.0,
+            }
+        register_score = weighted_component_region_count(
+            matrix, layout, register_component
+        )
+        register_bound = register_component.packing_bound(matrix)
+        register_excess = register_score / register_bound - 1.0
+        issue_excess = score / candidate.packing_bounds[component.name] - 1.0
+        register_aware_score = issue_excess + register_excess
+        if args.register_fibers and abs(
+            objective_score - register_aware_score
+        ) > 1e-9:
+            raise ValueError(
+                "normalized register-fiber objective decomposition changed"
+            )
         records.append(
             {
                 "candidate_id": candidate_id,
                 "solver_rank": solver_rank,
-                "quotient_rank": score_levels.index(score) + 1,
+                "quotient_rank": quotient_levels.index(score) + 1,
+                "objective_rank": objective_levels.index(
+                    problem.config.policy.key(candidate.scores)[0]
+                )
+                + 1,
                 "layout": layout.name,
                 "grammar": layout.grammar,
                 **canonical_layout_metadata(layout, matrix),
@@ -155,7 +210,15 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
                 "mapping_id": mapping_id,
                 "flag_id": flag_id,
                 "quotient_score": score,
-                "packing_bound": float(candidate.packing_bounds[objective]),
+                "packing_bound": float(
+                    candidate.packing_bounds[component.name]
+                ),
+                "objective_score": objective_score,
+                "quotient_components": quotient_components,
+                "register_fiber_score": float(register_score),
+                "register_fiber_packing_bound": float(register_bound),
+                "register_fiber_normalized_excess": float(register_excess),
+                "register_aware_score": float(register_aware_score),
                 "runs": int(candidate.scores["runs"]),
                 "xor_count": layout.xor_count,
                 "exact": candidate.exact,
@@ -189,6 +252,12 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         )
 
     rank_quality = summarize_rank_quality(records)
+    objective_rank_quality = summarize_rank_quality(
+        records, score_key="objective_score"
+    )
+    register_aware_rank_quality = summarize_rank_quality(
+        records, score_key="register_aware_score"
+    )
     selected = records[0]
     default = next(record for record in records if record["layout"] == "row_major")
     return {
@@ -203,6 +272,25 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         "dynamic_occurrences_per_event": occurrences,
         "induced_event_count": len(events),
         "objective": objective,
+        "execution_fibers": {
+            "enabled": args.register_fibers,
+            "aggregation": (
+                "equal-weight normalized excess"
+                if args.register_fibers
+                else None
+            ),
+            "register": {
+                "varying_dimensions": list(
+                    register_fiber.varying_dimensions
+                ),
+                "hardware_fiber_count": register_fiber.hardware_fiber_count,
+                "omitted_singleton_count": (
+                    register_fiber.omitted_singleton_count
+                ),
+                "region_bytes": matrix.element_bytes
+                * execution.input_size("register"),
+            },
+        },
         "search_scope": {
             "grammar": "canonical_inner_tile",
             "inner_tile_shape": [TILE_SIZE, TILE_SIZE],
@@ -216,6 +304,8 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         "selected": selected,
         "candidates": records,
         "rank_quality": rank_quality,
+        "objective_rank_quality": objective_rank_quality,
+        "register_aware_rank_quality": register_aware_rank_quality,
         "predicted_transaction_reduction": 1.0
         - float(selected["quotient_score"]) / default_score,
         "measured_speedup": float(default["runtime_ms"])
@@ -276,6 +366,14 @@ def parse_arguments(argv=None):
     parser.add_argument("--gemm-size", type=positive_integer, default=512)
     parser.add_argument("--transaction-bytes", type=positive_integer, default=128)
     parser.add_argument("--candidates", type=positive_integer, default=8)
+    parser.add_argument(
+        "--register-fibers",
+        action="store_true",
+        help=(
+            "add per-lane register-ownership fibers at their exact byte "
+            "footprint and rank by equal-weight normalized excess"
+        ),
+    )
     parser.add_argument("--samples", type=positive_integer, default=21)
     parser.add_argument("--iterations", type=positive_integer, default=50)
     parser.add_argument("--warmup", type=positive_integer, default=10)

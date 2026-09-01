@@ -463,7 +463,11 @@ def solve_layouts(
     inner_tile_shapes,
     temporal_edges=None,
     temporal_mode="issue",
+    execution_fiber_objectives=(),
+    normalize_objectives=False,
 ):
+    from dataclasses import replace
+
     from relay import (
         ScorePolicy,
         SolverConfig,
@@ -476,12 +480,14 @@ def solve_layouts(
     issue_objective = f"{name}.issue.{args.transaction_bytes}B"
     temporal_objective = f"{name}.temporal.{args.transaction_bytes}B"
     if temporal_mode == "union":
-        objective = f"{name}.space_time.{args.transaction_bytes}B"
+        base_objective = f"{name}.space_time.{args.transaction_bytes}B"
+        objective = base_objective
         policy = ScorePolicy(
             "lexicographic", (objective, "runs", "xors")
         )
     elif temporal_mode == "split":
-        objective = (issue_objective, temporal_objective)
+        base_objective = (issue_objective, temporal_objective)
+        objective = base_objective
         policy = ScorePolicy(
             kind="weighted",
             order=objective,
@@ -489,7 +495,8 @@ def solve_layouts(
             tie_order=("runs", "xors"),
         )
     else:
-        objective = issue_objective
+        base_objective = issue_objective
+        objective = base_objective
         policy = ScorePolicy(
             "lexicographic", (objective, "runs", "xors")
         )
@@ -515,6 +522,7 @@ def solve_layouts(
         args.candidates,
         1 + max(len(shapes) for shapes in tile_shapes.values()),
     )
+    fiber_objectives = tuple(execution_fiber_objectives)
     problem = execution_conditioned_quotient_problem(
         matrices,
         events,
@@ -523,8 +531,60 @@ def solve_layouts(
         temporal_mode=temporal_mode,
         temporal_objective_name=temporal_objective,
         objective_name=(
-            issue_objective if temporal_mode == "split" else objective
+            issue_objective if temporal_mode == "split" else base_objective
         ),
+        execution_fiber_objectives=fiber_objectives,
+        name=name,
+    )
+    if fiber_objectives:
+        base_names = (
+            (base_objective,)
+            if isinstance(base_objective, str)
+            else base_objective
+        )
+        fiber_names = tuple(component.name for component in fiber_objectives)
+        objective = (*base_names, *fiber_names)
+        if normalize_objectives:
+            from relay.objectives import build_objectives
+
+            components = build_objectives(
+                problem.objectives,
+                {matrix.name: matrix for matrix in problem.matrices},
+                {event.id: event for event in problem.events},
+                problem.sequences,
+            )
+            by_name = {component.name: component for component in components}
+            bounds = {
+                component_name: sum(
+                    by_name[component_name].packing_bound(matrix)
+                    for matrix in targets
+                    if by_name[component_name].edges_by_array.get(matrix.name)
+                )
+                for component_name in objective
+            }
+            if any(bound <= 0 for bound in bounds.values()):
+                raise ValueError(
+                    "normalized execution-fiber objectives need positive "
+                    "packing bounds"
+                )
+            policy = ScorePolicy(
+                kind="weighted",
+                order=objective,
+                weights={
+                    component_name: 1.0 / bounds[component_name]
+                    for component_name in objective
+                },
+                tie_order=("runs", "xors"),
+            )
+        else:
+            policy = ScorePolicy(
+                kind="weighted",
+                order=objective,
+                weights={component_name: 1.0 for component_name in objective},
+                tie_order=("runs", "xors"),
+            )
+    problem = replace(
+        problem,
         config=SolverConfig(
             policy=policy,
             tile_shapes=tile_shapes,
@@ -534,11 +594,14 @@ def solve_layouts(
             include_column_major_control=False,
             retain_one_candidate_per_tile=True,
             canonical_candidates_per_tile=args.candidates,
-            primary_tolerance=(None if temporal_mode == "split" else 0.0),
+            primary_tolerance=(
+                None
+                if temporal_mode == "split" or fiber_objectives
+                else 0.0
+            ),
             per_array_candidates=retained_count,
             joint_candidates=retained_count,
         ),
-        name=name,
     )
     return objective, problem, solve(problem)
 

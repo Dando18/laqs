@@ -86,6 +86,16 @@ def aggregate_rankings(results: list[dict[str, object]]) -> dict[str, object]:
         candidates.append(candidate)
 
     rank_quality = summarize_rank_quality(candidates)
+    objective_rank_quality = (
+        summarize_rank_quality(candidates, score_key="objective_score")
+        if "objective_score" in candidates[0]
+        else None
+    )
+    register_aware_rank_quality = (
+        summarize_rank_quality(candidates, score_key="register_aware_score")
+        if "register_aware_score" in candidates[0]
+        else None
+    )
     default = next(
         candidate for candidate in candidates if candidate["layout"] == "row_major"
     )
@@ -112,6 +122,8 @@ def aggregate_rankings(results: list[dict[str, object]]) -> dict[str, object]:
         "selected": selected,
         "candidates": candidates,
         "rank_quality": rank_quality,
+        "objective_rank_quality": objective_rank_quality,
+        "register_aware_rank_quality": register_aware_rank_quality,
         "measured_speedup": float(default["runtime_ms"])
         / float(selected["runtime_ms"]),
         "correct": all(bool(result["correct"]) for result in results),

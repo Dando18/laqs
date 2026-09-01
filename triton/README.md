@@ -257,6 +257,29 @@ candidate, aggregate top-1 through top-5 regret and rank correlation, and 20
 raw steady-state counter dispatches for each profiled layout. Counter
 collection uses the four-pass configuration in `triton/rocprof-stage15.txt`.
 
+Add LinearLayout-induced per-lane register-ownership fibers at their exact
+byte footprint with `--register-fibers`. The issue and register components are
+combined as equal-weight normalized excesses so their different edge counts do
+not set their relative importance. `--profile-all` profiles every retained
+mapping and reports tie-aware correlations for the issue quotient, register
+component, and combined score:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --register-fibers --process-launches 3 \
+  --json triton/results/stage15-gemm-register-fibers-mi300a.json --quiet
+
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --ranking-json triton/results/stage15-gemm-fresh-baseline-mi300a.json \
+  --profile-all \
+  --json triton/results/stage15-gemm-fiber-counter-panel-mi300a.json --quiet
+```
+
+The initial MI300A result is summarized in
+[`results/stage15-gemm-register-fibers-mi300a.md`](results/stage15-gemm-register-fibers-mi300a.md).
+
 ## Run the Stage 1 breadth experiments
 
 The GEMM breadth driver ranks all eight retained B layouts across square,

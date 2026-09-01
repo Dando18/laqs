@@ -15,6 +15,7 @@ from relay import (
     execution_conditioned_quotient_problem,
     extract_blocked_layout,
     induce_memory_event,
+    linear_layout_resource_fiber,
     row_major_layout,
     solve,
     validate_induced_hypergraph,
@@ -326,6 +327,127 @@ class ExecutionConditionedQuotientTests(unittest.TestCase):
             column.hyperedge.points,
             tuple((lane, 0) for lane in range(8)),
         )
+
+    def test_linear_layout_resource_fibers_regroup_hardware_coordinates(self) -> None:
+        matrix = MatrixSpec("tile", (4, 2), 4, ("row", "column"))
+        execution = TritonLinearLayout.from_bases(
+            (
+                ("register", ((0, 1),)),
+                ("lane", ((1, 0), (2, 0))),
+                ("warp", ()),
+                ("block", ()),
+            ),
+            (("row", 4), ("column", 2)),
+        )
+        events = tuple(
+            induce_memory_event(
+                execution,
+                matrix,
+                execution.locations(
+                    fixed={"register": register, "warp": 0, "block": 0}
+                ),
+                id=f"tile.load.r{register}",
+                site="tile.load",
+                weight=3,
+            )
+            for register in range(2)
+        )
+
+        register_fibers = linear_layout_resource_fiber(
+            execution,
+            events,
+            varying_dimensions=("register",),
+            name="tile.register",
+        )
+        register_edges = register_fibers.edges_by_array["tile"]
+        self.assertEqual(register_fibers.hardware_fiber_count, 4)
+        self.assertEqual(register_fibers.omitted_singleton_count, 0)
+        self.assertEqual(len(register_edges), 4)
+        self.assertEqual(register_edges[0].points, ((0, 0), (0, 1)))
+        self.assertTrue(all(edge.weight == 3 for edge in register_edges))
+
+        warp_fragment = linear_layout_resource_fiber(
+            execution,
+            events,
+            varying_dimensions=("register", "lane"),
+        )
+        self.assertEqual(warp_fragment.hardware_fiber_count, 1)
+        self.assertEqual(
+            len(warp_fragment.edges_by_array["tile"][0].points),
+            matrix.size,
+        )
+
+    def test_linear_layout_resource_fiber_rejects_incomplete_stream(self) -> None:
+        matrix = MatrixSpec("tile", (4, 2), 4, ("row", "column"))
+        execution = TritonLinearLayout.from_bases(
+            (
+                ("register", ((0, 1),)),
+                ("lane", ((1, 0), (2, 0))),
+            ),
+            (("row", 4), ("column", 2)),
+        )
+        event = induce_memory_event(
+            execution,
+            matrix,
+            execution.locations(fixed={"register": 0}),
+            id="tile.load.r0",
+            site="tile.load",
+        )
+
+        with self.assertRaisesRegex(ValueError, "incomplete.*register"):
+            linear_layout_resource_fiber(
+                execution,
+                (event,),
+                varying_dimensions=("register",),
+            )
+
+    def test_execution_problem_accepts_resource_fiber_components(self) -> None:
+        execution = TritonLinearLayout.from_blocked(
+            (8,),
+            size_per_thread=(2,),
+            threads_per_warp=(4,),
+            warps_per_cta=(1,),
+            order=(0,),
+        )
+        matrix = MatrixSpec("values", (8,), 4, ("value",))
+        events = tuple(
+            induce_memory_event(
+                execution,
+                matrix,
+                execution.locations(
+                    fixed={"register": register, "warp": 0, "block": 0}
+                ),
+                id=f"values.load.r{register}",
+                site="values.load",
+            )
+            for register in range(2)
+        )
+        fibers = linear_layout_resource_fiber(
+            execution,
+            events,
+            varying_dimensions=("register",),
+        )
+        problem = execution_conditioned_quotient_problem(
+            (matrix,),
+            events,
+            transaction_bytes=16,
+            objective_name="issue",
+            execution_fiber_objectives=(
+                fibers.at_scale(8, name="register.8B"),
+            ),
+        )
+        components = build_objectives(
+            problem.objectives,
+            {matrix.name: matrix},
+            {event.event.id: event.event for event in events},
+            (),
+        )
+
+        self.assertEqual(
+            [component.name for component in components],
+            ["issue", "register.8B"],
+        )
+        self.assertEqual(components[1].provenance, "triton-linear-layout-fiber")
 
     def test_stage1_problem_finds_a_better_quotient_flag(self) -> None:
         objective_name = "triton.issue.16B"
