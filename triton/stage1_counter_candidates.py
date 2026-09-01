@@ -1,4 +1,4 @@
-"""Canonical persistent-layout panels for Stage-1 counter sweeps."""
+"""Persistent-layout panels for Stage-1 counter sweeps."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from collections.abc import Iterable, Sequence
 import hashlib
 import json
 from math import comb
+import random
 
 
 def _tile_exponents(matrix, tile_shape: Sequence[int]) -> tuple[int, ...]:
@@ -117,6 +118,166 @@ def _candidate_record(matrix, layout, quotient_score: float):
         "address_expression_runs": int(layout_codegen_runs(matrix, layout)),
         "inner_word_runs": int(layout.runs),
         "xor_count": int(layout.xor_count),
+    }
+
+
+def _random_invertible_rows(
+    width: int, generator: random.Random
+) -> tuple[int, ...]:
+    """Draw uniformly from the invertible binary matrices of ``width``."""
+
+    from relay.gf2 import invert_matrix_rows
+
+    if width <= 0:
+        raise ValueError("random linear layouts require a nonempty inner tile")
+    while True:
+        rows = tuple(generator.getrandbits(width) for _ in range(width))
+        try:
+            invert_matrix_rows(rows, width)
+        except ValueError:
+            continue
+        return rows
+
+
+def _linear_candidate_record(
+    matrix,
+    layout,
+    quotient_score: float,
+    *,
+    sample_index: int,
+    sampling_attempt: int,
+) -> dict[str, object]:
+    from relay import layout_codegen_runs, layout_matrix_rows
+
+    rows = layout_matrix_rows(matrix, layout)
+    mapping_id = _stable_id("mapping", list(rows))
+    return {
+        "candidate_id": _stable_id(
+            "random_layout_candidate",
+            {"matrix": matrix.name, "a_rows": rows},
+        ),
+        "mapping_id": mapping_id,
+        "layout": layout.name,
+        "layout_descriptor": layout.descriptor(matrix),
+        "grammar": layout.grammar,
+        "word": None,
+        "inner_word": "linear",
+        "inner_mode_indices": [],
+        "inner_mode_order": [],
+        "inner_tile_shape": list(layout.tile_shape),
+        "inner_a_rows": list(layout.a_rows),
+        "fixed_outer_order": [
+            matrix.mode_names[mode] for mode in layout.outer_order
+        ],
+        "a_rows": list(rows),
+        "quotient_score": float(quotient_score),
+        "address_expression_runs": int(layout_codegen_runs(matrix, layout)),
+        "inner_word_runs": int(layout.runs),
+        "xor_count": int(layout.xor_count),
+        "sample_index": sample_index,
+        "sampling_attempt": sampling_attempt,
+    }
+
+
+def random_linear_counter_panel(
+    matrix,
+    issue_component,
+    tile_shapes: Sequence[Sequence[int]],
+    *,
+    samples: int,
+    seed: int,
+) -> dict[str, object]:
+    """Sample distinct linear inner layouts over uniformly drawn tile shapes."""
+
+    from relay import LinearInnerLayout, weighted_component_region_count
+
+    if samples <= 0:
+        raise ValueError("random counter panels require at least one sample")
+    tile_exponents = tuple(
+        dict.fromkeys(_tile_exponents(matrix, shape) for shape in tile_shapes)
+    )
+    if not tile_exponents:
+        raise ValueError("random counter panels require at least one tile shape")
+    if any(sum(exponents) == 0 for exponents in tile_exponents):
+        raise ValueError("random counter panels do not support scalar tiles")
+
+    generator = random.Random(seed)
+    outer_order = tuple(reversed(range(matrix.rank)))
+    candidates = []
+    mapping_ids = set()
+    tile_counts = {exponents: 0 for exponents in tile_exponents}
+    max_attempts = max(1_000, samples * 100)
+    for attempt in range(1, max_attempts + 1):
+        exponents = tile_exponents[generator.randrange(len(tile_exponents))]
+        width = sum(exponents)
+        inner_rows = _random_invertible_rows(width, generator)
+        layout = LinearInnerLayout(
+            "random_"
+            + "x".join(str(1 << exponent) for exponent in exponents)
+            + f"_{attempt}",
+            matrix.name,
+            exponents,
+            inner_rows,
+            outer_order,
+        )
+        layout.validate(matrix)
+        score = float(
+            weighted_component_region_count(matrix, layout, issue_component)
+        )
+        candidate = _linear_candidate_record(
+            matrix,
+            layout,
+            score,
+            sample_index=len(candidates) + 1,
+            sampling_attempt=attempt,
+        )
+        if candidate["mapping_id"] in mapping_ids:
+            continue
+        mapping_ids.add(candidate["mapping_id"])
+        candidates.append(candidate)
+        tile_counts[exponents] += 1
+        if len(candidates) == samples:
+            break
+    else:
+        raise ValueError(
+            f"could not draw {samples} distinct layouts in {max_attempts} attempts"
+        )
+
+    levels = sorted({candidate["quotient_score"] for candidate in candidates})
+    for candidate in candidates:
+        candidate["panel_rank"] = candidate["sample_index"]
+        candidate["quotient_rank"] = levels.index(
+            candidate["quotient_score"]
+        ) + 1
+    return {
+        "selection": "seeded random sampling without replacement",
+        "grouping": "none",
+        "layout_grammar": "invertible_linear_inner",
+        "sampling_distribution": {
+            "tile_shape": "uniform over kernel tile hypotheses",
+            "layout_given_tile": "uniform over invertible binary matrices",
+        },
+        "random_seed": seed,
+        "requested_sample_count": samples,
+        "sampling_attempt_count": max(
+            candidate["sampling_attempt"] for candidate in candidates
+        ),
+        "outer_layout": "row_major_tiles",
+        "fixed_outer_order": [
+            matrix.mode_names[mode] for mode in outer_order
+        ],
+        "tile_grammars": [
+            {
+                "tile_shape": [1 << exponent for exponent in exponents],
+                "tile_exponents": list(exponents),
+                "sample_count": tile_counts[exponents],
+            }
+            for exponents in tile_exponents
+        ],
+        "unique_mapping_count": len(candidates),
+        "representative_count": len(candidates),
+        "quotient_levels": levels,
+        "candidates": candidates,
     }
 
 

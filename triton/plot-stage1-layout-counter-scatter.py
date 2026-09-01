@@ -15,10 +15,12 @@ from stage1_counter_analysis import SUMMARY_METRICS, rank_correlation
 
 METRIC_LABELS = {
     "l1_cache_line_accesses": "First-Level Cache Accesses per Kernel",
+    "first_level_read_events": "TCP_TOTAL_READ_sum per dispatch",
     "l1_to_l2_read_requests": "TCP_TCC_READ_REQ_sum per dispatch",
     "l1_to_l2_write_requests": "TCP_TCC_WRITE_REQ_sum per dispatch",
     "l1_to_l2_total_requests": "TCP-to-TCC requests per dispatch",
     "l2_tag_requests": "TCC_REQ_sum per dispatch",
+    "second_level_read_requests": "TCC_READ_sum per dispatch",
     "l2_hits": "TCC_HIT_sum per dispatch",
     "l2_misses": "TCC_MISS_sum per dispatch",
     "hbm_read_bytes": "HBM read bytes per dispatch",
@@ -60,8 +62,12 @@ def _configure_font(plt) -> str:
 
 def load_report(path: Path) -> dict[str, object]:
     report = json.loads(path.read_text(encoding="utf-8"))
-    if report.get("experiment") != "triton_stage1_layout_counter_scatter":
-        raise ValueError(f"{path} is not a layout-counter scatter report")
+    experiments = {
+        "triton_stage1_layout_counter_scatter",
+        "triton_stage1_random_layout_counters",
+    }
+    if report.get("experiment") not in experiments:
+        raise ValueError(f"{path} is not a layout-counter report")
     return report
 
 
@@ -97,11 +103,16 @@ def render(report: dict[str, object], metric: str, output: Path) -> str:
         total = len(report["candidates"])
         pending = len(report.get("missing_profiles", ()))
         case = report["case"]
+        runner = (
+            "triton/run-stage1-random-layout-counters.py"
+            if report["experiment"] == "triton_stage1_random_layout_counters"
+            else "triton/run-stage1-layout-counter-scatter.py"
+        )
         raise ValueError(
             "scatter report has only "
             f"{len(candidates)} of {total} profiled mappings ({pending} "
             "profiles pending); continue it with "
-            "triton/run-stage1-layout-counter-scatter.py "
+            f"{runner} "
             f"--case {case} --max-profiles 6"
         )
     tiles = sorted(
@@ -153,10 +164,16 @@ def render(report: dict[str, object], metric: str, output: Path) -> str:
     axis.set_yticks(y_ticks)
     axis.xaxis.set_major_formatter(FuncFormatter(lambda value, _pos: f"{value:,.0f}"))
     axis.yaxis.set_major_formatter(FuncFormatter(lambda value, _pos: f"{value:,.0f}"))
-    axis.set_xlabel("Issue quotient score", fontsize=13)
+    notation = report["configuration"].get("quotient_notation", "Q")
+    axis.set_xlabel(f"{notation} issue quotient score", fontsize=13)
     axis.set_ylabel(METRIC_LABELS[metric], fontsize=13)
+    experiment_label = (
+        "random tile layouts"
+        if report["experiment"] == "triton_stage1_random_layout_counters"
+        else "persistent tile layouts"
+    )
     axis.set_title(
-        f"{report['case'].upper()}: persistent tile layouts versus memory traffic",
+        f"{report['case'].upper()}: {experiment_label} versus memory traffic",
         fontsize=14,
         pad=10,
     )

@@ -35,6 +35,7 @@ COUNTER_PASSES = (
     "pmc : TCP_TOTAL_CACHE_ACCESSES_sum TCP_TCC_READ_REQ_sum "
     "TCP_TCC_WRITE_REQ_sum",
     "pmc : TCC_REQ_sum TCC_HIT_sum TCC_MISS_sum",
+    "pmc : TCP_TOTAL_READ_sum TCC_READ_sum",
     "pmc : FETCH_SIZE WRITE_SIZE",
 )
 
@@ -126,7 +127,7 @@ def _worker_command(args, *extra: str) -> list[str]:
 
 
 def _panel_configuration(args, panel_mode: str) -> dict[str, object]:
-    return {
+    configuration = {
         "candidate_panel_schema": 1,
         "case": args.case,
         "panel_mode": panel_mode,
@@ -137,6 +138,14 @@ def _panel_configuration(args, panel_mode: str) -> dict[str, object]:
         "transaction_bytes": args.transaction_bytes,
         "requested_retained_candidates": args.candidates,
     }
+    if panel_mode == "random_layouts":
+        configuration.update(
+            {
+                "random_layout_samples": args.layouts,
+                "random_seed": args.seed,
+            }
+        )
+    return configuration
 
 
 def prepare_panel(
@@ -161,6 +170,15 @@ def prepare_panel(
     if panel_mode == "fixed_tile_levels":
         extra.extend(
             ["--panel-tile-shape", *(str(value) for value in args.tile_shape)]
+        )
+    elif panel_mode == "random_layouts":
+        extra.extend(
+            (
+                "--panel-samples",
+                str(args.layouts),
+                "--panel-seed",
+                str(args.seed),
+            )
         )
     extra.extend(("--json", str(worker_json.resolve()), "--quiet"))
     command = _worker_command(args, *extra)
@@ -206,7 +224,7 @@ def _profile_configuration(
     launch: int,
 ) -> dict[str, object]:
     return {
-        "profile_schema": 2,
+        "profile_schema": 3,
         "case": args.case,
         "kernel_name": KERNEL_NAMES[args.case],
         "candidate_id": candidate["candidate_id"],
@@ -374,7 +392,6 @@ def _gesummv_theory(
         args.case != "gesummv"
         or panel_mode != "fixed_tile_levels"
         or tuple(args.tile_shape) != (64, 64)
-        or args.transaction_bytes != 128
     ):
         return None
     panel = panel_record["panel"]
@@ -405,7 +422,14 @@ def _gesummv_theory(
     if int(shape[0]) % 64:
         raise ValueError("GESUMMV row count must be divisible by 64")
 
-    low_address_dimension = 5
+    transaction_elements, remainder = divmod(args.transaction_bytes, 4)
+    if (
+        remainder
+        or transaction_elements <= 0
+        or transaction_elements & (transaction_elements - 1)
+    ):
+        raise ValueError("GESUMMV transaction scale must be power-of-two FP32")
+    low_address_dimension = transaction_elements.bit_length() - 1
     dynamic_cohorts = (
         (int(shape[0]) // 64) * int(shape[1]) * register_width
     )
@@ -516,6 +540,19 @@ def collect_report(
                             ]
                             for validation in validations
                         ),
+                        "load_instruction_structure_nonempty": all(
+                            validation.get(
+                                "load_instruction_structure_nonempty", False
+                            )
+                            for validation in validations
+                        ),
+                        "store_instruction_structure_matches_reference": all(
+                            validation.get(
+                                "store_instruction_structure_matches_reference",
+                                True,
+                            )
+                            for validation in validations
+                        ),
                         "no_spills": all(
                             validation["no_candidate_spills"]
                             for validation in validations
@@ -540,6 +577,9 @@ def collect_report(
     statistics = {
         "observation_count": len(x),
         "primary_hardware_metric": "l1_cache_line_accesses",
+        "primary_hardware_counter": "TCP_TOTAL_CACHE_ACCESSES_sum",
+        "native_counter": "TCP_TOTAL_CACHE_ACCESSES_sum",
+        "native_unit": "64-byte vL1D access",
         "tie_aware_spearman": rank_correlation(x, y),
         "free_intercept_linear_fit": linear_fit(x, y) if len(set(x)) > 1 else None,
     }
@@ -552,16 +592,31 @@ def collect_report(
         "operand_shape": panel_record["operand_shape"],
         "configuration": {
             **_panel_configuration(args, panel_mode),
+            "profiler_backend": "amd_rocprof",
+            "quotient_notation": f"Q_{args.transaction_bytes}B",
             "profile_launches": args.profile_launches,
             "profile_warmup": args.profile_warmup,
             "profile_iterations": args.profile_iterations,
             "cache_mode": "warm",
             "candidate_order": "cyclic rotation by profiler launch",
             "counter_passes_per_profile": len(COUNTER_PASSES),
+            "native_counter": "TCP_TOTAL_CACHE_ACCESSES_sum",
+            "native_unit": "64-byte vL1D access",
+            "counter_native_scale_bytes": 64,
+            "quotient_scale_matches_native_counter": (
+                args.transaction_bytes == 64
+            ),
+            "quotient_scale_selection_rule": (
+                "match the quotient byte scale to the measured counter's "
+                "documented native accounting unit"
+            ),
             "rocprof": str(args.rocprof.resolve()),
         },
         "measurement_scope": {
-            "quotient": "issue-only target-operand transaction quotient",
+            "quotient": (
+                f"Q_{args.transaction_bytes}B issue-only target-operand "
+                "transaction quotient"
+            ),
             "hardware": "whole-kernel counters with all other operands fixed",
             "aggregation": (
                 "median of the final target dispatches within a profiler "
@@ -569,6 +624,8 @@ def collect_report(
             ),
             "process_isolation": "one rocprof invocation per mapping and launch",
         },
+        "native_counter": "TCP_TOTAL_CACHE_ACCESSES_sum",
+        "native_unit": "64-byte vL1D access",
         "counter_definitions": COUNTER_DEFINITIONS,
         "panel": panel_record["panel"],
         "theory_validation": _gesummv_theory(args, panel_record, panel_mode),
@@ -591,8 +648,12 @@ def write_csv(report: dict[str, object], path: Path) -> None:
         "case",
         "candidate_id",
         "mapping_id",
+        "sample_index",
+        "grammar",
         "inner_tile_shape",
         "inner_word",
+        "inner_a_rows",
+        "a_rows",
         "quotient_score",
         "address_expression_runs",
         "xor_count",

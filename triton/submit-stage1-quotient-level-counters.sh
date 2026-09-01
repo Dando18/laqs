@@ -34,12 +34,12 @@ for kernel in "${KERNELS[@]}"; do
     flux submit \
         -N 1 -x \
         -t "${WALL_TIME}" \
-        --job-name="laqs-quotient-${kernel}" \
+        --job-name="laqs-q64-quotient-${kernel}" \
         triton/.venv/bin/python \
         triton/run-stage1-quotient-level-counters.py \
         --case "${kernel}" \
         --tile-shape "${tile_shape[@]}" \
+        --transaction-bytes 64 \
         --profile-launches 3 \
-        --rerun \
         --quiet
 done

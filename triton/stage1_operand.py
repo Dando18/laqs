@@ -13,6 +13,8 @@ from stage1_common import (
     compiled_codegen_statistics,
     execution_layout_from_compiled,
     execution_layout_record,
+    is_load_opcode,
+    is_store_opcode,
     layout_rows,
     pack_tensor,
     require_aligned,
@@ -81,7 +83,10 @@ def rank_persistent_operand(
     counter_panel = None
     panel_mode = getattr(args, "counter_panel", None)
     if panel_mode is not None:
-        from stage1_counter_candidates import canonical_counter_panel
+        from stage1_counter_candidates import (
+            canonical_counter_panel,
+            random_linear_counter_panel,
+        )
 
         if temporal_mode != "issue":
             raise ValueError("counter panels require issue-only scoring")
@@ -93,15 +98,24 @@ def rank_persistent_operand(
                 )
             panel_tile_shapes = (tuple(tile_shape),)
             group_by_tile = False
+        elif panel_mode == "random_layouts":
+            counter_panel = random_linear_counter_panel(
+                matrix,
+                issue_component,
+                inner_tile_shapes,
+                samples=args.panel_samples,
+                seed=args.panel_seed,
+            )
         else:
             panel_tile_shapes = inner_tile_shapes
             group_by_tile = True
-        counter_panel = canonical_counter_panel(
-            matrix,
-            issue_component,
-            panel_tile_shapes,
-            group_by_tile=group_by_tile,
-        )
+        if counter_panel is None:
+            counter_panel = canonical_counter_panel(
+                matrix,
+                issue_component,
+                panel_tile_shapes,
+                group_by_tile=group_by_tile,
+            )
         counter_panel["mode"] = panel_mode
         counter_panel["objective"] = "issue_only"
 
@@ -318,15 +332,17 @@ def rank_persistent_operand(
             target_blocked, target_execution
         )
 
-        def load_signature(codegen):
+        def opcode_signature(codegen, predicate):
             return {
                 opcode: count
                 for opcode, count in codegen["opcode_counts"].items()
-                if "load" in opcode
+                if predicate(opcode)
             }
 
-        reference_loads = load_signature(reference_codegen)
-        target_loads = load_signature(target_codegen)
+        reference_loads = opcode_signature(reference_codegen, is_load_opcode)
+        target_loads = opcode_signature(target_codegen, is_load_opcode)
+        reference_stores = opcode_signature(reference_codegen, is_store_opcode)
+        target_stores = opcode_signature(target_codegen, is_store_opcode)
         structural_validation = {
             "execution_layout_matches_reference": (
                 target_execution_record == reference_execution_record
@@ -336,8 +352,16 @@ def rank_persistent_operand(
             "load_instruction_structure_matches_reference": (
                 target_loads == reference_loads
             ),
+            "load_instruction_structure_nonempty": bool(
+                reference_loads and target_loads
+            ),
             "reference_load_opcode_counts": reference_loads,
             "candidate_load_opcode_counts": target_loads,
+            "store_instruction_structure_matches_reference": (
+                target_stores == reference_stores
+            ),
+            "reference_store_opcode_counts": reference_stores,
+            "candidate_store_opcode_counts": target_stores,
             "reference_spills": reference_codegen["n_spills"],
             "candidate_spills": target_codegen["n_spills"],
             "no_candidate_spills": target_codegen["n_spills"] == 0,
@@ -346,14 +370,16 @@ def rank_persistent_operand(
             structural_validation[name]
             for name in (
                 "execution_layout_matches_reference",
+                "load_instruction_structure_nonempty",
                 "load_instruction_structure_matches_reference",
+                "store_instruction_structure_matches_reference",
                 "no_candidate_spills",
             )
         )
         if not structural_validation["accepted"]:
             raise ValueError(
                 f"{target['candidate_id']}: counter candidate changed the "
-                "execution layout, load structure, or spill state"
+                "execution layout, load/store structure, or spill state"
             )
 
         cache_mode = args.profile_cache_mode

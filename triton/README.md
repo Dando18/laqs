@@ -105,17 +105,43 @@ Submit one five-minute, one-H100 Slurm job for each targeted Stage 1 kernel:
 bash triton/submit-stage1-quotient-level-counters-matrix.sh
 ```
 
-The Matrix jobs use Nsight Compute 2025.3 and write separate `*-matrix.json`,
-`*-matrix.csv`, profile, and log paths, leaving the Tuolumne/rocprof results
-unchanged. On Matrix's H100, `memory_l1_tag_requests_global` is not directly
-collectable. The jobs therefore collect the requested fallback
-`l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum`, the total number of 32-byte
-L1TEX sectors requested by global loads. Nsight Compute cache flushing is
-disabled so the worker's explicit warmup controls the warm-cache experiment.
+The Matrix jobs use Nsight Compute 2025.3 and the H100 counter-native quotient
+scale, `Q_32B`. They write `*-q32b-matrix.json`, `*-q32b-matrix.csv`, profile,
+and log paths, leaving both Tuolumne and the existing `Q_128B` Matrix reports
+unchanged. The recorded counters are:
+
+- `l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum` for first-level read work;
+- `l1tex__t_requests_pipe_lsu_mem_global_op_ld.sum` for global-load requests;
+- `lts__t_sectors_srcunit_tex_op_read.sum` for both L1-to-L2 read traffic and
+  L2 read work;
+- `lts__t_sectors_op_read_lookup_miss.sum` for L2 read misses;
+- `dram__bytes_read.sum` for HBM read volume; and
+- `gpu__time_duration.sum` for kernel duration.
+
+The JSON field `first_level_memory_accesses` records the first counter with
+`native_counter` and `native_unit` set to the exact metric and
+`32-byte global-load L1TEX sector`. `sectors_per_request` is derived per kernel
+dispatch by dividing global-load sectors by global-load requests. Nsight
+Compute cache flushing is disabled so the worker's explicit warmup controls
+the warm-cache experiment.
+
+The compiled-code guard parses PTX `ld.global*` and `st.global*` opcodes,
+including predicated instructions. Candidate and reference load/store opcode
+maps must match, so the H100 structural check is no longer vacuous.
 
 Jobs are resumable from completed per-profile checkpoints. Run the submission
 command again if a case reaches the five-minute limit; already completed
 profiles are retained.
+
+The submission defaults to `pdebug` for five minutes. If that partition stays
+occupied, submit the same resumable jobs to `pbatch` with a longer user-run
+allocation:
+
+```bash
+RELAY_TRITON_MATRIX_COUNTER_PARTITION=pbatch \
+RELAY_TRITON_MATRIX_COUNTER_WALL_TIME=00:30:00 \
+bash triton/submit-stage1-quotient-level-counters-matrix.sh
+```
 
 ## Validate the induced RELAY hypergraph
 
@@ -345,21 +371,47 @@ whole-kernel runtime speedup.
 Two resumable counter experiments test the quotient model directly. The first
 fixes one persistent tile, exhaustively enumerates its canonical grammar,
 deduplicates physical mappings, and retains the mapping with the fewest full
-address-expression runs at every distinct issue-quotient level. For GESUMMV's
-64x64 tile this checks all 924 canonical mappings and profiles six quotient
-levels. The default uses three independent warm-cache profiler launches per
+address-expression runs at every distinct issue-quotient level. The MI300A
+runner defaults to the counter-native `Q_64B` scale; the H100 runner defaults
+to `Q_32B`. For GESUMMV's 64x64 tile each still checks all 924 canonical
+mappings. The default uses three independent warm-cache profiler launches per
 mapping, with 20 final target dispatches and cyclically rotated mapping order.
 
-Each profile contains the existing three gfx942 counter passes. The worker
+Each profile contains four gfx942 counter passes. The worker
 rejects a mapping unless its extracted execution LinearLayout and assembly load
 opcode counts equal the row-major reference and it compiles without spills.
-Run at most six profiles in each five-minute allocation and repeat the command
+Run at most three profiles in each five-minute allocation and repeat the command
 until the report says `complete: true`:
 
 ```bash
 flux run -n1 -g1 -t 5m -q pdebug \
   triton/.venv/bin/python triton/run-stage1-quotient-level-counters.py \
-  --case gesummv --tile-shape 64 64 --max-profiles 6
+  --case gesummv --tile-shape 64 64 --max-profiles 3
+```
+
+The MI300A profiles also collect `TCP_TOTAL_READ_sum` and `TCC_READ_sum` in a
+fourth pass for paired first- and second-level read-activity figures. Recollect
+the complete native-scale GEMV report on one exclusive node with:
+
+```bash
+flux run -N 1 -n 1 -g 1 -x -t 30m \
+  triton/.venv/bin/python triton/run-stage1-quotient-level-counters.py \
+  --case gemv --tile-shape 64 64 --transaction-bytes 64 \
+  --profile-launches 3 --rerun
+```
+
+Render the paired plots from the resulting report with:
+
+```bash
+.venv/bin/python triton/plot-stage1-quotient-level-counters.py \
+  triton/results/stage1-gemv-quotient-level-counters-q64b-mi300a.json \
+  --metric TCP_TOTAL_READ_sum \
+  --output triton/results/stage1-gemv-quotient-level-counters-mi300a-tcp-total-read.pdf
+
+.venv/bin/python triton/plot-stage1-quotient-level-counters.py \
+  triton/results/stage1-gemv-quotient-level-counters-q64b-mi300a.json \
+  --metric TCC_READ_sum \
+  --output triton/results/stage1-gemv-quotient-level-counters-mi300a-tcc-read.pdf
 ```
 
 Then render the per-issue quotient/TCP relationship and Spearman correlation
@@ -371,11 +423,22 @@ this is worth stating in the figure caption.
 
 ```bash
 .venv/bin/python triton/plot-stage1-quotient-level-counters.py \
-  triton/results/stage1-gesummv-quotient-level-counters.json \
+  triton/results/stage1-gesummv-quotient-level-counters-q64b-mi300a.json \
   --normalize-per-issue
 ```
 
-Submit complete replacement runs for all seven kernels on separate exclusive
+Every retained candidate preserves its inner layout word from least- to
+most-significant address bit. Add `--label-layout-words` to show those words
+aligned beneath their points; the default output name gains a distinct
+`-layout-words.pdf` suffix.
+
+For the supplementary 128-byte view, pass the preserved
+`stage1-gesummv-quotient-level-counters.json` report instead. A fresh explicit
+`--transaction-bytes 128` MI300A run writes a separate `*-q128b-mi300a`
+report. The corresponding preserved H100 report ends in `*-matrix.json`, and
+a fresh explicit H100 run writes `*-q128b-matrix.json`.
+
+Submit complete native-scale runs for all seven kernels on separate exclusive
 nodes with a longer, non-`pdebug` allocation:
 
 ```bash
@@ -383,9 +446,15 @@ bash triton/submit-stage1-quotient-level-counters.sh
 ```
 
 The submission script requests one task and one GPU on each exclusive node,
-uses a 30-minute wall time, and passes `--rerun` so every kernel's existing
-panel, profiles, aggregate JSON, and CSV are replaced. Set
-`RELAY_QUOTIENT_COUNTER_WALL_TIME` to override the wall time.
+uses a 30-minute wall time, and writes resumable `*-q64b-mi300a` profiles and
+reports. The existing `Q_128B` files are preserved for supplementary
+correlations. Set `RELAY_QUOTIENT_COUNTER_WALL_TIME` to override the wall time.
+
+The scale-selection rule is fixed by each measured counter's documented native
+accounting unit: 64-byte vL1D accesses on MI300A and 32-byte global-load L1TEX
+sectors on H100. Production layout searches may continue to use the independent
+128-byte objective; the native-scale counter experiment asks whether quotient
+cardinality predicts hardware-observable first-level work units.
 
 The second experiment uses every inner-tile hypothesis already declared by
 the selected kernel case. It retains one minimum-run representative per
@@ -407,6 +476,54 @@ the fixed-level experiment, a rank-matching `--tile-shape`; case-specific
 checkpoint and aggregate paths are selected automatically. `--metric` changes
 the scatter plot's hardware measure, and `--profile-launches 3` adds independent
 launch replication to the cross-tile experiment.
+
+### Profile random tile layouts
+
+The less restrictive random-layout experiment samples a tile shape uniformly
+from the hypotheses declared by each kernel, then samples an invertible binary
+inner address matrix uniformly for that tile. This includes non-canonical XOR
+layouts, provides useful variation for one-dimensional kernels, and does not
+select layouts by quotient score or address-expression run count. Sampling is
+without replacement over complete physical mappings and is reproducible with
+`--seed`.
+
+Profile 100 GESUMMV layouts at `Q_64B` with:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-random-layout-counters.py \
+  --kernel gesummv --byte-level 64 --layouts 100 --seed 0 \
+  --max-profiles 6
+```
+
+The run is resumable, so repeat the command until the report is complete. The
+JSON and CSV names include the kernel and quotient byte level. Each observation
+records the sampled tile, inner matrix, complete address matrix, quotient score,
+code-generation complexity, and collected counters. The aggregate statistics
+include the tie-aware Spearman correlation between quotient score and
+`TCP_TOTAL_CACHE_ACCESSES_sum`.
+
+The existing scatter renderer accepts random-layout reports and recomputes
+Spearman correlation for any selected metric:
+
+```bash
+.venv/bin/python triton/plot-stage1-layout-counter-scatter.py \
+  triton/results/stage1-gesummv-random-layout-counters-q64b-mi300a.json
+```
+
+Submit one exclusive, one-task, one-GPU Flux job for every kernel at 32, 64,
+and 128 bytes with:
+
+```bash
+bash triton/submit-stage1-random-layout-counters.sh
+```
+
+The launcher defaults to 100 layouts, seed 0, one profiler launch, and a
+two-hour wall time. Override these with `RELAY_RANDOM_LAYOUT_COUNT`,
+`RELAY_RANDOM_LAYOUT_SEED`, `RELAY_RANDOM_LAYOUT_PROFILE_LAUNCHES`, and
+`RELAY_RANDOM_LAYOUT_WALL_TIME`. `RELAY_RANDOM_LAYOUT_BYTE_LEVELS` accepts a
+space-separated list, and `RELAY_RANDOM_LAYOUT_QUEUE` selects a Flux queue.
+Re-running the launcher resumes completed per-layout checkpoints.
 
 ## Run the controlled Stage-2 probe
 

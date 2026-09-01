@@ -5,4 +5,7 @@ stage1-locality-counter-profiles/
 stage1-locality-counters-plots/
 stage1-layout-counter-scatter-profiles/
 stage1-quotient-level-counter-profiles/
+stage1-quotient-level-counter-profiles*/
+stage1-random-layout-counter-profiles*/
+stage1-random-layout-counter-logs/
 stage2-probe-processes/

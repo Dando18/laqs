@@ -9,11 +9,7 @@ import shutil
 
 from run_stage1_kernel_cases import CASES
 from stage1_common import positive_integer
-from stage1_nvidia_counter_sweep import (
-    H100_FALLBACK_METRIC,
-    print_summary,
-    run_sweep,
-)
+from stage1_nvidia_counter_sweep import print_summary, run_sweep
 
 
 def parse_arguments(argv=None):
@@ -27,7 +23,7 @@ def parse_arguments(argv=None):
     parser.add_argument("--csv", type=Path)
     parser.add_argument("--rerun", action="store_true")
     parser.add_argument("--max-profiles", type=positive_integer)
-    parser.add_argument("--transaction-bytes", type=positive_integer, default=128)
+    parser.add_argument("--transaction-bytes", type=positive_integer, default=32)
     parser.add_argument("--candidates", type=positive_integer, default=8)
     parser.add_argument("--profile-launches", type=positive_integer, default=3)
     parser.add_argument("--profile-warmup", type=positive_integer, default=5)
@@ -39,11 +35,6 @@ def parse_arguments(argv=None):
         type=Path,
         default=Path(shutil.which("ncu") or "ncu"),
     )
-    parser.add_argument(
-        "--ncu-metric",
-        default=H100_FALLBACK_METRIC,
-        help="collectable Nsight Compute metric used as the L1 response",
-    )
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)
 
@@ -51,16 +42,20 @@ def parse_arguments(argv=None):
 def main() -> None:
     args = parse_arguments()
     result_root = Path(__file__).resolve().parent / "results"
+    scale_tag = f"-q{args.transaction_bytes}b"
     if args.results_dir is None:
         args.results_dir = (
             result_root
-            / "stage1-quotient-level-counter-profiles-matrix"
+            / f"stage1-quotient-level-counter-profiles{scale_tag}-matrix"
             / args.case
         )
     if args.json is None:
         args.json = (
             result_root
-            / f"stage1-{args.case}-quotient-level-counters-matrix.json"
+            / (
+                f"stage1-{args.case}-quotient-level-counters"
+                f"{scale_tag}-matrix.json"
+            )
         )
     report = run_sweep(
         args,

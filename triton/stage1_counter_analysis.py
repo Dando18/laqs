@@ -11,9 +11,11 @@ from typing import Mapping, Sequence
 
 COUNTER_FIELDS = (
     "TCP_TOTAL_CACHE_ACCESSES_sum",
+    "TCP_TOTAL_READ_sum",
     "TCP_TCC_READ_REQ_sum",
     "TCP_TCC_WRITE_REQ_sum",
     "TCC_REQ_sum",
+    "TCC_READ_sum",
     "TCC_HIT_sum",
     "TCC_MISS_sum",
     "FETCH_SIZE",
@@ -22,10 +24,12 @@ COUNTER_FIELDS = (
 
 COUNT_METRICS = (
     "l1_cache_line_accesses",
+    "first_level_read_events",
     "l1_to_l2_read_requests",
     "l1_to_l2_write_requests",
     "l1_to_l2_total_requests",
     "l2_tag_requests",
+    "second_level_read_requests",
     "l2_hits",
     "l2_misses",
     "hbm_read_bytes",
@@ -42,11 +46,15 @@ SUMMARY_METRICS = (
 
 COUNTER_DEFINITIONS = {
     "TCP_TOTAL_CACHE_ACCESSES_sum": (
-        "TCP/L1 cache-line tag accesses, including hits and misses"
+        "64-byte vector L1 data-cache accesses, including hits and misses"
     ),
+    "TCP_TOTAL_READ_sum": "read pixels or buffers received by TCP from TA",
     "TCP_TCC_READ_REQ_sum": "read requests sent from TCP/L1 to TCC/L2",
     "TCP_TCC_WRITE_REQ_sum": "write requests sent from TCP/L1 to TCC/L2",
     "TCC_REQ_sum": "requests processed by the TCC/L2 tag blocks",
+    "TCC_READ_sum": (
+        "TCC read requests, including compressed reads but excluding metadata"
+    ),
     "TCC_HIT_sum": "TCC/L2 cache hits",
     "TCC_MISS_sum": "TCC/L2 cache misses",
     "FETCH_SIZE": "KiB fetched from memory",
@@ -88,6 +96,7 @@ def _dispatch(record: Mapping[str, str], path: Path) -> dict[str, object]:
         "l1_cache_line_accesses": counters[
             "TCP_TOTAL_CACHE_ACCESSES_sum"
         ],
+        "first_level_read_events": counters["TCP_TOTAL_READ_sum"],
         "l1_to_l2_read_requests": counters["TCP_TCC_READ_REQ_sum"],
         "l1_to_l2_write_requests": counters["TCP_TCC_WRITE_REQ_sum"],
         "l1_to_l2_total_requests": (
@@ -95,6 +104,7 @@ def _dispatch(record: Mapping[str, str], path: Path) -> dict[str, object]:
             + counters["TCP_TCC_WRITE_REQ_sum"]
         ),
         "l2_tag_requests": counters["TCC_REQ_sum"],
+        "second_level_read_requests": counters["TCC_READ_sum"],
         "l2_hits": hits,
         "l2_misses": misses,
         "l2_hit_rate_percent": (

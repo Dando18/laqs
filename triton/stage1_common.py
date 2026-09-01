@@ -200,10 +200,27 @@ def assembly_opcode_counts(assembly: str) -> Counter[str]:
         line = raw_line.split("//", 1)[0].split(";", 1)[0].strip()
         if not line or line.startswith((".", "#")) or line.endswith(":"):
             continue
-        opcode = line.split(None, 1)[0]
+        tokens = line.split()
+        if tokens[0].startswith("@"):
+            tokens = tokens[1:]
+        if not tokens:
+            continue
+        opcode = tokens[0]
         if re.fullmatch(r"[A-Za-z][A-Za-z0-9_.]*", opcode):
             counts[opcode] += 1
     return counts
+
+
+def is_load_opcode(opcode: str) -> bool:
+    normalized = opcode.lower()
+    return "load" in normalized or normalized.startswith(
+        ("global_atomic", "flat_atomic", "ld.global")
+    )
+
+
+def is_store_opcode(opcode: str) -> bool:
+    normalized = opcode.lower()
+    return "store" in normalized or normalized.startswith("st.global")
 
 
 def compiled_codegen_statistics(compiled) -> dict[str, object]:
@@ -220,9 +237,11 @@ def compiled_codegen_statistics(compiled) -> dict[str, object]:
     loads = sum(
         count
         for opcode, count in opcodes.items()
-        if "load" in opcode or opcode.startswith(("global_atomic", "flat_atomic"))
+        if is_load_opcode(opcode)
     )
-    stores = sum(count for opcode, count in opcodes.items() if "store" in opcode)
+    stores = sum(
+        count for opcode, count in opcodes.items() if is_store_opcode(opcode)
+    )
     xors = sum(count for opcode, count in opcodes.items() if "xor" in opcode)
     branches = sum(
         count

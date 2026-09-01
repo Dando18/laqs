@@ -31,8 +31,10 @@ declare -A TILE_SHAPES=(
     [stencil5]="64 64"
 )
 
-relay_log_dir="${PWD}/triton/results/stage1-quotient-level-counter-logs-matrix"
+relay_log_dir="${PWD}/triton/results/stage1-quotient-level-counter-logs-q32b-matrix"
 relay_profile_launches="${RELAY_QUOTIENT_COUNTER_PROFILE_LAUNCHES:-3}"
+relay_partition="${RELAY_TRITON_MATRIX_COUNTER_PARTITION:-pdebug}"
+relay_wall_time="${RELAY_TRITON_MATRIX_COUNTER_WALL_TIME:-00:05:00}"
 mkdir -p "${relay_log_dir}"
 
 for kernel in "${KERNELS[@]}"; do
@@ -41,14 +43,15 @@ for kernel in "${KERNELS[@]}"; do
         --nodes=1 \
         --ntasks=1 \
         --gpus=1 \
-        --partition=pdebug \
-        --time=00:05:00 \
+        --partition="${relay_partition}" \
+        --time="${relay_wall_time}" \
         --chdir="${PWD}" \
-        --job-name="laqs-ncu-${kernel}" \
+        --job-name="laqs-ncu-q32-${kernel}" \
         --output="${relay_log_dir}/%x-%j.log" \
         triton/run-stage1-quotient-level-counters-matrix-job.sh \
         --case "${kernel}" \
         --tile-shape "${tile_shape[@]}" \
+        --transaction-bytes 32 \
         --profile-launches "${relay_profile_launches}" \
         --quiet
 done

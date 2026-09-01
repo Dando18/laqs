@@ -11,26 +11,43 @@ TRITON_EXPERIMENTS = Path(__file__).resolve().parents[1] / "triton"
 sys.path.insert(0, str(TRITON_EXPERIMENTS))
 
 from stage1_nvidia_counter_analysis import (
+    COUNTER_METRICS,
     DURATION_METRIC,
+    FIRST_LEVEL_COUNTER,
+    GLOBAL_LOAD_REQUESTS_COUNTER,
+    HBM_READ_COUNTER,
+    L1_TO_L2_READ_COUNTER,
+    L2_READ_MISS_COUNTER,
+    NATIVE_UNIT,
+    SUMMARY_METRICS,
     aggregate_profiles,
     parse_counter_csv,
 )
 
 
-L1_METRIC = "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
+def counter_row(index: int, kernel: str, scale: float) -> list[str]:
+    values = {
+        FIRST_LEVEL_COUNTER: 20 * scale,
+        GLOBAL_LOAD_REQUESTS_COUNTER: 10 * scale,
+        L1_TO_L2_READ_COUNTER: 8 * scale,
+        L2_READ_MISS_COUNTER: 3 * scale,
+        HBM_READ_COUNTER: 96 * scale,
+        DURATION_METRIC: 2 * scale,
+    }
+    return [str(index), kernel, *(str(values[field]) for field in COUNTER_METRICS)]
 
 
 class Stage1NvidiaCounterAnalysisTests(unittest.TestCase):
     def test_parser_uses_final_target_launches(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "counters.csv"
-            fields = ["ID", "Kernel Name", L1_METRIC, DURATION_METRIC]
+            fields = ["ID", "Kernel Name", *COUNTER_METRICS]
             rows = [
-                ["unit", "", "sector", "nsecond"],
-                ["0", "unrelated_kernel", "999", "999"],
-                ["1", "bias_relu_kernel", "100", "10"],
-                ["2", "bias_relu_kernel", "20", "2"],
-                ["3", "bias_relu_kernel", "40", "4"],
+                ["unit", "", *("unit" for _field in COUNTER_METRICS)],
+                counter_row(0, "unrelated_kernel", 99),
+                counter_row(1, "bias_relu_kernel", 5),
+                counter_row(2, "bias_relu_kernel", 1),
+                counter_row(3, "bias_relu_kernel", 2),
             ]
             with path.open("w", newline="", encoding="utf-8") as stream:
                 stream.write("==WARNING== synthetic profiler warning\n")
@@ -42,15 +59,26 @@ class Stage1NvidiaCounterAnalysisTests(unittest.TestCase):
                 path,
                 kernel_name="bias_relu_kernel",
                 profile_iterations=2,
-                metric=L1_METRIC,
             )
 
         self.assertEqual(result["target_dispatch_count"], 3)
         self.assertEqual(result["steady_state"]["dispatch_count"], 2)
         self.assertEqual(
-            result["steady_state"]["l1_cache_line_accesses"], 30.0
+            result["steady_state"]["first_level_memory_accesses"], 30.0
         )
         self.assertEqual(result["steady_state"]["duration_ns"], 3.0)
+        self.assertEqual(result["steady_state"]["l1_to_l2_read_traffic"], 12.0)
+        self.assertEqual(result["steady_state"]["l2_read_work"], 12.0)
+        self.assertEqual(result["steady_state"]["l2_read_misses"], 4.5)
+        self.assertEqual(result["steady_state"]["hbm_read_bytes"], 144.0)
+        self.assertEqual(result["steady_state"]["global_load_requests"], 15.0)
+        self.assertEqual(result["steady_state"]["sectors_per_request"], 2.0)
+        self.assertEqual(result["steady_state"]["native_unit"], NATIVE_UNIT)
+        self.assertEqual(
+            result["steady_state"]["native_counters"][FIRST_LEVEL_COUNTER],
+            30.0,
+        )
+        self.assertNotIn("l1_cache_line_accesses", result["steady_state"])
         self.assertEqual(
             [entry["index"] for entry in result["steady_dispatches"]],
             [2, 3],
@@ -61,23 +89,32 @@ class Stage1NvidiaCounterAnalysisTests(unittest.TestCase):
             {
                 "steady_state": {
                     "dispatch_count": 2,
-                    "l1_cache_line_accesses": 10.0,
-                    "duration_ns": 20.0,
+                    **{field: 10.0 for field in SUMMARY_METRICS},
+                    "native_counters": {
+                        metric: 10.0 for metric in COUNTER_METRICS
+                    },
                 }
             },
             {
                 "steady_state": {
                     "dispatch_count": 2,
-                    "l1_cache_line_accesses": 30.0,
-                    "duration_ns": 40.0,
+                    **{field: 30.0 for field in SUMMARY_METRICS},
+                    "native_counters": {
+                        metric: 30.0 for metric in COUNTER_METRICS
+                    },
                 }
             },
         ]
 
         result = aggregate_profiles(profiles)["steady_state"]
 
-        self.assertEqual(result["l1_cache_line_accesses"], 20.0)
-        self.assertEqual(result["duration_ns"], 30.0)
+        self.assertEqual(result["first_level_memory_accesses"], 20.0)
+        self.assertEqual(result["sectors_per_request"], 20.0)
+        self.assertEqual(result["duration_ns"], 20.0)
+        self.assertEqual(result["native_unit"], NATIVE_UNIT)
+        self.assertEqual(
+            result["native_counters"][FIRST_LEVEL_COUNTER], 20.0
+        )
         self.assertEqual(result["profile_launch_count"], 2)
         self.assertEqual(result["dispatches_per_launch"], [2, 2])
 
@@ -95,7 +132,6 @@ class Stage1NvidiaCounterAnalysisTests(unittest.TestCase):
                     path,
                     kernel_name="bias_relu_kernel",
                     profile_iterations=1,
-                    metric=L1_METRIC,
                 )
 
 

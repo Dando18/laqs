@@ -27,9 +27,11 @@ def counter_row(index: int, kernel: str, scale: float):
         "BeginNs": index * 1000,
         "EndNs": index * 1000 + scale * 100,
         "TCP_TOTAL_CACHE_ACCESSES_sum": 100 * scale,
+        "TCP_TOTAL_READ_sum": 95 * scale,
         "TCP_TCC_READ_REQ_sum": 80 * scale,
         "TCP_TCC_WRITE_REQ_sum": 20 * scale,
         "TCC_REQ_sum": 90 * scale,
+        "TCC_READ_sum": 70 * scale,
         "TCC_HIT_sum": 60 * scale,
         "TCC_MISS_sum": 30 * scale,
         "FETCH_SIZE": 2 * scale,
@@ -66,6 +68,8 @@ class Stage1CounterAnalysisTests(unittest.TestCase):
         summary = result["steady_state"]
         self.assertEqual(result["target_dispatch_count"], 3)
         self.assertEqual(summary["l1_to_l2_read_requests"], 120)
+        self.assertEqual(summary["first_level_read_events"], 142.5)
+        self.assertEqual(summary["second_level_read_requests"], 105)
         self.assertEqual(summary["l2_hit_rate_percent"], 200 / 3)
         self.assertEqual(summary["hbm_read_bytes"], 3072)
         self.assertEqual(summary["hbm_bandwidth_gbps"], 30.72)
@@ -78,10 +82,12 @@ class Stage1CounterAnalysisTests(unittest.TestCase):
                     field: 10.0
                     for field in (
                         "l1_cache_line_accesses",
+                        "first_level_read_events",
                         "l1_to_l2_read_requests",
                         "l1_to_l2_write_requests",
                         "l1_to_l2_total_requests",
                         "l2_tag_requests",
+                        "second_level_read_requests",
                         "l2_hits",
                         "l2_misses",
                         "hbm_read_bytes",

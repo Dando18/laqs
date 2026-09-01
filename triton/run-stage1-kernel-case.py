@@ -742,12 +742,14 @@ def parse_arguments(argv=None):
     )
     parser.add_argument(
         "--counter-panel",
-        choices=("fixed_tile_levels", "tile_layouts"),
-        help="enumerate an issue-only canonical counter candidate panel",
+        choices=("fixed_tile_levels", "tile_layouts", "random_layouts"),
+        help="construct an issue-only counter candidate panel",
     )
     parser.add_argument(
         "--panel-tile-shape", type=positive_integer, nargs="+"
     )
+    parser.add_argument("--panel-samples", type=positive_integer, default=100)
+    parser.add_argument("--panel-seed", type=int, default=0)
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)

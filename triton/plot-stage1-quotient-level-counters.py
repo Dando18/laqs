@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot quotient level against steady-state TCP cache-line accesses."""
+"""Plot quotient level against steady-state first-level memory activity."""
 
 from __future__ import annotations
 
@@ -16,24 +16,44 @@ from stage1_counter_analysis import rank_correlation
 METRICS = {
     "TCP_TOTAL_CACHE_ACCESSES_sum": {
         "field": "l1_cache_line_accesses",
-        "title": "First-level Cache Accesses",
-        "raw_label": "First-Level Cache Accesses",
-        "normalized_label": "First-level cache accesses\nper issue cohort",
+        "title": "First Level Memory Activity (read events)",
+        "raw_label": "First Level Memory Activity\n(million read events)",
+        "normalized_label": (
+            "First Level Memory Activity\n(read events per issue cohort)"
+        ),
         "suffix": "tcp",
+    },
+    "TCP_TOTAL_READ_sum": {
+        "field": "first_level_read_events",
+        "title": "First Level Read Activity",
+        "raw_label": "First Level Read Activity\n(million read events)",
+        "normalized_label": (
+            "First Level Read Activity\n(read events per issue cohort)"
+        ),
+        "suffix": "tcp-total-read",
     },
     "TCP_TCC_READ_REQ_sum": {
         "field": "l1_to_l2_read_requests",
         "title": "L1-to-L2 Read Requests",
-        "raw_label": "L1-to-L2 Read Requests",
+        "raw_label": "L1-to-L2 Read Requests\n(million read requests)",
         "normalized_label": "L1-to-L2 read requests\nper issue cohort",
         "suffix": "tcp-tcc-read-req",
     },
     "TCC_REQ_sum": {
         "field": "l2_tag_requests",
         "title": "L2 Tag Requests",
-        "raw_label": "L2 Tag Requests",
+        "raw_label": "L2 Tag Requests\n(million requests)",
         "normalized_label": "L2 tag requests\nper issue cohort",
         "suffix": "tcc-req",
+    },
+    "TCC_READ_sum": {
+        "field": "second_level_read_requests",
+        "title": "Second Level Read Activity",
+        "raw_label": "Second Level Read Activity\n(million read requests)",
+        "normalized_label": (
+            "Second Level Read Activity\n(read requests per issue cohort)"
+        ),
+        "suffix": "tcc-read",
     },
 }
 
@@ -56,13 +76,37 @@ def report_metric_spec(
         return METRICS[metric]
     if metric != "TCP_TOTAL_CACHE_ACCESSES_sum":
         raise ValueError(f"H100 report does not contain {metric}")
+    first_summary = next(
+        candidate["counters"]["steady_state"]
+        for candidate in report["candidates"]
+        if candidate["complete"]
+    )
+    field = (
+        "first_level_memory_accesses"
+        if "first_level_memory_accesses" in first_summary
+        else "l1_cache_line_accesses"
+    )
     return {
         **METRICS[metric],
-        "title": "Global-load L1TEX Sectors",
-        "raw_label": "Global-load L1TEX Sectors",
-        "normalized_label": "Global-load L1TEX sectors\nper issue cohort",
+        "field": field,
         "suffix": "l1tex-global-load-sectors",
     }
+
+
+def report_first_level_field(report: dict[str, object]) -> str:
+    first_summary = next(
+        candidate["counters"]["steady_state"]
+        for candidate in report["candidates"]
+        if candidate["complete"]
+    )
+    for field in (
+        "first_level_memory_accesses",
+        "first_level_read_events",
+        "l1_cache_line_accesses",
+    ):
+        if field in first_summary:
+            return field
+    raise ValueError("report does not contain a first-level memory metric")
 
 
 def default_output_path(
@@ -71,6 +115,7 @@ def default_output_path(
     *,
     metric: str,
     normalize_per_issue: bool,
+    label_layout_words: bool = False,
 ) -> Path:
     architecture = report_architecture(report)
     stem = report_path.stem
@@ -84,6 +129,8 @@ def default_output_path(
     ]
     if normalize_per_issue:
         suffixes.append("normalized")
+    if label_layout_words:
+        suffixes.append("layout-words")
     return report_path.with_name(f"{stem}-{'-'.join(suffixes)}.pdf")
 
 
@@ -98,13 +145,18 @@ def parse_arguments(argv=None):
     parser.add_argument(
         "--normalize-per-issue",
         action="store_true",
-        help="divide cache accesses by the number of dynamic issue cohorts",
+        help="divide memory activity by the number of dynamic issue cohorts",
     )
     parser.add_argument(
         "--metric",
         choices=METRICS,
         default="TCP_TOTAL_CACHE_ACCESSES_sum",
         help="hardware counter to plot",
+    )
+    parser.add_argument(
+        "--label-layout-words",
+        action="store_true",
+        help="label points with inner layout words ordered from LSB to MSB",
     )
     return parser.parse_args(argv)
 
@@ -166,7 +218,35 @@ def _issue_axis(
         if candidate["candidate_id"] not in validation
     ]
     if missing:
-        return None
+        if report["case"] != "gemv":
+            return None
+        shape = [int(value) for value in report["operand_shape"]]
+        cohorts = set()
+        for candidate in candidates:
+            execution = candidate["structural_validation"]["by_launch"][0][
+                "reference_execution_layout"
+            ]
+            output_elements = math.prod(execution["output_shape"])
+            if shape[0] % output_elements:
+                raise ValueError("GEMV output tile does not divide its row count")
+            cohorts.add(
+                (shape[0] // output_elements)
+                * shape[1]
+                * int(execution["input_sizes"]["register"])
+            )
+        if len(cohorts) != 1 or next(iter(cohorts)) <= 0:
+            raise ValueError("GEMV candidates disagree on issue-cohort count")
+        dynamic_cohorts = float(cohorts.pop())
+        cardinalities = [
+            float(candidate["quotient_score"]) / dynamic_cohorts
+            for candidate in candidates
+        ]
+        if any(
+            value <= 0.0 or not value.is_integer()
+            for value in cardinalities
+        ):
+            raise ValueError("GEMV quotient score is not an issue cardinality")
+        return cardinalities, dynamic_cohorts
 
     cohorts = {
         float(validation[candidate["candidate_id"]]["dynamic_issue_cohorts"])
@@ -212,6 +292,7 @@ def render(
     *,
     metric: str = "TCP_TOTAL_CACHE_ACCESSES_sum",
     normalize_per_issue: bool = False,
+    label_layout_words: bool = False,
 ) -> str:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import FuncFormatter
@@ -223,6 +304,17 @@ def render(
         (candidate for candidate in report["candidates"] if candidate["complete"]),
         key=lambda candidate: candidate["quotient_score"],
     )
+    if label_layout_words:
+        missing_words = [
+            candidate["candidate_id"]
+            for candidate in candidates
+            if not candidate.get("inner_word")
+        ]
+        if missing_words:
+            raise ValueError(
+                "report is missing inner layout words for: "
+                + ", ".join(missing_words)
+            )
     issue_axis = _issue_axis(report, candidates)
     if issue_axis is None:
         if normalize_per_issue:
@@ -237,7 +329,10 @@ def render(
         x_label = "Quotient Score"
     else:
         cardinalities, dynamic_issue_cohorts = issue_axis
-        x_label = "Quotient Score: 128-B regions per issue"
+        transaction_bytes = int(report["configuration"]["transaction_bytes"])
+        x_label = (
+            f"Quotient Score: {transaction_bytes}-B regions per issue"
+        )
     metric_spec = report_metric_spec(report, metric)
     metric_field = metric_spec["field"]
     x = np.arange(len(candidates), dtype=float)
@@ -253,9 +348,10 @@ def render(
             for candidate in candidates
         ]
     )
-    tcp_y = np.asarray(
+    first_level_field = report_first_level_field(report)
+    first_level_y = np.asarray(
         [
-            candidate["counters"]["steady_state"]["l1_cache_line_accesses"]
+            candidate["counters"]["steady_state"][first_level_field]
             for candidate in candidates
         ]
     )
@@ -265,15 +361,20 @@ def render(
         y /= dynamic_issue_cohorts
         y_min /= dynamic_issue_cohorts
         y_max /= dynamic_issue_cohorts
+    else:
+        y /= 1_000_000.0
+        y_min /= 1_000_000.0
+        y_max /= 1_000_000.0
     rho = rank_correlation(cardinalities, y.tolist())
-    saturation = _saturated_suffix(tcp_y)
+    saturation = _saturated_suffix(first_level_y)
     pre_saturation_end = saturation[0] if saturation is not None else len(y)
     pre_saturation_rho = rank_correlation(
         cardinalities[:pre_saturation_end],
         y[:pre_saturation_end].tolist(),
     )
 
-    figure, axis = plt.subplots(figsize=(4.4, 4.0), layout="constrained")
+    figure_size = (5.0, 4.5) if label_layout_words else (4.4, 4.0)
+    figure, axis = plt.subplots(figsize=figure_size, layout="constrained")
     ranges = y_max - y_min
     if np.any(ranges > 0.0):
         axis.errorbar(
@@ -313,8 +414,25 @@ def render(
         ]
     )
     axis.set_yticks(y_ticks)
-    axis.yaxis.set_major_formatter(FuncFormatter(lambda value, _pos: f"{value:,.0f}"))
-    axis.set_xlabel(x_label, fontsize=13)
+
+    def formatter(value, _pos):
+        if normalize_per_issue:
+            return f"{value:,.0f}"
+        if math.isclose(value * 10.0, round(value * 10.0)):
+            return f"{value:.1f}"
+        return f"{value:.2f}"
+
+    axis.yaxis.set_major_formatter(FuncFormatter(formatter))
+    if label_layout_words:
+        x_label += (
+            "\nPoint labels: inner layout word "
+            "(LSB $\\rightarrow$ MSB)"
+        )
+    axis.set_xlabel(
+        x_label,
+        fontsize=13,
+        labelpad=64 if label_layout_words else None,
+    )
     axis.set_ylabel(
         (
             metric_spec["normalized_label"]
@@ -341,23 +459,44 @@ def render(
         if pre_saturation_rho is None
         else f"{pre_saturation_rho:.3f}"
     )
+    correlation_text = f"Spearman $\\rho$ = {rho_text}"
+    if rho is None or not math.isclose(rho, 1.0, abs_tol=1e-12):
+        correlation_text += (
+            "\nCoalesced region\nSpearman "
+            f"$\\rho$ = {pre_saturation_rho_text}"
+        )
     axis.text(
+        0.97,
         0.03,
-        0.03,
-        f"Spearman $\\rho$ = {rho_text}\n"
-        "Pre-saturation Spearman "
-        f"$\\rho$ = {pre_saturation_rho_text}",
+        correlation_text,
         transform=axis.transAxes,
-        ha="left",
+        ha="right",
+        multialignment="left",
         va="bottom",
         fontsize=11,
         bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "alpha": 0.9},
         zorder=4,
     )
+    if label_layout_words:
+        for point_x, candidate in zip(x, candidates):
+            axis.text(
+                float(point_x),
+                -0.105,
+                candidate["inner_word"],
+                transform=axis.get_xaxis_transform(),
+                ha="right",
+                va="top",
+                rotation=45,
+                rotation_mode="anchor",
+                fontsize=8.5,
+                fontfamily="monospace",
+                clip_on=False,
+                zorder=5,
+            )
     if (
         saturation is not None
-        and issue_axis is not None
-        and metric == "TCP_TOTAL_CACHE_ACCESSES_sum"
+        and metric
+        in ("TCP_TOTAL_CACHE_ACCESSES_sum", "TCP_TOTAL_READ_sum")
     ):
         saturation_start, _tcp_saturation_level = saturation
         saturation_level = float(y[-1])
@@ -370,7 +509,11 @@ def render(
         )
         axis.annotate(
             "Fully uncoalesced: one access per lane\n"
-            "for both matrix loads",
+            + (
+                "for both matrix loads"
+                if report["case"] == "gesummv"
+                else "for the matrix load"
+            ),
             xy=(float(x[saturation_start]), saturation_level),
             xycoords="data",
             xytext=(0.98, 0.88),
@@ -408,6 +551,7 @@ def main() -> None:
             report,
             metric=args.metric,
             normalize_per_issue=args.normalize_per_issue,
+            label_layout_words=args.label_layout_words,
         )
     )
     font = render(
@@ -415,6 +559,7 @@ def main() -> None:
         output,
         metric=args.metric,
         normalize_per_issue=args.normalize_per_issue,
+        label_layout_words=args.label_layout_words,
     )
     print(f"Wrote {output} using {font}")
 

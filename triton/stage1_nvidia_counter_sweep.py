@@ -24,16 +24,14 @@ from stage1_counter_sweep import (
     write_json,
 )
 from stage1_nvidia_counter_analysis import (
-    DURATION_METRIC,
+    COUNTER_METRICS,
+    FIRST_LEVEL_COUNTER,
+    NATIVE_UNIT,
     SUMMARY_METRICS,
     aggregate_profiles,
     counter_definitions,
     parse_counter_csv,
 )
-
-
-PREFERRED_METRIC = "memory_l1_tag_requests_global"
-H100_FALLBACK_METRIC = "l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum"
 
 
 def _matrix_triton_python() -> Path:
@@ -74,7 +72,7 @@ def _profile_configuration(
     launch: int,
 ) -> dict[str, object]:
     return {
-        "profile_schema": 3,
+        "profile_schema": 4,
         "profiler_backend": "nvidia_ncu",
         "case": args.case,
         "kernel_name": KERNEL_NAMES[args.case],
@@ -89,10 +87,11 @@ def _profile_configuration(
         "requested_retained_candidates": args.candidates,
         "profile_warmup": args.profile_warmup,
         "profile_iterations": args.profile_iterations,
-        "requested_primary_counter": PREFERRED_METRIC,
-        "primary_counter": args.ncu_metric,
-        "fallback_used": args.ncu_metric != PREFERRED_METRIC,
-        "counter_metrics": [args.ncu_metric, DURATION_METRIC],
+        "native_counter": FIRST_LEVEL_COUNTER,
+        "native_unit": NATIVE_UNIT,
+        "counter_native_scale_bytes": 32,
+        "quotient_scale_matches_native_counter": args.transaction_bytes == 32,
+        "counter_metrics": list(COUNTER_METRICS),
         "ncu": str(args.ncu.resolve()),
         "ncu_cache_control": "none",
     }
@@ -150,7 +149,7 @@ def profile_candidate(
         "--print-units",
         "base",
         "--metrics",
-        f"{args.ncu_metric},{DURATION_METRIC}",
+        ",".join(COUNTER_METRICS),
         "--kernel-name-base",
         "function",
         "--kernel-name",
@@ -186,7 +185,6 @@ def profile_candidate(
         raw_csv,
         kernel_name=KERNEL_NAMES[args.case],
         profile_iterations=args.profile_iterations,
-        metric=args.ncu_metric,
     )
     record = {
         "experiment": experiment,
@@ -301,6 +299,19 @@ def collect_report(
                             ]
                             for validation in validations
                         ),
+                        "load_instruction_structure_nonempty": all(
+                            validation.get(
+                                "load_instruction_structure_nonempty", False
+                            )
+                            for validation in validations
+                        ),
+                        "store_instruction_structure_matches_reference": all(
+                            validation.get(
+                                "store_instruction_structure_matches_reference",
+                                True,
+                            )
+                            for validation in validations
+                        ),
                         "no_spills": all(
                             validation["no_candidate_spills"]
                             for validation in validations
@@ -321,13 +332,19 @@ def collect_report(
     ]
     x = [float(candidate["quotient_score"]) for candidate in fit_candidates]
     y = [
-        float(candidate["counters"]["steady_state"]["l1_cache_line_accesses"])
+        float(
+            candidate["counters"]["steady_state"][
+                "first_level_memory_accesses"
+            ]
+        )
         for candidate in fit_candidates
     ]
     statistics = {
         "observation_count": len(x),
-        "primary_hardware_metric": "l1_cache_line_accesses",
-        "primary_hardware_counter": args.ncu_metric,
+        "primary_hardware_metric": "first_level_memory_accesses",
+        "primary_hardware_counter": FIRST_LEVEL_COUNTER,
+        "native_counter": FIRST_LEVEL_COUNTER,
+        "native_unit": NATIVE_UNIT,
         "tie_aware_spearman": rank_correlation(x, y),
         "free_intercept_linear_fit": (
             linear_fit(x, y) if len(set(x)) > 1 else None
@@ -343,28 +360,45 @@ def collect_report(
         "configuration": {
             **_panel_configuration(args, panel_mode),
             "profiler_backend": "nvidia_ncu",
+            "quotient_notation": f"Q_{args.transaction_bytes}B",
             "profile_launches": args.profile_launches,
             "profile_warmup": args.profile_warmup,
             "profile_iterations": args.profile_iterations,
             "cache_mode": "warm",
             "candidate_order": "cyclic rotation by profiler launch",
-            "counter_passes_per_profile": 1,
-            "requested_primary_counter": PREFERRED_METRIC,
-            "primary_counter": args.ncu_metric,
-            "fallback_used": args.ncu_metric != PREFERRED_METRIC,
+            "profiler_invocations_per_profile": 1,
+            "native_counter": FIRST_LEVEL_COUNTER,
+            "native_unit": NATIVE_UNIT,
+            "counter_native_scale_bytes": 32,
+            "quotient_scale_matches_native_counter": (
+                args.transaction_bytes == 32
+            ),
+            "quotient_scale_selection_rule": (
+                "match the quotient byte scale to the measured counter's "
+                "documented native accounting unit"
+            ),
+            "counter_metrics": list(COUNTER_METRICS),
             "ncu": str(args.ncu.resolve()),
             "ncu_cache_control": "none",
         },
         "measurement_scope": {
-            "quotient": "issue-only target-operand transaction quotient",
-            "hardware": "whole-kernel global-load L1TEX sectors",
+            "quotient": (
+                f"Q_{args.transaction_bytes}B issue-only target-operand "
+                "transaction quotient"
+            ),
+            "hardware": (
+                "whole-kernel NVIDIA first-level, L2, and DRAM read-work "
+                "counters"
+            ),
             "aggregation": (
                 "median of the final target launches within a profiler "
                 "process, then median across independent launches"
             ),
             "process_isolation": "one ncu invocation per mapping and launch",
         },
-        "counter_definitions": counter_definitions(args.ncu_metric),
+        "native_counter": FIRST_LEVEL_COUNTER,
+        "native_unit": NATIVE_UNIT,
+        "counter_definitions": counter_definitions(),
         "panel": panel_record["panel"],
         "theory_validation": _gesummv_theory(args, panel_record, panel_mode),
         "candidates": completed,
@@ -389,10 +423,13 @@ def write_csv(report: dict[str, object], path: Path) -> None:
         "inner_tile_shape",
         "inner_word",
         "quotient_score",
+        "native_counter",
+        "native_unit",
         "address_expression_runs",
         "xor_count",
         "completed_profile_launches",
         "complete",
+        *COUNTER_METRICS,
     ]
     for metric in SUMMARY_METRICS:
         fields.extend((metric, f"{metric}_min", f"{metric}_max"))
@@ -404,8 +441,12 @@ def write_csv(report: dict[str, object], path: Path) -> None:
             if field not in SUMMARY_METRICS
         }
         row["case"] = report["case"]
+        row["native_counter"] = report["native_counter"]
+        row["native_unit"] = report["native_unit"]
         if "counters" in candidate:
             summary = candidate["counters"]["steady_state"]
+            for native_metric in COUNTER_METRICS:
+                row[native_metric] = summary["native_counters"][native_metric]
             for metric in SUMMARY_METRICS:
                 row[metric] = summary[metric]
                 values = summary[f"{metric}_by_launch"]
@@ -482,13 +523,13 @@ def run_sweep(
 
 
 def print_summary(report: dict[str, object]) -> None:
-    print("tile        word          quotient       NVIDIA L1 sectors  profiles")
+    print("tile        word          quotient  first-level read units  profiles")
     for candidate in report["candidates"]:
         tile = "x".join(str(value) for value in candidate["inner_tile_shape"])
         sectors = "pending"
         if "counters" in candidate:
             value = candidate["counters"]["steady_state"][
-                "l1_cache_line_accesses"
+                "first_level_memory_accesses"
             ]
             sectors = f"{value:,.1f}"
         print(
