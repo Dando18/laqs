@@ -10,43 +10,13 @@ fi
 
 relay_laqs_plugin_source="${PWD}/triton/automatic_frontend"
 relay_laqs_plugin_library="${PWD}/triton/triton-lang/python/triton/plugins/libLAQSTritonAccessManifest.so"
-relay_triton_expected_commit="b1233aa326fa485b08de8593da2d08cb853c346b"
-relay_triton_hook_patch="${PWD}/triton/patches/post-coalesce-hook.patch"
+relay_triton_expected_commit="b3376d6459bfb14f2500c1c20b3948ad59649bf8"
 if [[ "${relay_laqs_plugin_source}" =~ [[:space:]] ]]; then
     echo "The LAQS plugin source path cannot contain whitespace: ${relay_laqs_plugin_source}" >&2
     exit 1
 fi
 if [[ "$(git -C triton/triton-lang rev-parse HEAD)" != "${relay_triton_expected_commit}" ]]; then
     echo "The Triton checkout is not at the pinned LAQS revision ${relay_triton_expected_commit}." >&2
-    exit 1
-fi
-if git -C triton/triton-lang apply --reverse --check "${relay_triton_hook_patch}" >/dev/null 2>&1; then
-    : # The exact patch is already present.
-elif git -C triton/triton-lang diff --quiet -- \
-        CMakeLists.txt \
-        python/src/ir.cc \
-        python/triton/compiler/compiler.py \
-        python/triton/knobs.py \
-        python/triton/runtime/jit.py \
-        third_party/amd/backend/compiler.py \
-        third_party/nvidia/backend/compiler.py && \
-        git -C triton/triton-lang apply --check "${relay_triton_hook_patch}"; then
-    git -C triton/triton-lang apply "${relay_triton_hook_patch}"
-else
-    echo "The pinned Triton hook files diverge from triton/patches/post-coalesce-hook.patch." >&2
-    exit 1
-fi
-if ! cmp -s \
-        <(git -C triton/triton-lang diff --binary -- \
-            CMakeLists.txt \
-            python/src/ir.cc \
-            python/triton/compiler/compiler.py \
-            python/triton/knobs.py \
-            python/triton/runtime/jit.py \
-            third_party/amd/backend/compiler.py \
-            third_party/nvidia/backend/compiler.py) \
-        "${relay_triton_hook_patch}"; then
-    echo "The pinned Triton hook diff is not exactly triton/patches/post-coalesce-hook.patch." >&2
     exit 1
 fi
 for relay_triton_hook_marker in \

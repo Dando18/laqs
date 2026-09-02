@@ -152,11 +152,11 @@ falls back to annotations, regex IR parsing, or a Triton-specific score.
 
 ## Build and validation
 
-Both cluster installers verify the exact pinned revision, idempotently apply
-`triton/patches/post-coalesce-hook.patch`, enable extension symbols, and include
+Both cluster installers verify the exact pinned revision containing the
+committed backend-neutral hook, enable extension symbols, and include
 `triton/automatic_frontend` through `TRITON_PASS_PLUGIN_DIRS`. They load the
-resulting library and verify pass registration. Matrix applies the same tracked
-patch to its commit-pinned CUDA clone and exposes the library under the ignored
+resulting library and verify pass registration. Matrix builds the same commit
+in its platform-isolated CUDA clone and exposes the library under the ignored
 `triton/plugins/matrix` convenience path. Automatic discovery first resolves
 the library beside the Triton package imported by the active environment. It
 does not fall back to a library built for another checkout, which prevents a
@@ -184,7 +184,7 @@ allocation, trace-class, multiplicity, edge-family, and component counts.
 `--require-supported` turns any non-supported result into a command failure.
 It imports the editable Triton selected by the active Python environment before
 adding the RELAY source tree. It then verifies that package's enclosing Git
-checkout is exactly commit `b1233aa326fa485b08de8593da2d08cb853c346b`.
+checkout is exactly commit `b3376d6459bfb14f2500c1c20b3948ad59649bf8`.
 This admits the shared Tuolumne checkout and the Matrix installer's
 platform-isolated clone while rejecting an installed upstream wheel, a checkout
 at another revision, or the repository's `triton/` namespace directory.

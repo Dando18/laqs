@@ -398,6 +398,22 @@ flux run -n1 -g1 -t 5m -q pdebug \
 The seven-kernel MI300A result and offline analysis of all 700 random-layout
 counter observations are summarized in
 [`results/stage1-hardware-service-mi300a.md`](results/stage1-hardware-service-mi300a.md).
+The locality-counter driver accepts the same service-model options, so selected
+layouts can be profiled without sharing issue-only checkpoints:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-locality-counters.py \
+  --cases mvt gesummv --cache-modes warm \
+  --transaction-bytes 128 --temporal-mode split \
+  --service-model mi300a_v1 --max-profiles 2 \
+  --results-dir triton/results/stage1-hardware-service-counter-profiles \
+  --json triton/results/stage1-hardware-service-counters.json --quiet
+```
+
+Repeat the command until the requested profiles are complete. A fresh focused
+validation of automatic extraction, performance, and counters is recorded in
+[`results/automatic-edge-validation-mi300a.md`](results/automatic-edge-validation-mi300a.md).
 
 ## Validate quotient locality with hardware counters
 

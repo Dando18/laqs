@@ -9,8 +9,7 @@ if [[ ! -f pyproject.toml || ! -f triton/triton-lang/setup.py || ! -f triton/tri
 fi
 
 relay_laqs_plugin_source="${PWD}/triton/automatic_frontend"
-relay_triton_expected_commit="b1233aa326fa485b08de8593da2d08cb853c346b"
-relay_triton_hook_patch="${PWD}/triton/patches/post-coalesce-hook.patch"
+relay_triton_expected_commit="b3376d6459bfb14f2500c1c20b3948ad59649bf8"
 if [[ "${relay_laqs_plugin_source}" =~ [[:space:]] ]]; then
     echo "The LAQS plugin source path cannot contain whitespace: ${relay_laqs_plugin_source}" >&2
     exit 1
@@ -102,37 +101,6 @@ elif [[ "$(git -C "${relay_triton_source}" rev-parse HEAD)" != "${relay_triton_c
     exit 1
 fi
 
-# Apply the tracked hook patch to the commit-pinned Matrix clone. A reverse
-# check makes this idempotent; any other edit to the hook files is refused.
-if git -C "${relay_triton_source}" apply --reverse --check "${relay_triton_hook_patch}" >/dev/null 2>&1; then
-    : # The exact patch is already present.
-elif git -C "${relay_triton_source}" diff --quiet -- \
-        CMakeLists.txt \
-        python/src/ir.cc \
-        python/triton/compiler/compiler.py \
-        python/triton/knobs.py \
-        python/triton/runtime/jit.py \
-        third_party/amd/backend/compiler.py \
-        third_party/nvidia/backend/compiler.py && \
-        git -C "${relay_triton_source}" apply --check "${relay_triton_hook_patch}"; then
-    git -C "${relay_triton_source}" apply "${relay_triton_hook_patch}"
-else
-    echo "The Matrix Triton hook files diverge from triton/patches/post-coalesce-hook.patch." >&2
-    exit 1
-fi
-if ! cmp -s \
-        <(git -C "${relay_triton_source}" diff --binary -- \
-            CMakeLists.txt \
-            python/src/ir.cc \
-            python/triton/compiler/compiler.py \
-            python/triton/knobs.py \
-            python/triton/runtime/jit.py \
-            third_party/amd/backend/compiler.py \
-            third_party/nvidia/backend/compiler.py) \
-        "${relay_triton_hook_patch}"; then
-    echo "The Matrix Triton hook diff is not exactly triton/patches/post-coalesce-hook.patch." >&2
-    exit 1
-fi
 for relay_triton_hook_marker in \
     "python/triton/knobs.py:post_coalesce_hook" \
     "python/src/ir.cc:ModuleOp &self" \

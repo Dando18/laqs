@@ -1,0 +1,398 @@
+{
+  "cases": {
+    "descriptor_copy": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            16,
+            16
+          ],
+          "name": "source",
+          "role": "read",
+          "shape": [
+            16,
+            16
+          ],
+          "strides": [
+            16,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            16,
+            16
+          ],
+          "name": "output",
+          "role": "write",
+          "shape": [
+            16,
+            16
+          ],
+          "strides": [
+            16,
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        1
+      ],
+      "matrix_count": 2,
+      "memory_event_count": 2,
+      "objective_component_count": 0,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 1,
+      "trace_class_multiplicity": 4
+    },
+    "layer_norm": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            8,
+            512
+          ],
+          "name": "X",
+          "role": "read",
+          "shape": [
+            8,
+            257
+          ],
+          "strides": [
+            257,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            8
+          ],
+          "name": "Mean",
+          "role": "write",
+          "shape": [
+            8
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.2",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            8
+          ],
+          "name": "Rstd",
+          "role": "write",
+          "shape": [
+            8
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.3",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            512
+          ],
+          "name": "W",
+          "role": "read",
+          "shape": [
+            257
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.4",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            512
+          ],
+          "name": "B",
+          "role": "read",
+          "shape": [
+            257
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.5",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            8,
+            512
+          ],
+          "name": "Y",
+          "role": "write",
+          "shape": [
+            8,
+            257
+          ],
+          "strides": [
+            257,
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        8
+      ],
+      "matrix_count": 6,
+      "memory_event_count": 32,
+      "objective_component_count": 0,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 4,
+      "trace_class_multiplicity": 32
+    },
+    "softmax": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            8,
+            512
+          ],
+          "name": "input_ptr",
+          "role": "read",
+          "shape": [
+            8,
+            257
+          ],
+          "strides": [
+            257,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            8,
+            512
+          ],
+          "name": "output_ptr",
+          "role": "write",
+          "shape": [
+            8,
+            257
+          ],
+          "strides": [
+            257,
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        8
+      ],
+      "matrix_count": 2,
+      "memory_event_count": 6,
+      "objective_component_count": 0,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 2,
+      "trace_class_multiplicity": 32
+    },
+    "tutorial_matmul": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            128,
+            128
+          ],
+          "name": "a_ptr",
+          "role": "read",
+          "shape": [
+            128,
+            96
+          ],
+          "strides": [
+            96,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            128,
+            128
+          ],
+          "name": "b_ptr",
+          "role": "read",
+          "shape": [
+            96,
+            128
+          ],
+          "strides": [
+            128,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.2",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            128,
+            128
+          ],
+          "name": "c_ptr",
+          "role": "write",
+          "shape": [
+            128,
+            128
+          ],
+          "strides": [
+            128,
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        64
+      ],
+      "matrix_count": 3,
+      "memory_event_count": 26,
+      "objective_component_count": 0,
+      "selected_config": {
+        "BLOCK_K": 128,
+        "BLOCK_M": 16,
+        "BLOCK_N": 16,
+        "GROUP_M": 8,
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4
+      },
+      "status": "supported",
+      "trace_class_count": 2,
+      "trace_class_multiplicity": 256
+    },
+    "vector_add": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            8192
+          ],
+          "name": "x_ptr",
+          "role": "read",
+          "shape": [
+            4097
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            8192
+          ],
+          "name": "y_ptr",
+          "role": "read",
+          "shape": [
+            4097
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.2",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            8192
+          ],
+          "name": "output_ptr",
+          "role": "write",
+          "shape": [
+            4097
+          ],
+          "strides": [
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        17
+      ],
+      "matrix_count": 3,
+      "memory_event_count": 6,
+      "objective_component_count": 0,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 2,
+      "trace_class_multiplicity": 65
+    }
+  },
+  "environment": {
+    "cuda": null,
+    "device": "cuda",
+    "device_name": "AMD Instinct MI300A",
+    "dtype": "float16",
+    "hardware_profile": "none",
+    "hip": "7.2.53211",
+    "hostname": "tuolumne1027",
+    "torch": "2.15.0.dev20260827+rocm7.2",
+    "triton": "3.8.0",
+    "triton_checkout": "/g/g16/dnicho/record-replay/relay/triton/triton-lang",
+    "triton_commit": "b3376d6459bfb14f2500c1c20b3948ad59649bf8",
+    "triton_source": "/g/g16/dnicho/record-replay/relay/triton/triton-lang/python/triton/__init__.py"
+  },
+  "requested_cases": [
+    "vector_add",
+    "softmax",
+    "tutorial_matmul",
+    "layer_norm",
+    "descriptor_copy"
+  ],
+  "schema": "laqs.triton.coverage",
+  "summary": {
+    "errors": 0,
+    "supported": 5,
+    "unsupported": 0
+  },
+  "version": 1
+}

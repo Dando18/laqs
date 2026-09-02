@@ -16,7 +16,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 PINNED_TRITON_PYTHON = REPOSITORY / "triton" / "triton-lang" / "python"
-PINNED_TRITON_COMMIT = "b1233aa326fa485b08de8593da2d08cb853c346b"
+PINNED_TRITON_COMMIT = "b3376d6459bfb14f2500c1c20b3948ad59649bf8"
 TRITONBENCH_SOURCE = REPOSITORY / "triton" / "tritonbench"
 
 # Import the editable Triton selected by this Python environment before adding

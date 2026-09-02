@@ -1,0 +1,199 @@
+{
+  "cases": {
+    "descriptor_copy": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            16,
+            16
+          ],
+          "name": "source",
+          "role": "read",
+          "shape": [
+            16,
+            16
+          ],
+          "strides": [
+            16,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            16,
+            16
+          ],
+          "name": "output",
+          "role": "write",
+          "shape": [
+            16,
+            16
+          ],
+          "strides": [
+            16,
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        1
+      ],
+      "matrix_count": 2,
+      "memory_event_count": 8,
+      "objective_component_count": 288,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 4,
+      "trace_class_multiplicity": 4
+    },
+    "softmax": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            8,
+            512
+          ],
+          "name": "input_ptr",
+          "role": "read",
+          "shape": [
+            8,
+            257
+          ],
+          "strides": [
+            257,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            8,
+            512
+          ],
+          "name": "output_ptr",
+          "role": "write",
+          "shape": [
+            8,
+            257
+          ],
+          "strides": [
+            257,
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        8
+      ],
+      "matrix_count": 2,
+      "memory_event_count": 80,
+      "objective_component_count": 288,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 32,
+      "trace_class_multiplicity": 32
+    },
+    "vector_add": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            8192
+          ],
+          "name": "x_ptr",
+          "role": "read",
+          "shape": [
+            4097
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            8192
+          ],
+          "name": "y_ptr",
+          "role": "read",
+          "shape": [
+            4097
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.2",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            8192
+          ],
+          "name": "output_ptr",
+          "role": "write",
+          "shape": [
+            4097
+          ],
+          "strides": [
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        17
+      ],
+      "matrix_count": 3,
+      "memory_event_count": 195,
+      "objective_component_count": 288,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 65,
+      "trace_class_multiplicity": 65
+    }
+  },
+  "environment": {
+    "cuda": null,
+    "device": "cuda",
+    "device_name": "AMD Instinct MI300A",
+    "dtype": "float16",
+    "hardware_profile": "mi300a",
+    "hip": "7.2.53211",
+    "hostname": "tuolumne1039",
+    "torch": "2.15.0.dev20260827+rocm7.2",
+    "triton": "3.8.0",
+    "triton_checkout": "/g/g16/dnicho/record-replay/relay/triton/triton-lang",
+    "triton_commit": "b3376d6459bfb14f2500c1c20b3948ad59649bf8",
+    "triton_source": "/g/g16/dnicho/record-replay/relay/triton/triton-lang/python/triton/__init__.py"
+  },
+  "requested_cases": [
+    "vector_add",
+    "softmax",
+    "descriptor_copy"
+  ],
+  "schema": "laqs.triton.coverage",
+  "summary": {
+    "errors": 0,
+    "supported": 3,
+    "unsupported": 0
+  },
+  "version": 1
+}

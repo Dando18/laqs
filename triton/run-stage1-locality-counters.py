@@ -59,6 +59,16 @@ def _profile_configuration(args, case, cache_mode, role, launch):
         "layout_role": role,
         "profile_launch": launch,
         "temporal_mode": args.temporal_mode,
+        "service_model": args.service_model,
+        "service_tuning": {
+            "issue_tau": args.issue_tau,
+            "temporal_tau": args.temporal_tau,
+            "instruction_tau": args.instruction_tau,
+            "lane_cohort_tau": args.lane_cohort_tau,
+            "instruction_bytes": args.instruction_bytes,
+            "lane_cohort_bytes": args.lane_cohort_bytes,
+            "lane_cohort_bits": list(args.lane_cohort_bits),
+        },
         "transaction_bytes": args.transaction_bytes,
         "requested_retained_candidates": args.candidates,
         "profile_warmup": args.profile_warmup,
@@ -158,6 +168,22 @@ def profile_layout(
         "1",
         "--temporal-mode",
         args.temporal_mode,
+        "--service-model",
+        args.service_model,
+        "--issue-tau",
+        str(args.issue_tau),
+        "--temporal-tau",
+        str(args.temporal_tau),
+        "--instruction-tau",
+        str(args.instruction_tau),
+        "--lane-cohort-tau",
+        str(args.lane_cohort_tau),
+        "--instruction-bytes",
+        str(args.instruction_bytes),
+        "--lane-cohort-bytes",
+        str(args.lane_cohort_bytes),
+        "--lane-cohort-bits",
+        *(str(bit) for bit in args.lane_cohort_bits),
         "--profile-layout",
         role,
         "--profile-cache-mode",
@@ -439,6 +465,16 @@ def collect_results(args) -> dict[str, object]:
             "case_order": list(CASES),
             "cache_modes": ["warm", "thrashed"],
             "temporal_mode": args.temporal_mode,
+            "service_model": args.service_model,
+            "service_tuning": {
+                "issue_tau": args.issue_tau,
+                "temporal_tau": args.temporal_tau,
+                "instruction_tau": args.instruction_tau,
+                "lane_cohort_tau": args.lane_cohort_tau,
+                "instruction_bytes": args.instruction_bytes,
+                "lane_cohort_bytes": args.lane_cohort_bytes,
+                "lane_cohort_bits": list(args.lane_cohort_bits),
+            },
             "transaction_bytes": args.transaction_bytes,
             "requested_retained_candidates": args.candidates,
             "profile_launches": args.profile_launches,
@@ -601,6 +637,18 @@ def parse_arguments(argv=None):
         "--temporal-mode",
         choices=("issue", "union", "split"),
         default="issue",
+    )
+    parser.add_argument(
+        "--service-model", choices=("none", "mi300a_v1"), default="none"
+    )
+    parser.add_argument("--issue-tau", type=float, default=1.0)
+    parser.add_argument("--temporal-tau", type=float, default=1.0)
+    parser.add_argument("--instruction-tau", type=float, default=1.0)
+    parser.add_argument("--lane-cohort-tau", type=float, default=0.0625)
+    parser.add_argument("--instruction-bytes", type=positive_integer, default=64)
+    parser.add_argument("--lane-cohort-bytes", type=positive_integer, default=64)
+    parser.add_argument(
+        "--lane-cohort-bits", type=int, nargs="+", default=(2, 3)
     )
     parser.add_argument(
         "--rocprof",
