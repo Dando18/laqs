@@ -42,6 +42,14 @@ def run_worker(worker: Path, args, output: Path) -> dict[str, object]:
     ]
     if args.register_fibers:
         command.append("--register-fibers")
+    if args.hardware_hierarchy:
+        command.extend(
+            (
+                "--hardware-hierarchy",
+                "--hardware-hierarchy-profile",
+                args.hardware_hierarchy_profile,
+            )
+        )
     subprocess.run(command, check=True)
     return json.loads(output.read_text(encoding="utf-8"))
 
@@ -125,6 +133,12 @@ def run_sweep(args) -> dict[str, object]:
                 "warmup_rounds": args.warmup,
                 "runtime_aggregation": "median_of_process_medians",
                 "register_fibers": args.register_fibers,
+                "hardware_hierarchy": args.hardware_hierarchy,
+                "hardware_hierarchy_profile": (
+                    args.hardware_hierarchy_profile
+                    if args.hardware_hierarchy
+                    else None
+                ),
             }
         else:
             previous = json.loads(args.ranking_json.read_text(encoding="utf-8"))
@@ -144,6 +158,18 @@ def run_sweep(args) -> dict[str, object]:
             ):
                 raise ValueError(
                     "--register-fibers does not match --ranking-json"
+                )
+            if bool(configuration.get("hardware_hierarchy", False)) != (
+                args.hardware_hierarchy
+            ):
+                raise ValueError(
+                    "--hardware-hierarchy does not match --ranking-json"
+                )
+            if args.hardware_hierarchy and configuration.get(
+                "hardware_hierarchy_profile"
+            ) != args.hardware_hierarchy_profile:
+                raise ValueError(
+                    "--hardware-hierarchy-profile does not match --ranking-json"
                 )
         hardware_counters = None
         if args.profile or args.profile_all:
@@ -197,6 +223,10 @@ def run_sweep(args) -> dict[str, object]:
                             "register_aware_score": candidate[
                                 "register_aware_score"
                             ],
+                            "objective_score": candidate["objective_score"],
+                            "hardware_hierarchy_score": candidate.get(
+                                "hardware_hierarchy_score"
+                            ),
                             "profile": profile,
                         }
                     )
@@ -204,7 +234,13 @@ def run_sweep(args) -> dict[str, object]:
                     "quotient_score",
                     "register_fiber_normalized_excess",
                     "register_aware_score",
+                    "objective_score",
                 )
+                if candidate_profiles[0]["hardware_hierarchy_score"] is not None:
+                    score_fields = (
+                        *score_fields,
+                        "hardware_hierarchy_score",
+                    )
                 counter_fields = (
                     "duration_ns",
                     "l1_to_l2_read_requests",
@@ -277,7 +313,14 @@ def parse_arguments(argv=None):
     parser.add_argument("--process-launches", type=positive_integer, default=3)
     parser.add_argument("--transaction-bytes", type=positive_integer, default=128)
     parser.add_argument("--candidates", type=positive_integer, default=8)
-    parser.add_argument("--register-fibers", action="store_true")
+    fiber_mode = parser.add_mutually_exclusive_group()
+    fiber_mode.add_argument("--register-fibers", action="store_true")
+    fiber_mode.add_argument("--hardware-hierarchy", action="store_true")
+    parser.add_argument(
+        "--hardware-hierarchy-profile",
+        choices=("common-sense", "mi300a"),
+        default="mi300a",
+    )
     parser.add_argument("--samples", type=positive_integer, default=21)
     parser.add_argument("--iterations", type=positive_integer, default=50)
     parser.add_argument("--warmup", type=positive_integer, default=10)

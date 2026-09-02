@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from itertools import permutations
 import json
 import os
 from pathlib import Path
@@ -14,7 +15,7 @@ import triton
 
 from stage1_common import (
     benchmark_layouts,
-    canonical_layout_metadata,
+    candidate_layout_metadata,
     compiled_codegen_statistics,
     distribution_version,
     execution_layout_from_compiled,
@@ -30,6 +31,41 @@ from stage1_common import (
     validate_output,
 )
 from stage1_kernels import TILE_SIZE, gemm_prepacked_b_kernel
+
+
+HARDWARE_HIERARCHY_SCALES = {
+    "register": (8, 16, 32),
+    "lane": (64, 256),
+    "warp": (256, 512),
+    "cta": (1024, 2048),
+}
+
+HARDWARE_HIERARCHY_TAUS = {
+    "common-sense": {
+        "register.8B": 0.125,
+        "register.16B": 0.0625,
+        "register.32B": 0.03125,
+        "lane.64B": 1.0,
+        "issue": 0.5,
+        "lane.256B": 0.25,
+        "warp.256B": 0.25,
+        "warp.512B": 0.125,
+        "cta.1024B": 0.0625,
+        "cta.2048B": 0.03125,
+    },
+    "mi300a": {
+        "register.8B": 0.25,
+        "register.16B": 0.25,
+        "register.32B": 0.25,
+        "lane.64B": 1.0,
+        "issue": 1.0,
+        "lane.256B": 0.5,
+        "warp.256B": 0.125,
+        "warp.512B": 1.0,
+        "cta.1024B": 0.0625,
+        "cta.2048B": 0.03125,
+    },
+}
 
 
 def gemm_inputs(n: int):
@@ -64,6 +100,7 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
     from relay import (
         MatrixSpec,
         low_address_flag,
+        linear_layout_hardware_basis_layout,
         linear_layout_resource_fiber,
         row_major_layout,
         summarize_rank_quality,
@@ -111,9 +148,73 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
     register_component = register_objective.build(
         {matrix.name: matrix}, {}, ()
     )[0]
-    fiber_objectives = (
-        (register_objective,) if args.register_fibers else ()
+    hierarchy_fibers = {
+        "register": register_fiber,
+        "lane": linear_layout_resource_fiber(
+            execution,
+            events,
+            varying_dimensions=("lane",),
+            name="gemm_prepacked_b.lane",
+        ),
+        "warp": linear_layout_resource_fiber(
+            execution,
+            events,
+            varying_dimensions=("register", "lane"),
+            name="gemm_prepacked_b.warp",
+        ),
+        "cta": linear_layout_resource_fiber(
+            execution,
+            events,
+            varying_dimensions=("register", "lane", "warp"),
+            name="gemm_prepacked_b.cta",
+        ),
+    }
+    hierarchy_objectives = tuple(
+        hierarchy_fibers[level].at_scale(
+            region_bytes,
+            name=f"gemm_prepacked_b.{level}.{region_bytes}B",
+        )
+        for level in ("register", "lane", "warp", "cta")
+        for region_bytes in HARDWARE_HIERARCHY_SCALES[level]
     )
+    if args.hardware_hierarchy:
+        fiber_objectives = hierarchy_objectives
+    elif args.register_fibers:
+        fiber_objectives = (register_objective,)
+    else:
+        fiber_objectives = ()
+
+    issue_name = f"gemm_prepacked_b.issue.{args.transaction_bytes}B"
+    objective_taus = None
+    if args.hardware_hierarchy:
+        relative_taus = HARDWARE_HIERARCHY_TAUS[
+            args.hardware_hierarchy_profile
+        ]
+        objective_taus = {
+            (
+                issue_name
+                if relative_name == "issue"
+                else f"gemm_prepacked_b.{relative_name}"
+            ): tau
+            for relative_name, tau in relative_taus.items()
+        }
+
+    hardware_candidates = ()
+    if args.hardware_hierarchy:
+        active_dimensions = tuple(
+            input_name
+            for input_name, input_bases in execution.bases
+            if input_bases
+        )
+        hardware_candidates = tuple(
+            linear_layout_hardware_basis_layout(
+                execution,
+                matrix,
+                input_dimension_order=dimension_order,
+                name="hardware_basis_" + "_".join(dimension_order),
+            )
+            for dimension_order in permutations(active_dimensions)
+        )
     objective, problem, result = solve_layouts(
         (matrix,),
         events,
@@ -121,11 +222,24 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         "gemm_prepacked_b",
         inner_tile_shapes={matrix.name: ((TILE_SIZE, TILE_SIZE),)},
         execution_fiber_objectives=fiber_objectives,
-        normalize_objectives=args.register_fibers,
+        normalize_objectives=bool(fiber_objectives),
+        objective_taus=objective_taus,
+        candidate_layouts={matrix.name: hardware_candidates},
     )
     component = result.components[0]
     objective_names = (
         (objective,) if isinstance(objective, str) else tuple(objective)
+    )
+    tau_by_name = {
+        component_name: (
+            objective_taus.get(component_name, 1.0)
+            if objective_taus is not None
+            else 1.0
+        )
+        for component_name in objective_names
+    }
+    normalized_objective_offset = (
+        sum(tau_by_name.values()) if fiber_objectives else 0.0
     )
     retained = result.arrays[matrix.name].candidates
     default_score = weighted_component_region_count(
@@ -169,17 +283,24 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         outputs[candidate_id] = output
         compiled_candidates[candidate_id] = launch()
         score = float(candidate.scores[component.name])
-        objective_score = problem.config.policy.key(candidate.scores)[0]
-        if args.register_fibers:
-            objective_score -= len(objective_names)
+        objective_score = (
+            problem.config.policy.key(candidate.scores)[0]
+            - normalized_objective_offset
+        )
         quotient_components = {}
         for component_name in objective_names:
             raw = float(candidate.scores[component_name])
             bound = float(candidate.packing_bounds[component_name])
+            normalized_component_excess = raw / bound - 1.0
             quotient_components[component_name] = {
                 "quotient_score": raw,
                 "packing_bound": bound,
-                "normalized_excess": raw / bound - 1.0,
+                "normalized_excess": normalized_component_excess,
+                "tau": tau_by_name[component_name],
+                "weighted_normalized_excess": (
+                    tau_by_name[component_name]
+                    * normalized_component_excess
+                ),
             }
         register_score = weighted_component_region_count(
             matrix, layout, register_component
@@ -188,11 +309,21 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         register_excess = register_score / register_bound - 1.0
         issue_excess = score / candidate.packing_bounds[component.name] - 1.0
         register_aware_score = issue_excess + register_excess
+        hierarchy_score = sum(
+            float(values["weighted_normalized_excess"])
+            for values in quotient_components.values()
+        )
         if args.register_fibers and abs(
             objective_score - register_aware_score
         ) > 1e-9:
             raise ValueError(
                 "normalized register-fiber objective decomposition changed"
+            )
+        if args.hardware_hierarchy and abs(
+            objective_score - hierarchy_score
+        ) > 1e-9:
+            raise ValueError(
+                "normalized hardware-hierarchy objective decomposition changed"
             )
         records.append(
             {
@@ -205,7 +336,7 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
                 + 1,
                 "layout": layout.name,
                 "grammar": layout.grammar,
-                **canonical_layout_metadata(layout, matrix),
+                **candidate_layout_metadata(layout, matrix),
                 "a_rows": list(rows),
                 "mapping_id": mapping_id,
                 "flag_id": flag_id,
@@ -219,6 +350,11 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
                 "register_fiber_packing_bound": float(register_bound),
                 "register_fiber_normalized_excess": float(register_excess),
                 "register_aware_score": float(register_aware_score),
+                "hardware_hierarchy_score": (
+                    float(hierarchy_score)
+                    if args.hardware_hierarchy
+                    else None
+                ),
                 "runs": int(candidate.scores["runs"]),
                 "xor_count": layout.xor_count,
                 "exact": candidate.exact,
@@ -258,8 +394,45 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
     register_aware_rank_quality = summarize_rank_quality(
         records, score_key="register_aware_score"
     )
+    hierarchy_rank_quality = (
+        summarize_rank_quality(
+            records, score_key="hardware_hierarchy_score"
+        )
+        if args.hardware_hierarchy
+        else None
+    )
     selected = records[0]
     default = next(record for record in records if record["layout"] == "row_major")
+    hierarchy_metadata = {}
+    for level, fiber in hierarchy_fibers.items():
+        scales = (
+            HARDWARE_HIERARCHY_SCALES[level]
+            if args.hardware_hierarchy
+            else (
+                (register_bytes,)
+                if args.register_fibers and level == "register"
+                else ()
+            )
+        )
+        if not scales:
+            continue
+        hierarchy_metadata[level] = {
+            "varying_dimensions": list(fiber.varying_dimensions),
+            "hardware_fiber_count": fiber.hardware_fiber_count,
+            "omitted_singleton_count": fiber.omitted_singleton_count,
+            "scales": [
+                {
+                    "region_bytes": region_bytes,
+                    "objective": (
+                        f"gemm_prepacked_b.{level}.{region_bytes}B"
+                    ),
+                    "tau": tau_by_name[
+                        f"gemm_prepacked_b.{level}.{region_bytes}B"
+                    ],
+                }
+                for region_bytes in scales
+            ],
+        }
     return {
         "stage": 1.5,
         "experiment": "triton_stage15_gemm_candidate_ranking",
@@ -273,29 +446,43 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         "induced_event_count": len(events),
         "objective": objective,
         "execution_fibers": {
-            "enabled": args.register_fibers,
+            "enabled": bool(fiber_objectives),
+            "mode": (
+                "hardware_hierarchy"
+                if args.hardware_hierarchy
+                else "register"
+                if args.register_fibers
+                else "issue_only"
+            ),
             "aggregation": (
-                "equal-weight normalized excess"
+                "tau-weighted normalized excess"
+                if args.hardware_hierarchy
+                else "equal-weight normalized excess"
                 if args.register_fibers
                 else None
             ),
-            "register": {
-                "varying_dimensions": list(
-                    register_fiber.varying_dimensions
-                ),
-                "hardware_fiber_count": register_fiber.hardware_fiber_count,
-                "omitted_singleton_count": (
-                    register_fiber.omitted_singleton_count
-                ),
-                "region_bytes": matrix.element_bytes
-                * execution.input_size("register"),
-            },
+            "profile": (
+                args.hardware_hierarchy_profile
+                if args.hardware_hierarchy
+                else None
+            ),
+            "issue_tau": tau_by_name[component.name],
+            "levels": hierarchy_metadata,
         },
         "search_scope": {
-            "grammar": "canonical_inner_tile",
+            "grammar": (
+                "canonical_inner_tile_plus_hardware_basis_permutations"
+                if args.hardware_hierarchy
+                else "canonical_inner_tile"
+            ),
             "inner_tile_shape": [TILE_SIZE, TILE_SIZE],
             "outer_layout": "row_major_tiles",
             "fixed_outer_order": list(reversed(matrix.mode_names)),
+            "hardware_basis_candidate_count": len(hardware_candidates),
+            "hardware_basis_orders": [
+                layout.name.removeprefix("hardware_basis_").split("_")
+                for layout in hardware_candidates
+            ],
         },
         "packing_lower_bound": component.packing_bound(matrix),
         "default_candidate_id": default["candidate_id"],
@@ -306,6 +493,7 @@ def run_ranking(args: argparse.Namespace) -> dict[str, object]:
         "rank_quality": rank_quality,
         "objective_rank_quality": objective_rank_quality,
         "register_aware_rank_quality": register_aware_rank_quality,
+        "hardware_hierarchy_rank_quality": hierarchy_rank_quality,
         "predicted_transaction_reduction": 1.0
         - float(selected["quotient_score"]) / default_score,
         "measured_speedup": float(default["runtime_ms"])
@@ -366,13 +554,28 @@ def parse_arguments(argv=None):
     parser.add_argument("--gemm-size", type=positive_integer, default=512)
     parser.add_argument("--transaction-bytes", type=positive_integer, default=128)
     parser.add_argument("--candidates", type=positive_integer, default=8)
-    parser.add_argument(
+    fiber_mode = parser.add_mutually_exclusive_group()
+    fiber_mode.add_argument(
         "--register-fibers",
         action="store_true",
         help=(
             "add per-lane register-ownership fibers at their exact byte "
             "footprint and rank by equal-weight normalized excess"
         ),
+    )
+    fiber_mode.add_argument(
+        "--hardware-hierarchy",
+        action="store_true",
+        help=(
+            "add register, lane, warp-fragment, and CTA-fragment fibers at "
+            "multiple address scales and seed hardware-basis layouts"
+        ),
+    )
+    parser.add_argument(
+        "--hardware-hierarchy-profile",
+        choices=tuple(HARDWARE_HIERARCHY_TAUS),
+        default="mi300a",
+        help="tau profile for --hardware-hierarchy",
     )
     parser.add_argument("--samples", type=positive_integer, default=21)
     parser.add_argument("--iterations", type=positive_integer, default=50)

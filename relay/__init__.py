@@ -117,6 +117,7 @@ from .triton import (
     execution_conditioned_quotient_problem,
     extract_blocked_layout,
     induce_memory_event,
+    linear_layout_hardware_basis_layout,
     linear_layout_resource_fiber,
     validate_induced_hypergraph,
 )
@@ -176,6 +177,7 @@ __all__ = [
     "get_hardware_profile",
     "group_resource_cohorts_by_translation",
     "induce_memory_event",
+    "linear_layout_hardware_basis_layout",
     "linear_layout_resource_fiber",
     "NonAffineAccessError",
     "NonDistributiveAccessError",

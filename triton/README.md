@@ -280,6 +280,33 @@ flux run -n1 -g1 -t 5m -q pdebug \
 The initial MI300A result is summarized in
 [`results/stage15-gemm-register-fibers-mi300a.md`](results/stage15-gemm-register-fibers-mi300a.md).
 
+Use `--hardware-hierarchy` to construct cumulative LinearLayout fibers for
+register ownership, lane issues, per-warp fragments, and the full CTA
+fragment. Each family is scored at several byte scales and combined as
+`tau * normalized_excess`. The experiment also evaluates all permutations of
+the nonempty register/lane/warp LinearLayout bases as low-to-high memory
+directions, because those layouts are not all expressible by the canonical
+word grammar:
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --hardware-hierarchy --hardware-hierarchy-profile mi300a \
+  --process-launches 3 \
+  --json triton/results/stage15-gemm-hardware-hierarchy-mi300a.json --quiet
+
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage15-gemm-sweep.py \
+  --hardware-hierarchy --hardware-hierarchy-profile mi300a \
+  --ranking-json triton/results/stage15-gemm-hardware-hierarchy-mi300a.json \
+  --profile-all \
+  --json triton/results/stage15-gemm-hardware-hierarchy-counter-panel-mi300a.json \
+  --quiet
+```
+
+The MI300A hierarchy experiment and its tuned weights are summarized in
+[`results/stage15-gemm-hardware-hierarchy-mi300a.md`](results/stage15-gemm-hardware-hierarchy-mi300a.md).
+
 ## Run the Stage 1 breadth experiments
 
 The GEMM breadth driver ranks all eight retained B layouts across square,

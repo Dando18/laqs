@@ -63,6 +63,25 @@ def canonical_layout_metadata(layout, matrix) -> dict[str, object]:
     }
 
 
+def candidate_layout_metadata(layout, matrix) -> dict[str, object]:
+    from relay import CanonicalLayout, LinearInnerLayout
+
+    if isinstance(layout, CanonicalLayout):
+        return canonical_layout_metadata(layout, matrix)
+    if not isinstance(layout, LinearInnerLayout):
+        raise TypeError(f"unsupported Stage 1 layout {type(layout).__name__}")
+    descriptor = layout.evaluator_descriptor(matrix)
+    return {
+        "word": descriptor,
+        "inner_word": descriptor,
+        "inner_tile_shape": list(layout.tile_shape),
+        "fixed_outer_order": [
+            matrix.mode_names[mode] for mode in layout.outer_order
+        ],
+        "linear_inner_rows": list(layout.a_rows),
+    }
+
+
 def physical_offsets(
     shape: tuple[int, ...], rows: tuple[int, ...]
 ) -> torch.Tensor:
@@ -465,6 +484,8 @@ def solve_layouts(
     temporal_mode="issue",
     execution_fiber_objectives=(),
     normalize_objectives=False,
+    objective_taus=None,
+    candidate_layouts=None,
 ):
     from dataclasses import replace
 
@@ -544,6 +565,23 @@ def solve_layouts(
         )
         fiber_names = tuple(component.name for component in fiber_objectives)
         objective = (*base_names, *fiber_names)
+        taus = {
+            component_name: 1.0 for component_name in objective
+        }
+        if objective_taus is not None:
+            unknown_taus = sorted(set(objective_taus) - set(objective))
+            if unknown_taus:
+                raise ValueError(
+                    f"tau weights reference unknown objectives: {unknown_taus}"
+                )
+            taus.update(
+                {
+                    component_name: float(tau)
+                    for component_name, tau in objective_taus.items()
+                }
+            )
+        if any(tau <= 0 for tau in taus.values()):
+            raise ValueError("tau weights must be positive")
         if normalize_objectives:
             from relay.objectives import build_objectives
 
@@ -571,7 +609,8 @@ def solve_layouts(
                 kind="weighted",
                 order=objective,
                 weights={
-                    component_name: 1.0 / bounds[component_name]
+                    component_name: taus[component_name]
+                    / bounds[component_name]
                     for component_name in objective
                 },
                 tie_order=("runs", "xors"),
@@ -580,14 +619,20 @@ def solve_layouts(
             policy = ScorePolicy(
                 kind="weighted",
                 order=objective,
-                weights={component_name: 1.0 for component_name in objective},
+                weights=taus,
                 tie_order=("runs", "xors"),
             )
+    elif objective_taus is not None:
+        raise ValueError("tau weights require execution-fiber objectives")
     problem = replace(
         problem,
         config=SolverConfig(
             policy=policy,
             tile_shapes=tile_shapes,
+            candidate_layouts={
+                matrix_name: tuple(layouts)
+                for matrix_name, layouts in (candidate_layouts or {}).items()
+            },
             general_tile_shapes={matrix.name: () for matrix in targets},
             include_global_canonical=False,
             enable_linear_inner=False,

@@ -25,6 +25,7 @@ class SolverConfig:
     tile_shapes: Mapping[str, tuple[tuple[int, ...], ...]] = field(default_factory=dict)
     general_tile_shapes: Mapping[str, tuple[tuple[int, ...], ...]] = field(default_factory=dict)
     outer_orders: Mapping[str, tuple[tuple[str, ...], ...]] = field(default_factory=dict)
+    candidate_layouts: Mapping[str, tuple[Layout, ...]] = field(default_factory=dict)
     max_inner_bits: int = 8
     max_global_canonical_bits: int = 32
     include_global_canonical: bool = True
@@ -277,6 +278,22 @@ def _control_seed(layout: Layout, tile_exponents: tuple[int, ...]) -> LayoutSeed
     return LayoutSeed(layout, {"runs": float(layout.runs), "xors": float(layout.xor_count)}, True, stats, "standard control")
 
 
+def _provided_seed(layout: Layout) -> LayoutSeed:
+    stats = SearchStats(
+        "provided",
+        layout.tile_exponents,
+        exact=True,
+        note="provided candidate",
+    )
+    return LayoutSeed(
+        layout,
+        {"runs": float(layout.runs), "xors": float(layout.xor_count)},
+        True,
+        stats,
+        "provided candidate",
+    )
+
+
 def _effective_policy(config: SolverConfig, components: Sequence[ObjectiveComponent]) -> ScorePolicy:
     policy = config.policy
     if policy.order:
@@ -418,6 +435,14 @@ def solve(problem: RelayProblem) -> RelayResult:
     components = build_objectives(problem.objectives, matrices, events, problem.sequences)
     policy = _effective_policy(problem.config, components)
     config = problem.config
+    unknown_candidate_matrices = sorted(
+        set(config.candidate_layouts) - set(matrices)
+    )
+    if unknown_candidate_matrices:
+        raise ValueError(
+            "provided candidate layouts reference unknown matrices: "
+            f"{unknown_candidate_matrices}"
+        )
 
     context_layouts: dict[str, Layout] = {}
     context_scores: dict[str, float] = {}
@@ -489,6 +514,11 @@ def solve(problem: RelayProblem) -> RelayResult:
                         stats_sink=search_stats,
                     )
                 )
+
+        seeds.extend(
+            _provided_seed(layout)
+            for layout in config.candidate_layouts.get(matrix.name, ())
+        )
 
         if config.include_tiled_row_major_control:
             for tile in tile_exponents:

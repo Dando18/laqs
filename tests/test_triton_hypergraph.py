@@ -15,6 +15,7 @@ from relay import (
     execution_conditioned_quotient_problem,
     extract_blocked_layout,
     induce_memory_event,
+    linear_layout_hardware_basis_layout,
     linear_layout_resource_fiber,
     row_major_layout,
     solve,
@@ -108,6 +109,34 @@ class TritonLinearLayoutTests(unittest.TestCase):
             layout.apply({"register": 1, "lane": 5, "warp": 1, "block": 0}),
             (2, 7),
         )
+
+    def test_hardware_basis_layout_orders_hardware_directions_in_memory(self) -> None:
+        execution = TritonLinearLayout.from_blocked(
+            (4, 8),
+            size_per_thread=(1, 2),
+            threads_per_warp=(4, 2),
+            warps_per_cta=(1, 2),
+            order=(1, 0),
+            output_dim_names=("row", "column"),
+        )
+        matrix = MatrixSpec("tile", (4, 8), 4, ("row", "column"))
+        memory = linear_layout_hardware_basis_layout(
+            execution,
+            matrix,
+            input_dimension_order=("lane", "register", "warp"),
+        )
+
+        for location in execution.locations():
+            coordinates = location.as_dict()
+            expected_offset = (
+                coordinates["lane"]
+                | coordinates["register"] << 3
+                | coordinates["warp"] << 4
+            )
+            self.assertEqual(
+                memory.offset(matrix, execution.apply(location)),
+                expected_offset,
+            )
 
     def test_blocked_layout_adds_register_bases_for_tensor_repetition(self) -> None:
         layout = TritonLinearLayout.from_blocked(

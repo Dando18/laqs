@@ -10,11 +10,49 @@ from relay import (
     ScorePolicy,
     SimultaneousRegions,
     SolverConfig,
+    column_major_layout,
     solve,
 )
 
 
 class SolverTests(unittest.TestCase):
+    def test_provided_candidate_layout_is_scored_and_retained(self) -> None:
+        matrix = MatrixSpec("M", (4, 4), 4, ("i", "j"))
+        event = MemoryEvent.make(
+            "load",
+            "load",
+            [Access("M", (0, lane), lane=lane) for lane in range(4)],
+        )
+        provided = column_major_layout(matrix)
+        result = solve(
+            RelayProblem(
+                matrices=(matrix,),
+                events=(event,),
+                sequences=(),
+                objectives=(SimultaneousRegions("fine", 16),),
+                config=SolverConfig(
+                    policy=ScorePolicy(
+                        "lexicographic", ("fine", "runs", "xors")
+                    ),
+                    tile_shapes={"M": ((2, 2),)},
+                    general_tile_shapes={"M": ()},
+                    candidate_layouts={"M": (provided,)},
+                    include_global_canonical=False,
+                    enable_linear_inner=False,
+                    include_column_major_control=False,
+                    per_array_candidates=8,
+                ),
+            )
+        )
+
+        candidate = next(
+            item
+            for item in result.arrays["M"].candidates
+            if item.layout.name == "column_major"
+        )
+        self.assertEqual(candidate.note, "provided candidate")
+        self.assertEqual(candidate.scores["fine"], 4)
+
     def test_weighted_policy_uses_explicit_tie_order_before_components(self) -> None:
         policy = ScorePolicy(
             kind="weighted",

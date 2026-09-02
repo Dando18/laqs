@@ -7,7 +7,8 @@ from itertools import product
 import re
 from typing import TYPE_CHECKING, Callable, Iterable, Mapping, Protocol, Sequence
 
-from .layouts import Layout
+from .gf2 import invert_matrix_from_columns
+from .layouts import Layout, LinearInnerLayout
 from .model import (
     Access,
     Coord,
@@ -394,6 +395,92 @@ class LinearLayoutResourceFiber:
                 or f"Logical images of Triton {dimensions} hardware fibers"
             ),
         )
+
+
+def linear_layout_hardware_basis_layout(
+    execution_layout: TritonLinearLayout,
+    matrix: MatrixSpec,
+    *,
+    input_dimension_order: Sequence[str],
+    name: str | None = None,
+    outer_order: Sequence[int] | None = None,
+) -> LinearInnerLayout:
+    """Make low address bits follow an ordered LinearLayout hardware basis.
+
+    The execution layout's output coordinates must name matrix modes. Its
+    hardware basis vectors become low-to-high physical-address directions in
+    ``input_dimension_order``. Inverting that basis gives the address matrix
+    used by :class:`LinearInnerLayout`.
+    """
+
+    output_names = tuple(
+        output_name for output_name, _ in execution_layout.out_dims
+    )
+    if len(output_names) != matrix.rank or set(output_names) != set(
+        matrix.mode_names
+    ):
+        raise ValueError(
+            "execution output dimensions must be a permutation of matrix modes"
+        )
+    output_sizes = dict(execution_layout.out_dims)
+    tile_exponents = tuple(
+        exact_log2(output_sizes[mode_name]) for mode_name in matrix.mode_names
+    )
+    if any(
+        tile_exponent > mode_bits
+        for tile_exponent, mode_bits in zip(tile_exponents, matrix.mode_bits)
+    ):
+        raise ValueError("execution output tile is larger than the matrix")
+
+    active_dimensions = tuple(
+        input_name
+        for input_name, input_bases in execution_layout.bases
+        if input_bases
+    )
+    dimension_order = tuple(str(value) for value in input_dimension_order)
+    if set(dimension_order) != set(active_dimensions) or len(
+        dimension_order
+    ) != len(active_dimensions):
+        raise ValueError(
+            "input_dimension_order must permute the nonempty hardware dimensions"
+        )
+
+    basis_by_dimension = dict(execution_layout.bases)
+    output_position = {
+        output_name: position
+        for position, output_name in enumerate(output_names)
+    }
+    columns: list[int] = []
+    for input_name in dimension_order:
+        for output_basis in basis_by_dimension[input_name]:
+            matrix_coord = tuple(
+                output_basis[output_position[mode_name]]
+                for mode_name in matrix.mode_names
+            )
+            columns.append(matrix.inner_bits(matrix_coord, tile_exponents))
+
+    width = sum(tile_exponents)
+    if len(columns) != width:
+        raise ValueError(
+            "execution hardware basis and output tile have different dimensions"
+        )
+    rows = invert_matrix_from_columns(columns, width)
+    resolved_outer_order = (
+        tuple(reversed(range(matrix.rank)))
+        if outer_order is None
+        else tuple(int(mode) for mode in outer_order)
+    )
+    layout = LinearInnerLayout(
+        name or "hardware_basis_" + "_".join(dimension_order),
+        matrix.name,
+        tile_exponents,
+        rows,
+        resolved_outer_order,
+        basis_columns=tuple(columns),
+        active_rank=width,
+    )
+    layout.validate(matrix)
+    return layout
 
 
 def linear_layout_resource_fiber(
