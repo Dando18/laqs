@@ -1,0 +1,2762 @@
+{
+  "correct": true,
+  "execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [],
+      "warp": []
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        1
+      ],
+      "threadsPerWarp": [
+        64
+      ],
+      "warpsPerCTA": [
+        1
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 64,
+      "register": 1,
+      "warp": 1
+    },
+    "output_shape": [
+      64
+    ]
+  },
+  "experiment": "triton_stage1_kernel_breadth_case",
+  "induced_event_count": 2,
+  "kernel": "mvt",
+  "operand_shape": [
+    1024,
+    1024
+  ],
+  "process": {
+    "device": "AMD Instinct MI300A",
+    "pid": 161780,
+    "torch_version": "2.15.0.dev20260827+rocm7.2",
+    "triton_version": "3.8.0+gitb1233aa3"
+  },
+  "ranking": {
+    "candidates": [
+      {
+        "a_rows": [
+          1,
+          2,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_4494492a2b15",
+        "compiled_codegen": {
+          "assembly_bytes": 31243,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 332,
+          "binary_bytes": 8056,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20239,
+              "lines": 438
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64831,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59606,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 2,
+            "s_addc_u32": 2,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 1,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 41,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshlrev_b32_e32": 25,
+            "v_lshrrev_b32_e32": 86,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 22,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_a9cecfca9737",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          4,
+          64
+        ],
+        "inner_word": "rowrowcolumncolumncolumncolumncolumncolumn",
+        "layout": "c4x64_rowrowcolumncolumncolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_816234ea7ce9",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 3,
+        "runtime_ms": 0.40656843185424807,
+        "selection_rank": 1,
+        "solver_rank": 1,
+        "timing": {
+          "mean_ms": 0.4066026475694444,
+          "median_ms": 0.40656843185424807,
+          "min_ms": 0.40633244514465333,
+          "samples_ms": [
+            0.40698843002319335,
+            0.40675039291381837,
+            0.4066824436187744,
+            0.40642247200012205,
+            0.4065384387969971,
+            0.4065743923187256,
+            0.40656843185424807,
+            0.40633244514465333,
+            0.4065663814544678
+          ],
+          "stdev_ms": 0.0001794757352684314
+        },
+        "word": "rowrowcolumncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_1f1de8533722",
+        "compiled_codegen": {
+          "assembly_bytes": 31457,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 328,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20141,
+              "lines": 434
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_dcc691c2c9aa",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          4
+        ],
+        "inner_word": "columncolumnrowrowrowrowrowrow",
+        "layout": "c64x4_columncolumnrowrowrowrowrowrow_outercolumnrow",
+        "mapping_id": "mapping_0ac2dcc7b3fb",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.4045104026794434,
+        "selection_rank": 2,
+        "solver_rank": 2,
+        "timing": {
+          "mean_ms": 0.4044957425859239,
+          "median_ms": 0.4045104026794434,
+          "min_ms": 0.40349245071411133,
+          "samples_ms": [
+            0.40540637969970705,
+            0.40372838973999026,
+            0.4045104026794434,
+            0.4036384105682373,
+            0.40546245574951173,
+            0.40349245071411133,
+            0.4051164150238037,
+            0.4035923957824707,
+            0.40551438331604006
+          ],
+          "stdev_ms": 0.0008388716648145016
+        },
+        "word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_5ba8b3cc4569",
+        "compiled_codegen": {
+          "assembly_bytes": 31541,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 332,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20233,
+              "lines": 437
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 41,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshlrev_b32_e32": 24,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 22,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_5d1fa4a665f5",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          8,
+          64
+        ],
+        "inner_word": "columncolumnrowrowrowcolumncolumncolumncolumn",
+        "layout": "c8x64_columncolumnrowrowrowcolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_2ade6aaad31e",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.4028004169464111,
+        "selection_rank": 3,
+        "solver_rank": 3,
+        "timing": {
+          "mean_ms": 0.40282728407118057,
+          "median_ms": 0.4028004169464111,
+          "min_ms": 0.4026463508605957,
+          "samples_ms": [
+            0.40314836502075196,
+            0.40289840698242185,
+            0.40290241241455077,
+            0.4027523994445801,
+            0.40275039672851565,
+            0.4028004169464111,
+            0.40283641815185545,
+            0.4026463508605957,
+            0.4027103900909424
+          ],
+          "stdev_ms": 0.00013845231291092027
+        },
+        "word": "columncolumnrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_2db18e49487d",
+        "compiled_codegen": {
+          "assembly_bytes": 31457,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 328,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20141,
+              "lines": 434
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_d70bda377d32",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          8
+        ],
+        "inner_word": "columncolumnrowrowrowrowrowrowcolumn",
+        "layout": "c64x8_columncolumnrowrowrowrowrowrowcolumn_outercolumnrow",
+        "mapping_id": "mapping_0ac2dcc7b3fb",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.40394439697265627,
+        "selection_rank": 4,
+        "solver_rank": 4,
+        "timing": {
+          "mean_ms": 0.4041446208953857,
+          "median_ms": 0.40394439697265627,
+          "min_ms": 0.4035344123840332,
+          "samples_ms": [
+            0.40390839576721194,
+            0.40392241477966306,
+            0.4036563873291016,
+            0.4042463779449463,
+            0.4051064014434814,
+            0.40403041839599607,
+            0.4049523830413818,
+            0.40394439697265627,
+            0.4035344123840332
+          ],
+          "stdev_ms": 0.000511739098679267
+        },
+        "word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_376379e299fa",
+        "compiled_codegen": {
+          "assembly_bytes": 31551,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 332,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20231,
+              "lines": 437
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 41,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshlrev_b32_e32": 24,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 22,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_9f10c9262b1b",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          16,
+          64
+        ],
+        "inner_word": "columncolumnrowrowrowrowcolumncolumncolumncolumn",
+        "layout": "c16x64_columncolumnrowrowrowrowcolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_858d06acfdc5",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.40117835998535156,
+        "selection_rank": 5,
+        "solver_rank": 5,
+        "timing": {
+          "mean_ms": 0.40118594169616695,
+          "median_ms": 0.40117835998535156,
+          "min_ms": 0.40093441009521485,
+          "samples_ms": [
+            0.4014763355255127,
+            0.40131239891052245,
+            0.4012484073638916,
+            0.401072359085083,
+            0.40117835998535156,
+            0.4010324001312256,
+            0.401124382019043,
+            0.40093441009521485,
+            0.4012944221496582
+          ],
+          "stdev_ms": 0.00015619831261996276
+        },
+        "word": "columncolumnrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_ed4b4d74cfa2",
+        "compiled_codegen": {
+          "assembly_bytes": 31457,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 328,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20141,
+              "lines": 434
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_f37dcfa0a785",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          16
+        ],
+        "inner_word": "columncolumnrowrowrowrowrowrowcolumncolumn",
+        "layout": "c64x16_columncolumnrowrowrowrowrowrowcolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_0ac2dcc7b3fb",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.403934383392334,
+        "selection_rank": 6,
+        "solver_rank": 6,
+        "timing": {
+          "mean_ms": 0.4040270646413167,
+          "median_ms": 0.403934383392334,
+          "min_ms": 0.40369839668273927,
+          "samples_ms": [
+            0.40396437644958494,
+            0.40395441055297854,
+            0.40392041206359863,
+            0.403934383392334,
+            0.4038403987884521,
+            0.4039884090423584,
+            0.40384440422058104,
+            0.40369839668273927,
+            0.40509839057922364
+          ],
+          "stdev_ms": 0.00038796307522884595
+        },
+        "word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_8d03ff723c1a",
+        "compiled_codegen": {
+          "assembly_bytes": 31565,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 332,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20233,
+              "lines": 437
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 41,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshlrev_b32_e32": 24,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 22,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_aff20b3a4ee6",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          32,
+          64
+        ],
+        "inner_word": "columncolumnrowrowrowrowrowcolumncolumncolumncolumn",
+        "layout": "c32x64_columncolumnrowrowrowrowrowcolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_417aef5b0f74",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.40306639671325684,
+        "selection_rank": 7,
+        "solver_rank": 7,
+        "timing": {
+          "mean_ms": 0.4031248357560899,
+          "median_ms": 0.40306639671325684,
+          "min_ms": 0.4028684139251709,
+          "samples_ms": [
+            0.4031983852386475,
+            0.403066349029541,
+            0.40345039367675783,
+            0.402950382232666,
+            0.40306639671325684,
+            0.40317440032958984,
+            0.40329837799072266,
+            0.4028684139251709,
+            0.40305042266845703
+          ],
+          "stdev_ms": 0.00016750799449221686
+        },
+        "word": "columncolumnrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_3e8437458e77",
+        "compiled_codegen": {
+          "assembly_bytes": 31457,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 328,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20141,
+              "lines": 434
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_161e858811a8",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          32
+        ],
+        "inner_word": "columncolumnrowrowrowrowrowrowcolumncolumncolumn",
+        "layout": "c64x32_columncolumnrowrowrowrowrowrowcolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_0ac2dcc7b3fb",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.4037343978881836,
+        "selection_rank": 8,
+        "solver_rank": 8,
+        "timing": {
+          "mean_ms": 0.4036115222507053,
+          "median_ms": 0.4037343978881836,
+          "min_ms": 0.4033224582672119,
+          "samples_ms": [
+            0.4038684368133545,
+            0.40334439277648926,
+            0.4037343978881836,
+            0.40341639518737793,
+            0.4038544178009033,
+            0.403326416015625,
+            0.4038104057312012,
+            0.4033224582672119,
+            0.403826379776001
+          ],
+          "stdev_ms": 0.0002357249896609016
+        },
+        "word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_4ac05f843267",
+        "compiled_codegen": {
+          "assembly_bytes": 31457,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 328,
+          "binary_bytes": 8072,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20141,
+              "lines": 434
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 3,
+            "s_addc_u32": 3,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 2,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_89c03f828f9e",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          64
+        ],
+        "inner_word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumn",
+        "layout": "c64x64_columncolumnrowrowrowrowrowrowcolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_0ac2dcc7b3fb",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 393216.0,
+          "mvt.service.instruction.64B": 524288.0,
+          "mvt.service.lane_bits_2_3.64B": 2097152.0,
+          "mvt.temporal.128B": 393216.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 393216.0,
+          "temporal": 393216.0
+        },
+        "quotient_rank": 1,
+        "quotient_score": 1441792.0,
+        "runs": 4,
+        "runtime_ms": 0.4033924102783203,
+        "selection_rank": 9,
+        "solver_rank": 9,
+        "timing": {
+          "mean_ms": 0.40410062472025554,
+          "median_ms": 0.4033924102783203,
+          "min_ms": 0.4031804084777832,
+          "samples_ms": [
+            0.40323238372802733,
+            0.40515642166137694,
+            0.403382396697998,
+            0.4051963806152344,
+            0.40327839851379393,
+            0.405096435546875,
+            0.4033924102783203,
+            0.40499038696289064,
+            0.4031804084777832
+          ],
+          "stdev_ms": 0.0009063246713392015
+        },
+        "word": "columncolumnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_c1bf17137a63",
+        "compiled_codegen": {
+          "assembly_bytes": 31551,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 330,
+          "binary_bytes": 8064,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20169,
+              "lines": 436
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64831,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59606,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 2,
+            "s_addc_u32": 2,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 1,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 41,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshlrev_b32_e32": 25,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 22,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_b90022ed4707",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          2,
+          64
+        ],
+        "inner_word": "rowcolumncolumncolumncolumncolumncolumn",
+        "layout": "c2x64_rowcolumncolumncolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_93523de8b335",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 589824.0,
+          "mvt.service.instruction.64B": 655360.0,
+          "mvt.service.lane_bits_2_3.64B": 1572864.0,
+          "mvt.temporal.128B": 589824.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 589824.0,
+          "temporal": 589824.0
+        },
+        "quotient_rank": 2,
+        "quotient_score": 1933312.0,
+        "runs": 3,
+        "runtime_ms": 0.4392687320709229,
+        "selection_rank": 10,
+        "solver_rank": 10,
+        "timing": {
+          "mean_ms": 0.4392703480190701,
+          "median_ms": 0.4392687320709229,
+          "min_ms": 0.4390848159790039,
+          "samples_ms": [
+            0.4393308162689209,
+            0.4392127513885498,
+            0.43921480178833006,
+            0.4393968105316162,
+            0.4393908023834229,
+            0.4390848159790039,
+            0.4392687320709229,
+            0.4393427848815918,
+            0.43919081687927247
+          ],
+          "stdev_ms": 9.806927043726774e-05
+        },
+        "word": "rowcolumncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_5140e001edfe",
+        "compiled_codegen": {
+          "assembly_bytes": 31283,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 329,
+          "binary_bytes": 8056,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20220,
+              "lines": 436
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 2,
+            "s_add_u32": 2,
+            "s_addc_u32": 2,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 7,
+            "s_mov_b64": 1,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 86,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_3fc3fc1d8d5f",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          2
+        ],
+        "inner_word": "columnrowrowrowrowrowrow",
+        "layout": "c64x2_columnrowrowrowrowrowrow_outercolumnrow",
+        "mapping_id": "mapping_b035d0be6f95",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 589824.0,
+          "mvt.service.instruction.64B": 655360.0,
+          "mvt.service.lane_bits_2_3.64B": 1572864.0,
+          "mvt.temporal.128B": 589824.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 589824.0,
+          "temporal": 589824.0
+        },
+        "quotient_rank": 2,
+        "quotient_score": 1933312.0,
+        "runs": 4,
+        "runtime_ms": 0.4331906795501709,
+        "selection_rank": 11,
+        "solver_rank": 11,
+        "timing": {
+          "mean_ms": 0.43311405181884766,
+          "median_ms": 0.4331906795501709,
+          "min_ms": 0.43224272727966306,
+          "samples_ms": [
+            0.43319272994995117,
+            0.43224272727966306,
+            0.43341474533081054,
+            0.43293075561523436,
+            0.43320269584655763,
+            0.4331787109375,
+            0.43350868225097655,
+            0.4331906795501709,
+            0.43316473960876467
+          ],
+          "stdev_ms": 0.00034409681967353907
+        },
+        "word": "columnrowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_54382ee0c896",
+        "compiled_codegen": {
+          "assembly_bytes": 30978,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 323,
+          "binary_bytes": 7992,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20008,
+              "lines": 431
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 2,
+            "s_addc_u32": 2,
+            "s_addk_i32": 1,
+            "s_and_b32": 13,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 1,
+            "s_nop": 1,
+            "s_or_b32": 16,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_93466fc87aaf",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          1024,
+          1024
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrowrow",
+        "layout": "row_major",
+        "mapping_id": "mapping_bb8fa8378c16",
+        "note": "standard control",
+        "objective_component_scores": {
+          "mvt.issue.128B": 1081344.0,
+          "mvt.service.instruction.64B": 1114112.0,
+          "mvt.service.lane_bits_2_3.64B": 1310720.0,
+          "mvt.temporal.128B": 1081344.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 1081344.0,
+          "temporal": 1081344.0
+        },
+        "quotient_rank": 3,
+        "quotient_score": 3358720.0,
+        "runs": 2,
+        "runtime_ms": 0.4516289234161377,
+        "selection_rank": 12,
+        "solver_rank": 13,
+        "timing": {
+          "mean_ms": 0.45354916254679367,
+          "median_ms": 0.4516289234161377,
+          "min_ms": 0.45121493339538576,
+          "samples_ms": [
+            0.45151891708374026,
+            0.45367894172668455,
+            0.4516289234161377,
+            0.4570009708404541,
+            0.45149688720703124,
+            0.4569669723510742,
+            0.45121493339538576,
+            0.4568789482116699,
+            0.45155696868896483
+          ],
+          "stdev_ms": 0.002497537246786417
+        },
+        "word": "columncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_c1ff3bf21c3d",
+        "compiled_codegen": {
+          "assembly_bytes": 30978,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 323,
+          "binary_bytes": 7992,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20008,
+              "lines": 431
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64995,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59770,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 2,
+            "s_addc_u32": 2,
+            "s_addk_i32": 1,
+            "s_and_b32": 13,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 1,
+            "s_nop": 1,
+            "s_or_b32": 16,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshl_or_b32": 1,
+            "v_lshlrev_b32_e32": 22,
+            "v_lshrrev_b32_e32": 84,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 39,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_21d4b8814ab1",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          1,
+          64
+        ],
+        "inner_word": "columncolumncolumncolumncolumncolumn",
+        "layout": "c1x64_columncolumncolumncolumncolumncolumn_outercolumnrow",
+        "mapping_id": "mapping_bb8fa8378c16",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 1081344.0,
+          "mvt.service.instruction.64B": 1114112.0,
+          "mvt.service.lane_bits_2_3.64B": 1310720.0,
+          "mvt.temporal.128B": 1081344.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 1081344.0,
+          "temporal": 1081344.0
+        },
+        "quotient_rank": 3,
+        "quotient_score": 3358720.0,
+        "runs": 2,
+        "runtime_ms": 0.45681095123291016,
+        "selection_rank": 13,
+        "solver_rank": 12,
+        "timing": {
+          "mean_ms": 0.45508184432983395,
+          "median_ms": 0.45681095123291016,
+          "min_ms": 0.4514049530029297,
+          "samples_ms": [
+            0.45700693130493164,
+            0.45144290924072267,
+            0.45681095123291016,
+            0.4514869213104248,
+            0.45718894004821775,
+            0.4570610046386719,
+            0.45622897148132324,
+            0.4514049530029297,
+            0.457105016708374
+          ],
+          "stdev_ms": 0.002585142926234568
+        },
+        "word": "columncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrowrow",
+        "xor_count": 0
+      },
+      {
+        "a_rows": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768,
+          65536,
+          131072,
+          262144,
+          524288,
+          64,
+          128,
+          256,
+          512
+        ],
+        "candidate_id": "candidate_cbb04b27955f",
+        "compiled_codegen": {
+          "assembly_bytes": 32144,
+          "assembly_format": "amdgcn",
+          "assembly_instruction_count": 329,
+          "binary_bytes": 8080,
+          "binary_format": "hsaco",
+          "branch_instruction_count": 2,
+          "ir": {
+            "llir": {
+              "bytes": 20136,
+              "lines": 434
+            },
+            "source": {
+              "bytes": 120613,
+              "lines": 1695
+            },
+            "ttgir": {
+              "bytes": 64831,
+              "lines": 726
+            },
+            "ttir": {
+              "bytes": 59606,
+              "lines": 739
+            }
+          },
+          "load_instruction_count": 7,
+          "n_max_threads": 64,
+          "n_regs": 30,
+          "n_spills": 0,
+          "opcode_counts": {
+            "buffer_load_dword": 2,
+            "buffer_store_dword": 1,
+            "s_add_i32": 1,
+            "s_add_u32": 2,
+            "s_addc_u32": 2,
+            "s_addk_i32": 1,
+            "s_and_b32": 14,
+            "s_bfe_u32": 2,
+            "s_branch": 1,
+            "s_cbranch_scc1": 1,
+            "s_cmpk_lg_i32": 1,
+            "s_endpgm": 1,
+            "s_load_dword": 2,
+            "s_load_dwordx2": 2,
+            "s_load_dwordx8": 1,
+            "s_lshl_b32": 6,
+            "s_lshr_b32": 14,
+            "s_mov_b32": 6,
+            "s_mov_b64": 1,
+            "s_nop": 1,
+            "s_or_b32": 17,
+            "s_waitcnt": 2,
+            "s_xor_b32": 4,
+            "v_add_f32_e32": 2,
+            "v_and_b32_e32": 39,
+            "v_and_or_b32": 1,
+            "v_bfe_u32": 1,
+            "v_lshlrev_b32_e32": 24,
+            "v_lshrrev_b32_e32": 86,
+            "v_mov_b32_e32": 1,
+            "v_or3_b32": 21,
+            "v_or_b32_e32": 40,
+            "v_pk_mul_f32": 1,
+            "v_xor_b32_e32": 28
+          },
+          "shared_bytes": 0,
+          "store_instruction_count": 1,
+          "xor_instruction_count": 32
+        },
+        "exact": true,
+        "fixed_outer_order": [
+          "column",
+          "row"
+        ],
+        "flag_id": "flag_21d4b8814ab1",
+        "grammar": "canonical",
+        "inner_tile_shape": [
+          64,
+          1
+        ],
+        "inner_word": "rowrowrowrowrowrow",
+        "layout": "c64x1_rowrowrowrowrowrow_outercolumnrow",
+        "mapping_id": "mapping_006423de7947",
+        "note": "exact canonical grid DP",
+        "objective_component_scores": {
+          "mvt.issue.128B": 1081344.0,
+          "mvt.service.instruction.64B": 1114112.0,
+          "mvt.service.lane_bits_2_3.64B": 1310720.0,
+          "mvt.temporal.128B": 1081344.0
+        },
+        "packing_bound": 294912.0,
+        "quotient_components": {
+          "issue": 1081344.0,
+          "temporal": 1081344.0
+        },
+        "quotient_rank": 3,
+        "quotient_score": 3358720.0,
+        "runs": 3,
+        "runtime_ms": 0.4604629993438721,
+        "selection_rank": 14,
+        "solver_rank": 14,
+        "timing": {
+          "mean_ms": 0.4597856892479791,
+          "median_ms": 0.4604629993438721,
+          "min_ms": 0.4544549465179443,
+          "samples_ms": [
+            0.4606210708618164,
+            0.4544549465179443,
+            0.46056303977966306,
+            0.4602550506591797,
+            0.46054301261901853,
+            0.4604750156402588,
+            0.46044306755065917,
+            0.4602530002593994,
+            0.4604629993438721
+          ],
+          "stdev_ms": 0.0018884808362994736
+        },
+        "word": "rowrowrowrowrowrowcolumncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrow",
+        "xor_count": 0
+      }
+    ],
+    "correct": true,
+    "counter_panel": null,
+    "default": {
+      "a_rows": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        262144,
+        524288,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512
+      ],
+      "candidate_id": "candidate_54382ee0c896",
+      "compiled_codegen": {
+        "assembly_bytes": 30978,
+        "assembly_format": "amdgcn",
+        "assembly_instruction_count": 323,
+        "binary_bytes": 7992,
+        "binary_format": "hsaco",
+        "branch_instruction_count": 2,
+        "ir": {
+          "llir": {
+            "bytes": 20008,
+            "lines": 431
+          },
+          "source": {
+            "bytes": 120613,
+            "lines": 1695
+          },
+          "ttgir": {
+            "bytes": 64995,
+            "lines": 726
+          },
+          "ttir": {
+            "bytes": 59770,
+            "lines": 739
+          }
+        },
+        "load_instruction_count": 7,
+        "n_max_threads": 64,
+        "n_regs": 30,
+        "n_spills": 0,
+        "opcode_counts": {
+          "buffer_load_dword": 2,
+          "buffer_store_dword": 1,
+          "s_add_i32": 1,
+          "s_add_u32": 2,
+          "s_addc_u32": 2,
+          "s_addk_i32": 1,
+          "s_and_b32": 13,
+          "s_bfe_u32": 2,
+          "s_branch": 1,
+          "s_cbranch_scc1": 1,
+          "s_cmpk_lg_i32": 1,
+          "s_endpgm": 1,
+          "s_load_dword": 2,
+          "s_load_dwordx2": 2,
+          "s_load_dwordx8": 1,
+          "s_lshl_b32": 6,
+          "s_lshr_b32": 14,
+          "s_mov_b32": 6,
+          "s_mov_b64": 1,
+          "s_nop": 1,
+          "s_or_b32": 16,
+          "s_waitcnt": 2,
+          "s_xor_b32": 4,
+          "v_add_f32_e32": 2,
+          "v_and_b32_e32": 39,
+          "v_and_or_b32": 1,
+          "v_bfe_u32": 1,
+          "v_lshl_or_b32": 1,
+          "v_lshlrev_b32_e32": 22,
+          "v_lshrrev_b32_e32": 84,
+          "v_mov_b32_e32": 1,
+          "v_or3_b32": 21,
+          "v_or_b32_e32": 39,
+          "v_pk_mul_f32": 1,
+          "v_xor_b32_e32": 28
+        },
+        "shared_bytes": 0,
+        "store_instruction_count": 1,
+        "xor_instruction_count": 32
+      },
+      "exact": true,
+      "fixed_outer_order": [
+        "column",
+        "row"
+      ],
+      "flag_id": "flag_93466fc87aaf",
+      "grammar": "canonical",
+      "inner_tile_shape": [
+        1024,
+        1024
+      ],
+      "inner_word": "columncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrowrow",
+      "layout": "row_major",
+      "mapping_id": "mapping_bb8fa8378c16",
+      "note": "standard control",
+      "objective_component_scores": {
+        "mvt.issue.128B": 1081344.0,
+        "mvt.service.instruction.64B": 1114112.0,
+        "mvt.service.lane_bits_2_3.64B": 1310720.0,
+        "mvt.temporal.128B": 1081344.0
+      },
+      "packing_bound": 294912.0,
+      "quotient_components": {
+        "issue": 1081344.0,
+        "temporal": 1081344.0
+      },
+      "quotient_rank": 3,
+      "quotient_score": 3358720.0,
+      "runs": 2,
+      "runtime_ms": 0.4516289234161377,
+      "selection_rank": 12,
+      "solver_rank": 13,
+      "timing": {
+        "mean_ms": 0.45354916254679367,
+        "median_ms": 0.4516289234161377,
+        "min_ms": 0.45121493339538576,
+        "samples_ms": [
+          0.45151891708374026,
+          0.45367894172668455,
+          0.4516289234161377,
+          0.4570009708404541,
+          0.45149688720703124,
+          0.4569669723510742,
+          0.45121493339538576,
+          0.4568789482116699,
+          0.45155696868896483
+        ],
+        "stdev_ms": 0.002497537246786417
+      },
+      "word": "columncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrowrowrow",
+      "xor_count": 0
+    },
+    "default_quotient": 3358720.0,
+    "default_runtime_ms": 0.4516289234161377,
+    "hardware_service_model": {
+      "active": true,
+      "cache_window_region_bytes": 128,
+      "fibers": {
+        "instruction": {
+          "hardware_fiber_count": 2,
+          "merges_event_instances": false,
+          "name": "mvt.service.instruction",
+          "omitted_singleton_count": 0,
+          "varying_bits": {},
+          "varying_dimensions": [
+            "lane"
+          ]
+        },
+        "lane_cohorts": [
+          {
+            "hardware_fiber_count": 32,
+            "merges_event_instances": false,
+            "name": "mvt.service.lane_bits_2_3",
+            "omitted_singleton_count": 0,
+            "varying_bits": {
+              "lane": [
+                2,
+                3
+              ]
+            },
+            "varying_dimensions": [
+              "lane"
+            ]
+          }
+        ]
+      },
+      "instruction_region_bytes": 64,
+      "lane_cohort_bits": [
+        2,
+        3
+      ],
+      "lane_cohort_region_bytes": 64,
+      "name": "mi300a_v1",
+      "selection_tie_breaker": "prefer_default_layout",
+      "tau_by_component": {
+        "mvt.issue.128B": 1.0,
+        "mvt.service.instruction.64B": 1.0,
+        "mvt.service.lane_bits_2_3.64B": 0.0625,
+        "mvt.temporal.128B": 1.0
+      },
+      "tuning": {
+        "instruction_tau": 1.0,
+        "issue_tau": 1.0,
+        "lane_cohort_tau": 0.0625,
+        "temporal_tau": 1.0
+      }
+    },
+    "laqs_made_no_change": false,
+    "measured_speedup": 1.1108312599588241,
+    "objective": {
+      "aggregation": "weighted_raw_sum",
+      "components": [
+        "mvt.issue.128B",
+        "mvt.temporal.128B",
+        "mvt.service.instruction.64B",
+        "mvt.service.lane_bits_2_3.64B"
+      ],
+      "tie_breakers": [
+        "default_layout",
+        "runs",
+        "xors"
+      ],
+      "weights": {
+        "mvt.issue.128B": 1.0,
+        "mvt.service.instruction.64B": 1.0,
+        "mvt.service.lane_bits_2_3.64B": 0.0625,
+        "mvt.temporal.128B": 1.0
+      }
+    },
+    "objective_components": [
+      "mvt.issue.128B",
+      "mvt.temporal.128B",
+      "mvt.service.instruction.64B",
+      "mvt.service.lane_bits_2_3.64B"
+    ],
+    "packing_lower_bound": 294912.0,
+    "predicted_transaction_reduction": 0.5707317073170732,
+    "profile_target": null,
+    "rank_quality": {
+      "candidate_count": 9,
+      "distinct_mapping_count": 9,
+      "duplicate_mapping_runtime_spread": [
+        {
+          "absolute_spread_ms": 0.0011179924011230913,
+          "candidate_ids": [
+            "candidate_1f1de8533722",
+            "candidate_2db18e49487d",
+            "candidate_ed4b4d74cfa2",
+            "candidate_3e8437458e77",
+            "candidate_4ac05f843267"
+          ],
+          "count": 5,
+          "mapping_id": "mapping_0ac2dcc7b3fb",
+          "max_runtime_ms": 0.4045104026794434,
+          "min_runtime_ms": 0.4033924102783203,
+          "relative_spread": 0.0027714760432695495
+        },
+        {
+          "absolute_spread_ms": 0.005182027816772461,
+          "candidate_ids": [
+            "candidate_54382ee0c896",
+            "candidate_c1ff3bf21c3d"
+          ],
+          "count": 2,
+          "mapping_id": "mapping_bb8fa8378c16",
+          "max_runtime_ms": 0.45681095123291016,
+          "min_runtime_ms": 0.4516289234161377,
+          "relative_spread": 0.011474083142362534
+        }
+      ],
+      "equal_quotient_score_runtime_spread": [
+        {
+          "absolute_spread_ms": 0.005390071868896507,
+          "candidate_ids": [
+            "candidate_4494492a2b15",
+            "candidate_1f1de8533722",
+            "candidate_5ba8b3cc4569",
+            "candidate_376379e299fa",
+            "candidate_8d03ff723c1a"
+          ],
+          "count": 5,
+          "max_runtime_ms": 0.40656843185424807,
+          "min_runtime_ms": 0.40117835998535156,
+          "quotient_score": 1441792.0,
+          "relative_spread": 0.013435599739460846
+        },
+        {
+          "absolute_spread_ms": 0.0060780525207519975,
+          "candidate_ids": [
+            "candidate_c1bf17137a63",
+            "candidate_5140e001edfe"
+          ],
+          "count": 2,
+          "max_runtime_ms": 0.4392687320709229,
+          "min_runtime_ms": 0.4331906795501709,
+          "quotient_score": 1933312.0,
+          "relative_spread": 0.014030894032769803
+        },
+        {
+          "absolute_spread_ms": 0.008834075927734386,
+          "candidate_ids": [
+            "candidate_54382ee0c896",
+            "candidate_cbb04b27955f"
+          ],
+          "count": 2,
+          "max_runtime_ms": 0.4604629993438721,
+          "min_runtime_ms": 0.4516289234161377,
+          "quotient_score": 3358720.0,
+          "relative_spread": 0.019560474251545168
+        }
+      ],
+      "fastest_candidate_id": "candidate_376379e299fa",
+      "fastest_runtime_ms": 0.40117835998535156,
+      "mapping_deduplication": {
+        "key": "mapping_id",
+        "policy": "keep first candidate in input solver order",
+        "removed": [
+          {
+            "candidate_id": "candidate_2db18e49487d",
+            "mapping_id": "mapping_0ac2dcc7b3fb",
+            "representative_candidate_id": "candidate_1f1de8533722"
+          },
+          {
+            "candidate_id": "candidate_ed4b4d74cfa2",
+            "mapping_id": "mapping_0ac2dcc7b3fb",
+            "representative_candidate_id": "candidate_1f1de8533722"
+          },
+          {
+            "candidate_id": "candidate_3e8437458e77",
+            "mapping_id": "mapping_0ac2dcc7b3fb",
+            "representative_candidate_id": "candidate_1f1de8533722"
+          },
+          {
+            "candidate_id": "candidate_4ac05f843267",
+            "mapping_id": "mapping_0ac2dcc7b3fb",
+            "representative_candidate_id": "candidate_1f1de8533722"
+          },
+          {
+            "candidate_id": "candidate_c1ff3bf21c3d",
+            "mapping_id": "mapping_bb8fa8378c16",
+            "representative_candidate_id": "candidate_54382ee0c896"
+          }
+        ]
+      },
+      "quotient_order_candidate_ids": [
+        "candidate_4494492a2b15",
+        "candidate_1f1de8533722",
+        "candidate_5ba8b3cc4569",
+        "candidate_376379e299fa",
+        "candidate_8d03ff723c1a",
+        "candidate_c1bf17137a63",
+        "candidate_5140e001edfe",
+        "candidate_54382ee0c896",
+        "candidate_cbb04b27955f"
+      ],
+      "rank_correlation": {
+        "lower_is_better": true,
+        "method": "spearman_tie_aware",
+        "rho": 0.903696114115064,
+        "sample_count": 9
+      },
+      "ranking_population": "distinct_physical_mappings",
+      "regret": {
+        "top_1": {
+          "candidate_count": 1,
+          "regret": 0.013435599739460846,
+          "selected_candidate_id": "candidate_4494492a2b15",
+          "selected_runtime_ms": 0.40656843185424807
+        },
+        "top_2": {
+          "candidate_count": 2,
+          "regret": 0.008305639153152411,
+          "selected_candidate_id": "candidate_1f1de8533722",
+          "selected_runtime_ms": 0.4045104026794434
+        },
+        "top_3": {
+          "candidate_count": 3,
+          "regret": 0.004043231447276474,
+          "selected_candidate_id": "candidate_5ba8b3cc4569",
+          "selected_runtime_ms": 0.4028004169464111
+        },
+        "top_4": {
+          "candidate_count": 4,
+          "regret": 0.0,
+          "selected_candidate_id": "candidate_376379e299fa",
+          "selected_runtime_ms": 0.40117835998535156
+        },
+        "top_5": {
+          "candidate_count": 5,
+          "regret": 0.0,
+          "selected_candidate_id": "candidate_376379e299fa",
+          "selected_runtime_ms": 0.40117835998535156
+        }
+      },
+      "removed_duplicate_mapping_count": 5,
+      "retained_candidate_count": 14,
+      "runtime_metric": "runtime_ms",
+      "same_flag_runtime_spread": {
+        "available": false,
+        "groups": []
+      },
+      "tie_breaking": "input solver order"
+    },
+    "search_scope": {
+      "fixed_outer_order": [
+        "column",
+        "row"
+      ],
+      "grammar": "canonical_inner_tile",
+      "hardware_service_model": "mi300a_v1",
+      "inner_tile_shapes": [
+        [
+          1,
+          64
+        ],
+        [
+          64,
+          1
+        ],
+        [
+          2,
+          64
+        ],
+        [
+          64,
+          2
+        ],
+        [
+          4,
+          64
+        ],
+        [
+          64,
+          4
+        ],
+        [
+          8,
+          64
+        ],
+        [
+          64,
+          8
+        ],
+        [
+          16,
+          64
+        ],
+        [
+          64,
+          16
+        ],
+        [
+          32,
+          64
+        ],
+        [
+          64,
+          32
+        ],
+        [
+          64,
+          64
+        ]
+      ],
+      "outer_layout": "row_major_tiles",
+      "temporal_mode": "split",
+      "tile_policy": "explicit_hypothesis_sweep_v1"
+    },
+    "selected": {
+      "a_rows": [
+        1,
+        2,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        262144,
+        524288,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512
+      ],
+      "candidate_id": "candidate_4494492a2b15",
+      "compiled_codegen": {
+        "assembly_bytes": 31243,
+        "assembly_format": "amdgcn",
+        "assembly_instruction_count": 332,
+        "binary_bytes": 8056,
+        "binary_format": "hsaco",
+        "branch_instruction_count": 2,
+        "ir": {
+          "llir": {
+            "bytes": 20239,
+            "lines": 438
+          },
+          "source": {
+            "bytes": 120613,
+            "lines": 1695
+          },
+          "ttgir": {
+            "bytes": 64831,
+            "lines": 726
+          },
+          "ttir": {
+            "bytes": 59606,
+            "lines": 739
+          }
+        },
+        "load_instruction_count": 7,
+        "n_max_threads": 64,
+        "n_regs": 30,
+        "n_spills": 0,
+        "opcode_counts": {
+          "buffer_load_dword": 2,
+          "buffer_store_dword": 1,
+          "s_add_i32": 1,
+          "s_add_u32": 2,
+          "s_addc_u32": 2,
+          "s_addk_i32": 1,
+          "s_and_b32": 14,
+          "s_bfe_u32": 2,
+          "s_branch": 1,
+          "s_cbranch_scc1": 1,
+          "s_cmpk_lg_i32": 1,
+          "s_endpgm": 1,
+          "s_load_dword": 2,
+          "s_load_dwordx2": 2,
+          "s_load_dwordx8": 1,
+          "s_lshl_b32": 6,
+          "s_lshr_b32": 14,
+          "s_mov_b32": 6,
+          "s_mov_b64": 1,
+          "s_nop": 1,
+          "s_or_b32": 17,
+          "s_waitcnt": 2,
+          "s_xor_b32": 4,
+          "v_add_f32_e32": 2,
+          "v_and_b32_e32": 41,
+          "v_and_or_b32": 1,
+          "v_bfe_u32": 1,
+          "v_lshlrev_b32_e32": 25,
+          "v_lshrrev_b32_e32": 86,
+          "v_mov_b32_e32": 1,
+          "v_or3_b32": 22,
+          "v_or_b32_e32": 39,
+          "v_pk_mul_f32": 1,
+          "v_xor_b32_e32": 28
+        },
+        "shared_bytes": 0,
+        "store_instruction_count": 1,
+        "xor_instruction_count": 32
+      },
+      "exact": true,
+      "fixed_outer_order": [
+        "column",
+        "row"
+      ],
+      "flag_id": "flag_a9cecfca9737",
+      "grammar": "canonical",
+      "inner_tile_shape": [
+        4,
+        64
+      ],
+      "inner_word": "rowrowcolumncolumncolumncolumncolumncolumn",
+      "layout": "c4x64_rowrowcolumncolumncolumncolumncolumncolumn_outercolumnrow",
+      "mapping_id": "mapping_816234ea7ce9",
+      "note": "exact canonical grid DP",
+      "objective_component_scores": {
+        "mvt.issue.128B": 393216.0,
+        "mvt.service.instruction.64B": 524288.0,
+        "mvt.service.lane_bits_2_3.64B": 2097152.0,
+        "mvt.temporal.128B": 393216.0
+      },
+      "packing_bound": 294912.0,
+      "quotient_components": {
+        "issue": 393216.0,
+        "temporal": 393216.0
+      },
+      "quotient_rank": 1,
+      "quotient_score": 1441792.0,
+      "runs": 3,
+      "runtime_ms": 0.40656843185424807,
+      "selection_rank": 1,
+      "solver_rank": 1,
+      "timing": {
+        "mean_ms": 0.4066026475694444,
+        "median_ms": 0.40656843185424807,
+        "min_ms": 0.40633244514465333,
+        "samples_ms": [
+          0.40698843002319335,
+          0.40675039291381837,
+          0.4066824436187744,
+          0.40642247200012205,
+          0.4065384387969971,
+          0.4065743923187256,
+          0.40656843185424807,
+          0.40633244514465333,
+          0.4065663814544678
+        ],
+        "stdev_ms": 0.0001794757352684314
+      },
+      "word": "rowrowcolumncolumncolumncolumncolumncolumncolumncolumncolumncolumnrowrowrowrowrowrowrowrow",
+      "xor_count": 0
+    },
+    "selected_quotient": 1441792.0,
+    "selected_runtime_ms": 0.40656843185424807,
+    "solver": {
+      "candidate_count": 89,
+      "elapsed_seconds": 3.173141707025934,
+      "name": "mvt",
+      "retained_candidates": 14
+    },
+    "temporal_model": {
+      "active_in_objective": true,
+      "availability": "modeled",
+      "dynamic_scalar_accesses": 2097152,
+      "edge_family": "per_hardware_location_nonoverlapping",
+      "mode": "split",
+      "reason": null,
+      "representative_edge_count": 128,
+      "streams": [
+        {
+          "compression": "aligned_xor_translations",
+          "dynamic_scalar_accesses": 1048576,
+          "fiber": "per_hardware_location",
+          "loop_steps": 1024,
+          "program_instances": 16,
+          "representative_edge_count": 64,
+          "stream": "mvt.row.load",
+          "stride_elements": 32,
+          "translated_windows_per_location": 32,
+          "window_elements": 32
+        },
+        {
+          "compression": "aligned_xor_translations",
+          "dynamic_scalar_accesses": 1048576,
+          "fiber": "per_hardware_location",
+          "loop_steps": 1024,
+          "program_instances": 16,
+          "representative_edge_count": 64,
+          "stream": "mvt.column.load",
+          "stride_elements": 32,
+          "translated_windows_per_location": 32,
+          "window_elements": 32
+        }
+      ]
+    }
+  },
+  "stage": 1,
+  "target_operand": "matrix"
+}

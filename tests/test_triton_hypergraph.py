@@ -406,6 +406,53 @@ class ExecutionConditionedQuotientTests(unittest.TestCase):
             matrix.size,
         )
 
+        lane_pairs = linear_layout_resource_fiber(
+            execution,
+            events,
+            varying_bits={"lane": (0,)},
+            name="tile.lane_bit0",
+        )
+        self.assertEqual(lane_pairs.varying_bits, (("lane", (0,)),))
+        self.assertEqual(lane_pairs.hardware_fiber_count, 4)
+        self.assertEqual(
+            [edge.points for edge in lane_pairs.edges_by_array["tile"]],
+            [
+                ((0, 0), (1, 0)),
+                ((2, 0), (3, 0)),
+                ((0, 1), (1, 1)),
+                ((2, 1), (3, 1)),
+            ],
+        )
+
+        repeated = (
+            events[0],
+            induce_memory_event(
+                execution,
+                matrix,
+                execution.locations(
+                    fixed={"register": 0, "warp": 0, "block": 0}
+                ),
+                id="tile.load.again.r0",
+                site="tile.load",
+                weight=3,
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate hardware location"):
+            linear_layout_resource_fiber(
+                execution,
+                repeated,
+                varying_dimensions=("lane",),
+            )
+        instruction_preserving = linear_layout_resource_fiber(
+            execution,
+            repeated,
+            varying_dimensions=("lane",),
+            merge_events=False,
+        )
+        self.assertEqual(
+            len(instruction_preserving.edges_by_array["tile"]), 2
+        )
+
     def test_linear_layout_resource_fiber_rejects_incomplete_stream(self) -> None:
         matrix = MatrixSpec("tile", (4, 2), 4, ("row", "column"))
         execution = TritonLinearLayout.from_bases(

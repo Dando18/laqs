@@ -369,6 +369,8 @@ class LinearLayoutResourceFiber:
     edges_by_array: Mapping[str, tuple[Hyperedge, ...]]
     hardware_fiber_count: int
     omitted_singleton_count: int = 0
+    varying_bits: tuple[tuple[str, tuple[int, ...]], ...] = ()
+    merges_event_instances: bool = True
 
     def at_scale(
         self,
@@ -383,7 +385,18 @@ class LinearLayoutResourceFiber:
         from .objectives import ExplicitRegions
 
         component_name = name or f"{self.name}.{region_bytes}B"
-        dimensions = " x ".join(self.varying_dimensions)
+        bit_map = dict(self.varying_bits)
+        dimensions = " x ".join(
+            (
+                dimension
+                if dimension not in bit_map
+                else dimension
+                + "["
+                + ",".join(str(bit) for bit in bit_map[dimension])
+                + "]"
+            )
+            for dimension in self.varying_dimensions
+        )
         return ExplicitRegions(
             component_name,
             region_bytes,
@@ -487,27 +500,65 @@ def linear_layout_resource_fiber(
     execution_layout: TritonLinearLayout,
     induced_events: Iterable[InducedMemoryEvent],
     *,
-    varying_dimensions: Sequence[str],
+    varying_dimensions: Sequence[str] = (),
+    varying_bits: Mapping[str, Sequence[int]] | None = None,
     name: str | None = None,
     include_singletons: bool = False,
+    merge_events: bool = True,
 ) -> LinearLayoutResourceFiber:
     """Regroup induced accesses into images of hardware-coordinate fibers.
 
-    Events with the same site, group, order, array, access kind, width, and
-    dynamic weight form one execution stream. All complementary hardware
-    coordinates are fixed while ``varying_dimensions`` range over their full
-    LinearLayout domains. This turns, for example, lane-issue events indexed
-    by register into per-lane register-ownership edges.
+    By default, events with the same site, group, order, array, access kind,
+    width, and dynamic weight form one execution stream. Set ``merge_events``
+    false to retain each induced event as a separate lowered-operation
+    identity. All complementary hardware coordinates are fixed while
+    ``varying_dimensions`` range over their full LinearLayout domains.
+    ``varying_bits`` can instead select individual bits within a hardware
+    dimension, which models sub-wave service cohorts without assuming that
+    they are contiguous in logical tensor space.
     """
 
     dimensions = tuple(str(dimension) for dimension in varying_dimensions)
-    if not dimensions:
+    bit_requests = {
+        str(dimension): tuple(int(bit) for bit in bits)
+        for dimension, bits in (varying_bits or {}).items()
+    }
+    if not dimensions and not bit_requests:
         raise ValueError("a LinearLayout resource fiber needs a dimension")
     if len(dimensions) != len(set(dimensions)):
         raise ValueError("LinearLayout resource fiber dimensions must be unique")
-    unknown = sorted(set(dimensions) - set(execution_layout.input_dims))
+    overlap = sorted(set(dimensions) & set(bit_requests))
+    if overlap:
+        raise ValueError(
+            "hardware dimensions cannot be both fully and partially varying: "
+            f"{overlap}"
+        )
+    unknown = sorted(
+        (set(dimensions) | set(bit_requests))
+        - set(execution_layout.input_dims)
+    )
     if unknown:
         raise ValueError(f"unknown LinearLayout fiber dimensions: {unknown}")
+
+    selected_bits: dict[str, tuple[int, ...]] = {}
+    for dimension in execution_layout.input_dims:
+        width = exact_log2(execution_layout.input_size(dimension))
+        if dimension in dimensions:
+            selected_bits[dimension] = tuple(range(width))
+            continue
+        if dimension not in bit_requests:
+            continue
+        bits = bit_requests[dimension]
+        if not bits:
+            raise ValueError(f"{dimension}: varying bit set cannot be empty")
+        if len(bits) != len(set(bits)):
+            raise ValueError(f"{dimension}: varying bits must be unique")
+        if any(bit < 0 or bit >= width for bit in bits):
+            raise ValueError(
+                f"{dimension}: varying bits must lie in [0, {width})"
+            )
+        selected_bits[dimension] = tuple(sorted(bits))
+    dimensions = tuple(selected_bits)
 
     event_items = tuple(induced_events)
     if not event_items:
@@ -515,17 +566,20 @@ def linear_layout_resource_fiber(
 
     input_dimensions = execution_layout.input_dims
     input_dimension_set = set(input_dimensions)
-    complementary = tuple(
-        dimension
+    varying_size = 1 << sum(len(bits) for bits in selected_bits.values())
+    varying_masks = {
+        dimension: sum(1 << bit for bit in bits)
+        for dimension, bits in selected_bits.items()
+    }
+    fixed_masks = {
+        dimension: (
+            execution_layout.input_size(dimension) - 1
+        ) ^ varying_masks.get(dimension, 0)
         for dimension in input_dimensions
-        if dimension not in dimensions
-    )
-    varying_size = 1
-    for dimension in dimensions:
-        varying_size *= execution_layout.input_size(dimension)
+    }
 
     stream_locations: dict[
-        tuple[str, str, str, int, str, int | None, float],
+        tuple[str, str, str, int, str, int | None, float, str],
         dict[HardwareLocation, Coord],
     ] = {}
     for induced in event_items:
@@ -551,6 +605,7 @@ def linear_layout_resource_fiber(
                 access.kind,
                 access.width_bytes,
                 event.weight,
+                "" if merge_events else event.id,
             )
             locations = stream_locations.setdefault(stream, {})
             if location in locations:
@@ -565,14 +620,15 @@ def linear_layout_resource_fiber(
     hardware_fiber_count = 0
     omitted_singletons = 0
     for stream, location_points in stream_locations.items():
-        array, site, group, order, kind, width_bytes, weight = stream
+        array, site, group, order, kind, width_bytes, weight, event_identity = stream
         del group, order, kind, width_bytes
         fibers: dict[tuple[tuple[str, int], ...], list[Coord]] = {}
         for location, point in location_points.items():
             coordinates = location.as_dict()
             fixed = tuple(
-                (dimension, coordinates[dimension])
-                for dimension in complementary
+                (dimension, coordinates[dimension] & fixed_masks[dimension])
+                for dimension in input_dimensions
+                if fixed_masks[dimension]
             )
             fibers.setdefault(fixed, []).append(point)
         for fixed, points in sorted(fibers.items()):
@@ -594,7 +650,11 @@ def linear_layout_resource_fiber(
                 Hyperedge.make(
                     points,
                     weight=weight,
-                    source=f"{fiber_name}:{site}:{fixed_label}",
+                    source=(
+                        f"{fiber_name}:{site}"
+                        + (f":{event_identity}" if event_identity else "")
+                        + f":{fixed_label}"
+                    ),
                 )
             )
 
@@ -604,6 +664,8 @@ def linear_layout_resource_fiber(
         {array: tuple(array_edges) for array, array_edges in edges.items()},
         hardware_fiber_count,
         omitted_singletons,
+        tuple(selected_bits.items()) if bit_requests else (),
+        merge_events,
     )
 
 

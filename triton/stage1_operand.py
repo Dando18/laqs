@@ -40,6 +40,7 @@ def rank_persistent_operand(
     temporal_model: dict[str, object] | None = None,
     temporal_mode: str = "issue",
     benchmark: Callable | None = None,
+    execution_layout=None,
     execution_layout_spec: tuple[tuple[int, ...], tuple[str, ...]] | None = None,
 ) -> dict[str, object]:
     """Solve, compile, validate, and time every retained operand layout."""
@@ -52,6 +53,62 @@ def rank_persistent_operand(
         weighted_component_region_count,
     )
 
+    service_name = getattr(args, "service_model", "none")
+    fiber_objectives = ()
+    objective_taus = None
+    service_record: dict[str, object] = {
+        "name": service_name,
+        "active": False,
+    }
+    if service_name == "mi300a_v1":
+        from stage1_service import hardware_service_model
+
+        if execution_layout is None:
+            raise ValueError("the MI300A service model needs an execution layout")
+        if temporal_mode != "split":
+            raise ValueError("the MI300A service model requires temporal split mode")
+        if args.transaction_bytes != 128:
+            raise ValueError(
+                "the MI300A service model requires 128-byte cache windows"
+            )
+        lane_bits = tuple(getattr(args, "lane_cohort_bits", (2, 3)))
+        service = hardware_service_model(
+            execution_layout,
+            events,
+            name=f"{problem_name}.service",
+            lane_subsets=(lane_bits,),
+        )
+        instruction_bytes = int(getattr(args, "instruction_bytes", 64))
+        lane_cohort_bytes = int(getattr(args, "lane_cohort_bytes", 64))
+        instruction = service.instruction.at_scale(instruction_bytes)
+        lane_cohort = service.lane_cohorts[0].at_scale(lane_cohort_bytes)
+        fiber_objectives = (instruction, lane_cohort)
+        objective_taus = {
+            f"{problem_name}.issue.128B": float(args.issue_tau),
+            f"{problem_name}.temporal.128B": float(args.temporal_tau),
+            instruction.name: float(args.instruction_tau),
+            lane_cohort.name: float(args.lane_cohort_tau),
+        }
+        service_record = {
+            "name": service_name,
+            "active": True,
+            "instruction_region_bytes": instruction_bytes,
+            "lane_cohort_region_bytes": lane_cohort_bytes,
+            "lane_cohort_bits": list(lane_bits),
+            "cache_window_region_bytes": args.transaction_bytes,
+            "tau_by_component": objective_taus,
+            "tuning": {
+                "issue_tau": float(args.issue_tau),
+                "temporal_tau": float(args.temporal_tau),
+                "instruction_tau": float(args.instruction_tau),
+                "lane_cohort_tau": float(args.lane_cohort_tau),
+            },
+            "fibers": service.record(),
+            "selection_tie_breaker": "prefer_default_layout",
+        }
+    elif service_name != "none":
+        raise ValueError(f"unknown service model {service_name!r}")
+
     objective, problem, result = solve_layouts(
         (matrix,),
         events,
@@ -60,6 +117,8 @@ def rank_persistent_operand(
         inner_tile_shapes={matrix.name: inner_tile_shapes},
         temporal_edges={matrix.name: tuple(temporal_edges)},
         temporal_mode=temporal_mode,
+        execution_fiber_objectives=fiber_objectives,
+        objective_taus=objective_taus,
     )
     objective_names = (
         (objective,) if isinstance(objective, str) else tuple(objective)
@@ -70,6 +129,15 @@ def rank_persistent_operand(
     ranking_components = tuple(
         components_by_name[name] for name in objective_names
     )
+    policy = problem.config.policy
+    if policy.kind == "weighted":
+        objective_weights = {
+            name: float(policy.weights[name]) for name in objective_names
+        }
+    elif len(objective_names) == 1:
+        objective_weights = {objective_names[0]: 1.0}
+    else:
+        raise ValueError("Stage 1 needs a scalar or weighted objective")
     issue_component = ObjectiveComponent(
         "diagnostic.issue",
         args.transaction_bytes,
@@ -119,7 +187,7 @@ def rank_persistent_operand(
         counter_panel["mode"] = panel_mode
         counter_panel["objective"] = "issue_only"
 
-    def component_scores(layout):
+    def diagnostic_component_scores(layout):
         issue_score = weighted_component_region_count(
             matrix, layout, issue_component
         )
@@ -131,10 +199,24 @@ def rank_persistent_operand(
             "temporal": float(temporal_score),
         }
 
-    def total_candidate_score(candidate):
+    def objective_component_scores(layout):
+        return {
+            component.name: float(
+                weighted_component_region_count(matrix, layout, component)
+            )
+            for component in ranking_components
+        }
+
+    def aggregate_score(scores):
         return float(
-            sum(candidate.scores.get(name, 0.0) for name in objective_names)
+            sum(
+                objective_weights[name] * float(scores.get(name, 0.0))
+                for name in objective_names
+            )
         )
+
+    def total_candidate_score(candidate):
+        return aggregate_score(candidate.scores)
 
     array_result = result.arrays[matrix.name]
     retained = array_result.candidates
@@ -144,8 +226,10 @@ def rank_persistent_operand(
     )
     default_layout = row_major_layout(matrix)
     default_rows = layout_rows(default_layout, matrix)
-    default_score = sum(
-        weighted_component_region_count(matrix, default_layout, component)
+    default_component_scores = objective_component_scores(default_layout)
+    default_score = aggregate_score(default_component_scores)
+    default_packing_bound = sum(
+        objective_weights[component.name] * component.packing_bound(matrix)
         for component in ranking_components
     )
     sources_by_mapping = {
@@ -182,14 +266,13 @@ def rank_persistent_operand(
         launches[candidate_id] = launch
         compiled[candidate_id] = launch()
         score = total_candidate_score(candidate)
-        quotient_components = component_scores(layout)
-        expected_score = quotient_components["issue"]
-        if temporal_mode != "issue":
-            expected_score += quotient_components["temporal"]
+        quotient_components = diagnostic_component_scores(layout)
+        detailed_scores = objective_component_scores(layout)
+        expected_score = aggregate_score(detailed_scores)
         if abs(score - expected_score) > 1e-9:
             raise ValueError(
                 f"{candidate_id}: objective score {score} does not match "
-                f"issue/temporal decomposition {expected_score}"
+                f"the weighted component decomposition {expected_score}"
             )
         records.append(
             {
@@ -204,9 +287,11 @@ def rank_persistent_operand(
                 "flag_id": flag_id,
                 "quotient_score": score,
                 "quotient_components": quotient_components,
+                "objective_component_scores": detailed_scores,
                 "packing_bound": float(
                     sum(
-                        candidate.packing_bounds.get(name, 0.0)
+                        objective_weights[name]
+                        * candidate.packing_bounds.get(name, 0.0)
                         for name in objective_names
                     )
                 ),
@@ -216,6 +301,17 @@ def rank_persistent_operand(
                 "note": candidate.note,
             }
         )
+
+    if service_name != "none":
+        records.sort(
+            key=lambda record: (
+                float(record["quotient_score"]),
+                record["layout"] != "row_major",
+                int(record["solver_rank"]),
+            )
+        )
+        for selection_rank, record in enumerate(records, start=1):
+            record["selection_rank"] = selection_rank
 
     torch.cuda.synchronize()
     for record in records:
@@ -441,12 +537,18 @@ def rank_persistent_operand(
             objective
             if isinstance(objective, str)
             else {
-                "aggregation": "equal_weight_raw_sum",
+                "aggregation": "weighted_raw_sum",
                 "components": list(objective_names),
-                "tie_breakers": ["runs", "xors"],
+                "weights": objective_weights,
+                "tie_breakers": (
+                    ["default_layout", "runs", "xors"]
+                    if service_name != "none"
+                    else ["runs", "xors"]
+                ),
             }
         ),
         "objective_components": list(objective_names),
+        "hardware_service_model": service_record,
         "temporal_model": temporal_record,
         "search_scope": {
             "grammar": "canonical_inner_tile",
@@ -457,11 +559,9 @@ def rank_persistent_operand(
             "outer_layout": "row_major_tiles",
             "fixed_outer_order": list(reversed(matrix.mode_names)),
             "temporal_mode": temporal_mode,
+            "hardware_service_model": service_name,
         },
-        "packing_lower_bound": sum(
-            component.packing_bound(matrix)
-            for component in ranking_components
-        ),
+        "packing_lower_bound": float(default_packing_bound),
         "default": default,
         "selected": selected,
         "candidates": records,

@@ -164,6 +164,7 @@ def bias_relu(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout=execution,
         execution_layout_spec=((block,), ("feature",)),
     )
     return result_record(
@@ -231,6 +232,7 @@ def softmax_bias(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout=execution,
         execution_layout_spec=((n,), ("feature",)),
     )
     return result_record(
@@ -304,6 +306,7 @@ def embedding_bag(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout=execution,
         execution_layout_spec=((dimensions,), ("dimension",)),
     )
     return result_record(
@@ -388,6 +391,7 @@ def gemv(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout=execution,
         execution_layout_spec=((block,), ("row",)),
     )
     return result_record("gemv", matrix, blocked, execution, events, ranking)
@@ -488,6 +492,7 @@ def mvt(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout=execution,
         execution_layout_spec=((block,), ("row",)),
     )
     return result_record("mvt", matrix, blocked, execution, events, ranking)
@@ -571,6 +576,7 @@ def gesummv(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout=execution,
         execution_layout_spec=((block,), ("row",)),
     )
     return result_record(
@@ -683,6 +689,7 @@ def stencil5(args):
         temporal_edges=temporal_edges,
         temporal_model=temporal_model,
         temporal_mode=args.temporal_mode,
+        execution_layout=execution,
         execution_layout_spec=((block,), ("column",)),
     )
     return result_record(
@@ -713,6 +720,21 @@ def parse_arguments(argv=None):
         "--temporal-mode",
         choices=("issue", "union", "split"),
         default="issue",
+    )
+    parser.add_argument(
+        "--service-model",
+        choices=("none", "mi300a_v1"),
+        default="none",
+        help="add lowered-instruction, lane-cohort, and cache-window components",
+    )
+    parser.add_argument("--issue-tau", type=float, default=1.0)
+    parser.add_argument("--temporal-tau", type=float, default=1.0)
+    parser.add_argument("--instruction-tau", type=float, default=1.0)
+    parser.add_argument("--lane-cohort-tau", type=float, default=0.0625)
+    parser.add_argument("--instruction-bytes", type=positive_integer, default=64)
+    parser.add_argument("--lane-cohort-bytes", type=positive_integer, default=64)
+    parser.add_argument(
+        "--lane-cohort-bits", type=int, nargs="+", default=(2, 3)
     )
     profile_group = parser.add_mutually_exclusive_group()
     profile_group.add_argument(

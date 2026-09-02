@@ -360,6 +360,28 @@ Results record issue and temporal scores separately for every candidate even
 in union mode. See [Triton integration stage 1](../docs/triton-stage1.md) for
 the schedule coverage, union/split equivalence check, and measured outcomes.
 
+### Add MI300A hardware-service components
+
+`--service-model mi300a_v1` preserves induced operation identity, adds a
+64-byte algebraic lane-bit cohort, and combines those scores with 64-byte
+full-instruction and 128-byte issue/temporal components. The tuned defaults
+use lane bits 2 and 3 with tau 1/16; all scales, bits, and tau weights are
+explicit CLI options. It requires temporal split mode and prefers row-major
+when the weighted locality objective ties exactly.
+
+```bash
+flux run -n1 -g1 -t 5m -q pdebug \
+  triton/.venv/bin/python triton/run-stage1-kernel-breadth.py \
+  --transaction-bytes 128 --temporal-mode split \
+  --service-model mi300a_v1 --process-launches 3 \
+  --results-dir triton/results/stage1-hardware-service-mi300a-cases \
+  --json triton/results/stage1-hardware-service-mi300a.json --quiet
+```
+
+The seven-kernel MI300A result and offline analysis of all 700 random-layout
+counter observations are summarized in
+[`results/stage1-hardware-service-mi300a.md`](results/stage1-hardware-service-mi300a.md).
+
 ## Validate quotient locality with hardware counters
 
 `run-stage1-locality-counters.py` reruns the inner-tile DP, profiles the

@@ -16,7 +16,7 @@ from stage1_operand import aggregate_persistent_rankings
 from run_stage1_kernel_cases import CASES
 
 
-def current_case_result(path: Path, temporal_mode: str) -> bool:
+def current_case_result(path: Path, args) -> bool:
     if not path.exists():
         return False
     try:
@@ -24,10 +24,28 @@ def current_case_result(path: Path, temporal_mode: str) -> bool:
         scope = result["ranking"]["search_scope"]
     except (KeyError, TypeError, ValueError):
         return False
-    return (
+    service = result["ranking"].get("hardware_service_model", {})
+    matches = (
         scope.get("grammar") == "canonical_inner_tile"
         and scope.get("tile_policy") == "explicit_hypothesis_sweep_v1"
-        and scope.get("temporal_mode") == temporal_mode
+        and scope.get("temporal_mode") == args.temporal_mode
+        and service.get("name") == args.service_model
+    )
+    if not matches or args.service_model == "none":
+        return matches
+    return (
+        service.get("lane_cohort_bits") == list(args.lane_cohort_bits)
+        and service.get("instruction_region_bytes")
+        == args.instruction_bytes
+        and service.get("lane_cohort_region_bytes")
+        == args.lane_cohort_bytes
+        and service.get("tuning")
+        == {
+            "issue_tau": args.issue_tau,
+            "temporal_tau": args.temporal_tau,
+            "instruction_tau": args.instruction_tau,
+            "lane_cohort_tau": args.lane_cohort_tau,
+        }
     )
 
 
@@ -51,6 +69,7 @@ def case_summary(result: dict[str, object]) -> dict[str, object]:
             "quotient_components"
         ],
         "temporal_model": ranking["temporal_model"],
+        "hardware_service_model": ranking["hardware_service_model"],
         "default_runtime_ms": ranking["default_runtime_ms"],
         "selected_runtime_ms": ranking["selected_runtime_ms"],
         "measured_speedup": ranking["measured_speedup"],
@@ -82,7 +101,7 @@ def run_suite(args) -> dict[str, object]:
         case_dir.mkdir(exist_ok=True)
         for process_launch in range(1, args.process_launches + 1):
             output = case_dir / f"process-{process_launch}.json"
-            if current_case_result(output, args.temporal_mode) and not args.rerun:
+            if current_case_result(output, args) and not args.rerun:
                 print(
                     f"Kernel breadth: reuse {name} process {process_launch}",
                     file=sys.stderr,
@@ -113,6 +132,22 @@ def run_suite(args) -> dict[str, object]:
                     str(args.warmup),
                     "--temporal-mode",
                     args.temporal_mode,
+                    "--service-model",
+                    args.service_model,
+                    "--issue-tau",
+                    str(args.issue_tau),
+                    "--temporal-tau",
+                    str(args.temporal_tau),
+                    "--instruction-tau",
+                    str(args.instruction_tau),
+                    "--lane-cohort-tau",
+                    str(args.lane_cohort_tau),
+                    "--instruction-bytes",
+                    str(args.instruction_bytes),
+                    "--lane-cohort-bytes",
+                    str(args.lane_cohort_bytes),
+                    "--lane-cohort-bits",
+                    *(str(bit) for bit in args.lane_cohort_bits),
                     "--json",
                     str(output),
                     "--quiet",
@@ -130,7 +165,7 @@ def run_suite(args) -> dict[str, object]:
         absent = [
             path
             for path in outputs
-            if not current_case_result(path, args.temporal_mode)
+            if not current_case_result(path, args)
         ]
         if absent:
             missing.extend(str(path.relative_to(args.results_dir)) for path in absent)
@@ -164,6 +199,14 @@ def run_suite(args) -> dict[str, object]:
             "iterations": args.iterations,
             "warmup": args.warmup,
             "temporal_mode": args.temporal_mode,
+            "service_model": args.service_model,
+            "issue_tau": args.issue_tau,
+            "temporal_tau": args.temporal_tau,
+            "instruction_tau": args.instruction_tau,
+            "lane_cohort_tau": args.lane_cohort_tau,
+            "instruction_bytes": args.instruction_bytes,
+            "lane_cohort_bytes": args.lane_cohort_bytes,
+            "lane_cohort_bits": list(args.lane_cohort_bits),
         },
         "case_order": list(CASES),
         "completed_cases": list(completed),
@@ -196,6 +239,18 @@ def parse_arguments(argv=None):
         "--temporal-mode",
         choices=("issue", "union", "split"),
         default="issue",
+    )
+    parser.add_argument(
+        "--service-model", choices=("none", "mi300a_v1"), default="none"
+    )
+    parser.add_argument("--issue-tau", type=float, default=1.0)
+    parser.add_argument("--temporal-tau", type=float, default=1.0)
+    parser.add_argument("--instruction-tau", type=float, default=1.0)
+    parser.add_argument("--lane-cohort-tau", type=float, default=0.0625)
+    parser.add_argument("--instruction-bytes", type=positive_integer, default=64)
+    parser.add_argument("--lane-cohort-bytes", type=positive_integer, default=64)
+    parser.add_argument(
+        "--lane-cohort-bits", type=int, nargs="+", default=(2, 3)
     )
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
