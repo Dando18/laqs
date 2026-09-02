@@ -4,6 +4,7 @@ import unittest
 
 from relay import (
     Access,
+    EventSequence,
     MatrixSpec,
     MemoryEvent,
     RelayProblem,
@@ -16,6 +17,41 @@ from relay import (
 
 
 class SolverTests(unittest.TestCase):
+    def test_lane_metrics_include_trace_class_multiplicity(self) -> None:
+        matrix = MatrixSpec("M", (4, 4), 4, ("i", "j"))
+        event = MemoryEvent.make(
+            "load",
+            "load",
+            [Access("M", (0, lane), lane=lane) for lane in range(4)],
+            weight=2,
+        )
+        result = solve(
+            RelayProblem(
+                matrices=(matrix,),
+                events=(event,),
+                sequences=(EventSequence.make("class", (event.id,), weight=5),),
+                objectives=(SimultaneousRegions("fine", 16),),
+                config=SolverConfig(
+                    policy=ScorePolicy(
+                        "lexicographic", ("fine", "runs", "xors")
+                    ),
+                    tile_shapes={"M": ((2, 2),)},
+                    general_tile_shapes={"M": ()},
+                    include_global_canonical=False,
+                    enable_linear_inner=False,
+                    include_column_major_control=False,
+                    per_array_candidates=8,
+                ),
+            )
+        )
+
+        self.assertTrue(
+            all(
+                candidate.scores["adj_pairs"] == 30.0
+                for candidate in result.arrays["M"].candidates
+            )
+        )
+
     def test_provided_candidate_layout_is_scored_and_retained(self) -> None:
         matrix = MatrixSpec("M", (4, 4), 4, ("i", "j"))
         event = MemoryEvent.make(

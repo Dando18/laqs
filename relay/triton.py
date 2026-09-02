@@ -1066,3 +1066,34 @@ def validate_induced_hypergraph(
         ),
         mismatches=tuple(mismatches),
     )
+
+
+# The automatic frontend lives separately so the legacy LinearLayout utilities
+# stay usable without importing Triton's Python runtime.
+from .triton_frontend import (  # noqa: E402
+    MANIFEST_METADATA_KEY,
+    MANIFEST_SCHEMA,
+    MANIFEST_VERSION,
+    AccessManifest,
+    AllocationMetadata,
+    AnalysisOptions,
+    EvaluationLimits,
+    ExpressionEvaluator,
+    ManifestArgument,
+    ManifestBarrier,
+    ManifestError,
+    ManifestExpression,
+    ManifestFor,
+    ManifestIf,
+    ManifestLinearLayout,
+    ManifestMemory,
+    TensorValue,
+    TritonLaunchAnalysis,
+    UnsupportedReason,
+    UnsupportedTritonAnalysis,
+    analyze_compiled_manifest,
+    analyze_launch,
+    evaluate_manifest,
+    infer_allocations,
+    parse_access_manifest,
+)

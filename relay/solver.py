@@ -190,21 +190,43 @@ def _outer_orders(matrix: MatrixSpec, config: SolverConfig) -> tuple[tuple[int, 
     return tuple(result)
 
 
-def _lane_metrics(matrix: MatrixSpec, layout: Layout, events: Sequence[MemoryEvent]) -> dict[str, float]:
+def _lane_metrics(
+    matrix: MatrixSpec,
+    layout: Layout,
+    events: Mapping[str, MemoryEvent],
+    sequences: Sequence[EventSequence],
+) -> dict[str, float]:
     gap = 0.0
     breaks = 0.0
     pairs = 0.0
     max_gap = 0.0
-    for event in events:
-        accesses = [access for access in event.accesses if access.array == matrix.name and access.lane is not None]
+    if sequences:
+        event_occurrences = (
+            (events[event_id], sequence.weight)
+            for sequence in sequences
+            for event_id in sequence.event_ids
+        )
+    else:
+        event_occurrences = ((event, 1.0) for event in events.values())
+
+    for event, sequence_weight in event_occurrences:
+        accesses = [
+            access
+            for access in event.accesses
+            if access.array == matrix.name and access.lane is not None
+        ]
         accesses.sort(key=lambda access: int(access.lane))
+        event_weight = event.weight * sequence_weight
         for left, right in zip(accesses, accesses[1:]):
             if right.lane == left.lane:
                 continue
-            delta = abs(layout.offset(matrix, right.coord) - layout.offset(matrix, left.coord))
-            gap += event.weight * delta
-            breaks += event.weight * float(delta != 1)
-            pairs += event.weight
+            delta = abs(
+                layout.offset(matrix, right.coord)
+                - layout.offset(matrix, left.coord)
+            )
+            gap += event_weight * delta
+            breaks += event_weight * float(delta != 1)
+            pairs += event_weight
             max_gap = max(max_gap, float(delta))
     return {
         "adj_gap": gap,
@@ -238,7 +260,8 @@ def _candidate_from_seed(
     matrix: MatrixSpec,
     seed: LayoutSeed,
     components: Sequence[ObjectiveComponent],
-    events: Sequence[MemoryEvent],
+    events: Mapping[str, MemoryEvent],
+    sequences: Sequence[EventSequence],
     config: SolverConfig,
 ) -> Candidate:
     _validate_layout(matrix, seed.layout, config.exhaustive_inner_validation_bits)
@@ -254,7 +277,7 @@ def _candidate_from_seed(
         for component in components
         if component.edges_by_array.get(matrix.name)
     }
-    metrics = _lane_metrics(matrix, seed.layout, events)
+    metrics = _lane_metrics(matrix, seed.layout, events, sequences)
     scores = {
         **direct,
         **metrics,
@@ -460,7 +483,10 @@ def solve(problem: RelayProblem) -> RelayResult:
                     layout,
                     component,
                 )
-        context_scores = _sum_score_maps(context_scores, _lane_metrics(matrix, layout, problem.events))
+        context_scores = _sum_score_maps(
+            context_scores,
+            _lane_metrics(matrix, layout, events, problem.sequences),
+        )
         context_scores["runs"] = context_scores.get(
             "runs", 0.0
         ) + layout_codegen_runs(matrix, layout)
@@ -539,7 +565,14 @@ def solve(problem: RelayProblem) -> RelayResult:
                 deduplicated[signature] = seed
 
         candidates = [
-            _candidate_from_seed(matrix, seed, components, problem.events, config)
+            _candidate_from_seed(
+                matrix,
+                seed,
+                components,
+                events,
+                problem.sequences,
+                config,
+            )
             for seed in deduplicated.values()
         ]
         selected = _select_array_candidates(candidates, policy, config)

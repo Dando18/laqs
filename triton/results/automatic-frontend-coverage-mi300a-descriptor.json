@@ -1,0 +1,81 @@
+{
+  "cases": {
+    "descriptor_copy": {
+      "allocations": [
+        {
+          "alias_group": "alias.0",
+          "dense_status": "dense",
+          "eligible": true,
+          "envelope_shape": [
+            16,
+            16
+          ],
+          "name": "source",
+          "role": "read",
+          "shape": [
+            16,
+            16
+          ],
+          "strides": [
+            16,
+            1
+          ]
+        },
+        {
+          "alias_group": "alias.1",
+          "dense_status": "dense",
+          "eligible": false,
+          "envelope_shape": [
+            16,
+            16
+          ],
+          "name": "output",
+          "role": "write",
+          "shape": [
+            16,
+            16
+          ],
+          "strides": [
+            16,
+            1
+          ]
+        }
+      ],
+      "edge_family_count": 24,
+      "grid": [
+        1
+      ],
+      "matrix_count": 2,
+      "memory_event_count": 8,
+      "objective_component_count": 288,
+      "selected_config": {},
+      "status": "supported",
+      "trace_class_count": 4,
+      "trace_class_multiplicity": 4
+    }
+  },
+  "environment": {
+    "cuda": null,
+    "device": "cuda",
+    "device_name": "AMD Instinct MI300A",
+    "dtype": "float32",
+    "hardware_profile": "mi300a",
+    "hip": "7.2.53211",
+    "hostname": "tuolumne1016",
+    "torch": "2.15.0.dev20260827+rocm7.2",
+    "triton": "3.8.0",
+    "triton_checkout": "/g/g16/dnicho/record-replay/relay/triton/triton-lang",
+    "triton_commit": "b1233aa326fa485b08de8593da2d08cb853c346b",
+    "triton_source": "/g/g16/dnicho/record-replay/relay/triton/triton-lang/python/triton/__init__.py"
+  },
+  "requested_cases": [
+    "descriptor_copy"
+  ],
+  "schema": "laqs.triton.coverage",
+  "summary": {
+    "errors": 0,
+    "supported": 1,
+    "unsupported": 0
+  },
+  "version": 1
+}

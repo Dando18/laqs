@@ -2,10 +2,65 @@
 
 set -euo pipefail
 
-if [[ ! -f pyproject.toml || ! -f triton/triton-lang/setup.py || ! -f triton/tritonbench/run.py ]]; then
+if [[ ! -f pyproject.toml || ! -f triton/triton-lang/setup.py || ! -f triton/tritonbench/run.py ||
+      ! -f triton/automatic_frontend/CMakeLists.txt ]]; then
     echo "Run this script from the RELAY repository root after initializing the submodules." >&2
     exit 1
 fi
+
+relay_laqs_plugin_source="${PWD}/triton/automatic_frontend"
+relay_laqs_plugin_library="${PWD}/triton/triton-lang/python/triton/plugins/libLAQSTritonAccessManifest.so"
+relay_triton_expected_commit="b1233aa326fa485b08de8593da2d08cb853c346b"
+relay_triton_hook_patch="${PWD}/triton/patches/post-coalesce-hook.patch"
+if [[ "${relay_laqs_plugin_source}" =~ [[:space:]] ]]; then
+    echo "The LAQS plugin source path cannot contain whitespace: ${relay_laqs_plugin_source}" >&2
+    exit 1
+fi
+if [[ "$(git -C triton/triton-lang rev-parse HEAD)" != "${relay_triton_expected_commit}" ]]; then
+    echo "The Triton checkout is not at the pinned LAQS revision ${relay_triton_expected_commit}." >&2
+    exit 1
+fi
+if git -C triton/triton-lang apply --reverse --check "${relay_triton_hook_patch}" >/dev/null 2>&1; then
+    : # The exact patch is already present.
+elif git -C triton/triton-lang diff --quiet -- \
+        CMakeLists.txt \
+        python/src/ir.cc \
+        python/triton/compiler/compiler.py \
+        python/triton/knobs.py \
+        python/triton/runtime/jit.py \
+        third_party/amd/backend/compiler.py \
+        third_party/nvidia/backend/compiler.py && \
+        git -C triton/triton-lang apply --check "${relay_triton_hook_patch}"; then
+    git -C triton/triton-lang apply "${relay_triton_hook_patch}"
+else
+    echo "The pinned Triton hook files diverge from triton/patches/post-coalesce-hook.patch." >&2
+    exit 1
+fi
+if ! cmp -s \
+        <(git -C triton/triton-lang diff --binary -- \
+            CMakeLists.txt \
+            python/src/ir.cc \
+            python/triton/compiler/compiler.py \
+            python/triton/knobs.py \
+            python/triton/runtime/jit.py \
+            third_party/amd/backend/compiler.py \
+            third_party/nvidia/backend/compiler.py) \
+        "${relay_triton_hook_patch}"; then
+    echo "The pinned Triton hook diff is not exactly triton/patches/post-coalesce-hook.patch." >&2
+    exit 1
+fi
+for relay_triton_hook_marker in \
+    "python/triton/knobs.py:post_coalesce_hook" \
+    "python/src/ir.cc:ModuleOp &self" \
+    "third_party/amd/backend/compiler.py:post_coalesce_hook" \
+    "third_party/nvidia/backend/compiler.py:post_coalesce_hook" \
+    "CMakeLists.txt:TRITON_PASS_PLUGIN_DIRS"; do
+    IFS=: read -r relay_triton_hook_file relay_triton_hook_text <<< "${relay_triton_hook_marker}"
+    if ! grep -q "${relay_triton_hook_text}" "triton/triton-lang/${relay_triton_hook_file}"; then
+        echo "The pinned Triton checkout is missing the LAQS hook in ${relay_triton_hook_file}." >&2
+        exit 1
+    fi
+done
 
 relay_triton_rocm_module="${RELAY_TRITON_ROCM_MODULE:-rocm/7.2.1}"
 relay_triton_torch_index="${RELAY_TRITON_TORCH_INDEX:-rocm7.2}"
@@ -84,6 +139,7 @@ if [[ "${relay_triton_clang_lld^^}" =~ ^(ON|1|YES|TRUE|Y)$ ]]; then
     done
     export TRITON_APPEND_CMAKE_ARGS="${TRITON_APPEND_CMAKE_ARGS:-} -DCMAKE_C_COMPILER=${relay_triton_c_compiler} -DCMAKE_CXX_COMPILER=${relay_triton_cxx_compiler} -DCMAKE_LINKER=${relay_triton_linker}"
 fi
+export TRITON_APPEND_CMAKE_ARGS="${TRITON_APPEND_CMAKE_ARGS:-} -DTRITON_PASS_PLUGIN_DIRS=${relay_laqs_plugin_source}"
 
 "${relay_triton_uv}" pip install \
     --python "${relay_python}" \
@@ -103,6 +159,7 @@ fi
     -r triton/triton-lang/python/requirements.txt
 
 TRITON_BUILD_PROTON=OFF \
+TRITON_EXT_ENABLED=ON \
 TRITON_BUILD_WITH_CLANG_LLD="${relay_triton_clang_lld}" \
 TRITON_BUILD_DIR="${relay_triton_build_dir}" \
 TRITON_HOME="${relay_triton_cache}" \
@@ -111,6 +168,11 @@ MAX_JOBS="${relay_triton_max_jobs}" \
         --python "${relay_python}" \
         --no-build-isolation \
         -e triton/triton-lang
+
+if [[ ! -f "${relay_laqs_plugin_library}" ]]; then
+    echo "The Triton build did not produce the LAQS plugin: ${relay_laqs_plugin_library}" >&2
+    exit 1
+fi
 
 (
     cd triton/tritonbench
@@ -124,16 +186,25 @@ MAX_JOBS="${relay_triton_max_jobs}" \
         -e .
 )
 
-"${relay_python}" - <<'PY'
+"${relay_python}" - "${relay_laqs_plugin_library}" <<'PY'
 from importlib import metadata
+from pathlib import Path
+import sys
 
 import torch
 import triton
+from triton._C.libtriton import passes
+
+plugin = Path(sys.argv[1]).resolve()
+passes.plugin.extend_with(str(plugin))
+if not hasattr(passes.plugin, "add_laqs_access_manifest"):
+    raise RuntimeError(f"LAQS plugin did not register its pass: {plugin}")
 
 print(f"torch={torch.__version__}")
 print(f"torch.version.hip={torch.version.hip}")
 print(f"triton={metadata.version('triton')}")
 print(f"triton.path={triton.__file__}")
+print(f"laqs.plugin={plugin}")
 
 if torch.version.hip is None:
     raise RuntimeError("The installed PyTorch build does not have ROCm support")
@@ -143,3 +214,4 @@ echo "Triton and TritonBench are installed in ${relay_triton_venv}."
 echo "Triton build directory: ${relay_triton_build_dir}"
 echo "Triton ccache directory: ${relay_triton_ccache_dir}"
 echo "Triton clang/lld build: ${relay_triton_clang_lld}"
+echo "LAQS access-manifest plugin: ${relay_laqs_plugin_library}"

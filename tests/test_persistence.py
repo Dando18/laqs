@@ -86,6 +86,51 @@ class TemporalPersistenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "positive"):
             TemporalPersistenceBasis(deltas=(0,))
 
+    def test_shared_events_are_weighted_once_per_trace_class(self) -> None:
+        events = {
+            "shared": MemoryEvent.make(
+                "shared",
+                "A.load",
+                [Access("A", (0, 0), lane=0)],
+                order=0,
+                weight=3,
+            ),
+            "interior": MemoryEvent.make(
+                "interior",
+                "A.load",
+                [Access("A", (0, 1), lane=0)],
+                order=1,
+                weight=3,
+            ),
+            "boundary": MemoryEvent.make(
+                "boundary",
+                "A.load",
+                [Access("A", (0, 2), lane=0)],
+                order=1,
+                weight=3,
+            ),
+        }
+        sequences = (
+            EventSequence.make("interior", ("shared", "interior"), weight=2),
+            EventSequence.make("boundary", ("shared", "boundary"), weight=5),
+        )
+        families = build_transition_families(
+            self.matrices,
+            events,
+            sequences,
+            basis=TemporalPersistenceBasis(
+                deltas=(1,), families=("simd_schedule",)
+            ),
+        )
+
+        self.assertEqual(len(families), 1)
+        self.assertEqual(families[0].transition_count, 2)
+        self.assertEqual(families[0].transition_weight, 21.0)
+        self.assertEqual(
+            sorted(transition.weight for transition in families[0].transitions),
+            [6.0, 15.0],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

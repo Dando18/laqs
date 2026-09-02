@@ -248,25 +248,18 @@ class UniversalAccessScopeTests(unittest.TestCase):
         )
         events = {event.id: event for event in (event0, event1)}
 
-        with self.assertRaisesRegex(ValueError, "contain every event exactly once"):
+        with self.assertRaisesRegex(ValueError, "contain every event at least once"):
             build_edge_families(
                 matrices,
                 events,
                 (EventSequence.make("incomplete", ("e0",)),),
             )
-        with self.assertRaisesRegex(ValueError, "appears more than once"):
+        with self.assertRaisesRegex(ValueError, "appears more than once in sequence"):
             build_edge_families(
                 matrices,
                 events,
                 (EventSequence.make("duplicate", ("e0", "e0", "e1")),),
             )
-        with self.assertRaisesRegex(ValueError, "requires weight 1"):
-            build_edge_families(
-                matrices,
-                events,
-                (EventSequence.make("weighted", ("e0", "e1"), weight=2),),
-            )
-
         weighted_event = MemoryEvent.make(
             "e1",
             "A.load",
@@ -274,7 +267,9 @@ class UniversalAccessScopeTests(unittest.TestCase):
             order=1,
             weight=2,
         )
-        with self.assertRaisesRegex(ValueError, "one common MemoryEvent.weight"):
+        with self.assertRaisesRegex(
+            ValueError, "one common MemoryEvent.weight within the trace class"
+        ):
             build_edge_families(
                 matrices,
                 {"e0": event0, "e1": weighted_event},
@@ -287,6 +282,73 @@ class UniversalAccessScopeTests(unittest.TestCase):
                 events,
                 (EventSequence.make("reversed", ("e1", "e0")),),
             )
+
+    def test_trace_class_multiplicity_weights_every_universal_scope(self) -> None:
+        matrices = {"A": MatrixSpec("A", (8,), 4, ("i",), target=True)}
+
+        def event(event_id: str, coord: int, order: int, step: int) -> MemoryEvent:
+            return MemoryEvent.make(
+                event_id,
+                "A.load",
+                (Access("A", (coord,), lane=0),),
+                order=order,
+                weight=3,
+                metadata={
+                    "workgroup": "wg0",
+                    "wave": "wave0",
+                    "step": step,
+                    "phase": "body",
+                },
+            )
+
+        event_items = (
+            event("shared", 0, 0, 0),
+            event("interior.next", 1, 1, 1),
+            event("boundary.next", 2, 1, 1),
+        )
+        events = {item.id: item for item in event_items}
+        sequences = (
+            EventSequence.make("interior", ("shared", "interior.next"), weight=2),
+            EventSequence.make("boundary", ("shared", "boundary.next"), weight=5),
+        )
+
+        families = {
+            family.name: family
+            for family in build_edge_families(matrices, events, sequences)
+        }
+
+        self.assertTrue(
+            all(family.normalization_bytes == 168.0 for family in families.values())
+        )
+        self.assertEqual(
+            families["issue.g64.stream.load"].edges_by_array["A"][0].weight,
+            42.0,
+        )
+        for family_name in (
+            "lane_window.t4.stream.load",
+            "simd_window.t4.array.load",
+            "workgroup_window.t4.array.load",
+            "phase.workgroup.array.load",
+        ):
+            self.assertEqual(
+                sorted(
+                    edge.weight
+                    for edge in families[family_name].edges_by_array["A"]
+                ),
+                [6.0, 15.0],
+            )
+        self.assertEqual(
+            families["workgroup_step.array.load"].edges_by_array["A"][0].weight,
+            42.0,
+        )
+
+        cohorts = build_resource_cohorts(
+            matrices,
+            events,
+            sequences,
+            ("simd_window.t4.cohort.load",),
+        )["simd_window.t4.cohort.load"]
+        self.assertEqual([cohort.weight for cohort in cohorts], [6.0, 15.0])
 
     def test_trace_contract_accepts_one_common_event_multiplicity(self) -> None:
         matrices = {

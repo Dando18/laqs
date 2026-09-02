@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from math import log2
+from math import isfinite, log2
+from numbers import Real
 from typing import Iterable, Mapping, Sequence
 
 
@@ -141,8 +142,13 @@ class MemoryEvent:
     def __post_init__(self) -> None:
         if not self.id:
             raise ValueError("event id cannot be empty")
-        if self.weight <= 0:
-            raise ValueError("event weight must be positive")
+        if (
+            isinstance(self.weight, bool)
+            or not isinstance(self.weight, Real)
+            or not isfinite(self.weight)
+            or self.weight <= 0
+        ):
+            raise ValueError("event weight must be finite and positive")
         if not self.accesses:
             raise ValueError(f"event {self.id} contains no accesses")
         keys = [key for key, _ in self.metadata]
@@ -173,7 +179,12 @@ class MemoryEvent:
 
 @dataclass(frozen=True)
 class EventSequence:
-    """A local, ordered sequence of memory-event ids."""
+    """One exact local trace class and its dynamic multiplicity.
+
+    ``weight`` is the number of represented executions of ``event_ids``.  An
+    event may be referenced by more than one trace class; consumers count each
+    reference with effective weight ``event.weight * sequence.weight``.
+    """
 
     name: str
     event_ids: tuple[str, ...]
@@ -185,8 +196,13 @@ class EventSequence:
             raise ValueError("sequence name cannot be empty")
         if not self.event_ids:
             raise ValueError(f"sequence {self.name} contains no events")
-        if self.weight <= 0:
-            raise ValueError("sequence weight must be positive")
+        if (
+            isinstance(self.weight, bool)
+            or not isinstance(self.weight, Real)
+            or not isfinite(self.weight)
+            or self.weight <= 0
+        ):
+            raise ValueError("sequence weight must be finite and positive")
 
     @classmethod
     def make(
@@ -199,6 +215,12 @@ class EventSequence:
     ) -> "EventSequence":
         items = tuple(sorted((str(k), str(v)) for k, v in (metadata or {}).items()))
         return cls(name, tuple(event_ids), weight, items)
+
+    @property
+    def multiplicity(self) -> float:
+        """Return the exact dynamic multiplicity represented by this class."""
+
+        return self.weight
 
 
 @dataclass(frozen=True)

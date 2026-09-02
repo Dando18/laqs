@@ -1,0 +1,148 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 90321e2..a3e945e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -498,6 +498,14 @@ if(TRITON_BUILD_PYTHON_MODULE)
+   # Build plugins when building libtriton since they depend on libtriton.
+   if(TRITON_EXT_ENABLED)
+     add_subdirectory(examples/plugins)
++    if(DEFINED TRITON_PASS_PLUGIN_DIRS)
++      foreach(PASS_PLUGIN_DIR ${TRITON_PASS_PLUGIN_DIRS})
++        cmake_path(GET PASS_PLUGIN_DIR FILENAME PASS_PLUGIN_NAME)
++        cmake_path(APPEND CMAKE_CURRENT_BINARY_DIR "pass-plugins"
++                   ${PASS_PLUGIN_NAME} OUTPUT_VARIABLE PASS_PLUGIN_BUILD_DIR)
++        add_subdirectory(${PASS_PLUGIN_DIR} ${PASS_PLUGIN_BUILD_DIR})
++      endforeach()
++    endif()
+   endif()
+ endif()
+ 
+diff --git a/python/src/ir.cc b/python/src/ir.cc
+index 16cf6fb..d41202c 100644
+--- a/python/src/ir.cc
++++ b/python/src/ir.cc
+@@ -778,6 +778,14 @@ void init_triton_ir(py::module_ &m) {
+                return py::none();
+              return py::int_(ret.getInt());
+            })
++      .def("get_str_attr",
++           [](ModuleOp &self, const std::string &name) -> py::object {
++             auto ret = self->getAttrOfType<StringAttr>(name);
++             if (!ret)
++               return py::none();
++             auto value = ret.getValue();
++             return py::str(value.data(), value.size());
++           })
+       .def("get_tensordesc_metadata", getTensorDescMetadata)
+       .def("create_location_snapshot",
+            [](ModuleOp &self, const std::string &fileName) -> void {
+diff --git a/python/triton/compiler/compiler.py b/python/triton/compiler/compiler.py
+index 5c7088f..e465c11 100644
+--- a/python/triton/compiler/compiler.py
++++ b/python/triton/compiler/compiler.py
+@@ -247,6 +247,8 @@ def compile(src, target=None, options=None, _env_vars=None):
+     if knobs.runtime.add_stages_inspection_hook is not None:
+         inspect_stages_key, inspect_stages_hash = knobs.runtime.add_stages_inspection_hook()
+         key += inspect_stages_key
++    if knobs.runtime.post_coalesce_hook is not None:
++        key += knobs.runtime.post_coalesce_hook()
+     hash = hashlib.sha256(key.encode("utf-8")).hexdigest()
+     fn_cache_manager = get_cache_manager(hash)
+     # For dumping/overriding only hash the source as we want it to be independent of triton
+diff --git a/python/triton/knobs.py b/python/triton/knobs.py
+index 2c55304..9f7fbe5 100644
+--- a/python/triton/knobs.py
++++ b/python/triton/knobs.py
+@@ -468,6 +468,17 @@ class PipelineStagesHook(Protocol):
+         ...
+ 
+ 
++class PostCoalesceHook(Protocol):
++
++    def __call__(self, pm=None) -> Optional[str]:
++        """Return a cache key, or add passes at the post-coalesce point."""
++        ...
++
++    def collect_metadata(self, module, metadata: dict[str, Any]) -> None:
++        """Transfer analysis results after the TTGIR pipeline finishes."""
++        ...
++
++
+ class runtime_knobs(base_knobs):
+     interpret: env_bool = env_bool("TRITON_INTERPRET")
+     # debug is on critical path for kernel launches
+@@ -492,6 +503,9 @@ class runtime_knobs(base_knobs):
+     # Hook for inspecting compiler pipeline stages
+     add_stages_inspection_hook: Optional[PipelineStagesHook] = None
+ 
++    # Backend-neutral extension point immediately after TTGIR coalescing.
++    post_coalesce_hook: Optional[PostCoalesceHook] = None
++
+ 
+ class language_knobs(base_knobs):
+     fp32_default: env_opt_str = env_opt_str("TRITON_F32_DEFAULT")
+diff --git a/python/triton/runtime/jit.py b/python/triton/runtime/jit.py
+index 671976a..e80fcce 100644
+--- a/python/triton/runtime/jit.py
++++ b/python/triton/runtime/jit.py
+@@ -753,8 +753,11 @@ class JITFunction(JITCallable, KernelInterface[T]):
+         if knobs.runtime.add_stages_inspection_hook is not None:
+             inspect_stages_key, inspect_stages_hash = knobs.runtime.add_stages_inspection_hook()
+             specialization.append(f'("custom_pipeline", {inspect_stages_hash})')
++        cache_specialization = specialization
++        if knobs.runtime.post_coalesce_hook is not None:
++            cache_specialization = [*specialization, ("post_coalesce", knobs.runtime.post_coalesce_hook())]
+ 
+-        key = compute_cache_key(kernel_key_cache, specialization, options)
++        key = compute_cache_key(kernel_key_cache, cache_specialization, options)
+         kernel = kernel_cache.get(key, None)
+ 
+         # Kernel is not cached; we have to compile.
+diff --git a/third_party/amd/backend/compiler.py b/third_party/amd/backend/compiler.py
+index dcde8e6..01969f7 100644
+--- a/third_party/amd/backend/compiler.py
++++ b/third_party/amd/backend/compiler.py
+@@ -267,6 +267,8 @@ class HIPBackend(BaseBackend):
+         pm.enable_debug()
+         emuTF32 = False
+         passes.ttgpuir.add_coalesce(pm)
++        if knobs.runtime.post_coalesce_hook is not None:
++            knobs.runtime.post_coalesce_hook(pm)
+         passes.ttgpuir.add_f32_dot_tc(pm, emuTF32)
+         passes.ttgpuir.add_remove_layout_conversions(pm)
+         passes.ttgpuir.add_optimize_thread_locality(pm)
+@@ -320,6 +322,10 @@ class HIPBackend(BaseBackend):
+             amd.passes.ttgpuir.add_fp_sanitizer(pm)
+             passes.ttgpuir.add_fp_sanitizer(pm, options.fpsan_homomorphic_casts)
+         pm.run(mod, 'make_ttgir')
++        if knobs.runtime.post_coalesce_hook is not None:
++            collector = getattr(knobs.runtime.post_coalesce_hook, "collect_metadata", None)
++            if collector is not None:
++                collector(mod, metadata)
+         metadata["tensordesc_meta"] = mod.get_tensordesc_metadata()
+         return mod
+ 
+diff --git a/third_party/nvidia/backend/compiler.py b/third_party/nvidia/backend/compiler.py
+index fc01a98..bb7f373 100644
+--- a/third_party/nvidia/backend/compiler.py
++++ b/third_party/nvidia/backend/compiler.py
+@@ -302,6 +302,8 @@ class CUDABackend(BaseBackend):
+             nvidia.passes.ttnvgpuir.add_to_clc(pm)
+         # optimize TTGIR
+         passes.ttgpuir.add_coalesce(pm)
++        if knobs.runtime.post_coalesce_hook is not None:
++            knobs.runtime.post_coalesce_hook(pm)
+         passes.ttgpuir.add_f32_dot_tc(pm, emuTF32)
+         # TODO(Qingyi): Move PlanCTAPass to the front of CoalescePass
+         nvidia.passes.ttnvgpuir.add_plan_cta(pm)
+@@ -372,6 +374,10 @@ class CUDABackend(BaseBackend):
+             passes.common.add_cse(pm)
+ 
+         pm.run(mod, 'make_ttgir')
++        if knobs.runtime.post_coalesce_hook is not None:
++            collector = getattr(knobs.runtime.post_coalesce_hook, "collect_metadata", None)
++            if collector is not None:
++                collector(mod, metadata)
+         metadata["tensordesc_meta"] = mod.get_tensordesc_metadata()
+         return mod
+ 

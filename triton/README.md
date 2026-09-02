@@ -31,9 +31,11 @@ The installer uses uv and installs into the environment reached through
 capacity. It preserves an existing environment; if the path does not exist, it
 uses `uv venv` with RELAY's `.venv/bin/python`. It then installs the ROCm
 PyTorch nightly, replaces PyTorch's bundled Triton with the pinned editable
-`triton-lang` checkout, and installs TritonBench's core AMD dependencies. It
-leaves the RELAY environment unchanged and does not require pip in the Triton
-environment.
+`triton-lang` checkout, builds and load-checks the out-of-tree LAQS access
+manifest plugin, and installs TritonBench's core AMD dependencies. It leaves
+the RELAY environment unchanged and does not require pip in the Triton
+environment. The installer verifies and idempotently applies the tracked
+disabled-by-default post-coalescing hook before starting the build.
 
 The default is `rocm/7.2.1` with the PyTorch `rocm7.2` nightly channel. This
 matches the HIP version recognized by the pinned TritonBench revision and is
@@ -87,7 +89,12 @@ the repository. It also uses Matrix-only build, ccache, uv-cache, and runtime-ca
 paths. Because an editable Triton build places its platform-specific extension
 in its source tree, the installer makes a commit-pinned source clone in the
 same `/usr/WS1` directory. This prevents the CUDA build from replacing the
-ROCm extension used by `triton/.venv` on Tuolumne.
+ROCm extension used by `triton/.venv` on Tuolumne. The installer applies the
+same tracked hook patch to this commit-pinned clone, builds the out-of-tree
+plugin, and creates an ignored convenience symlink under
+`triton/plugins/matrix`. Runtime discovery uses the plugin beside the Triton
+package imported by the active environment, so a platform-specific library is
+never borrowed from the other checkout.
 
 The defaults are the `cuda/13.1.1` module and the PyTorch `cu130` nightly
 channel. Override them with `RELAY_TRITON_MATRIX_CUDA_MODULE` and
@@ -96,6 +103,16 @@ settings use the `RELAY_TRITON_MATRIX_*` variables documented in
 `install-matrix.sh`. The installer enables uv's native TLS mode by default so
 package downloads use Matrix's system certificate store; set
 `RELAY_TRITON_MATRIX_UV_NATIVE_TLS=false` to override it.
+
+See [Automatic Triton-to-LAQS hypergraphs](../docs/triton-automatic-hypergraph.md)
+for the compiler boundary, public launch API, exact subset, and cross-cluster
+coverage driver.
+
+The automatic launch wrapper and coverage driver are the production
+Triton-to-LAQS construction path. The older `run-stage1*.py` workflows below
+retain their manual coordinate and operand construction solely as measurement
+and equivalence oracles; automatic analysis does not invoke them or fall back
+to their annotations.
 
 ### Profile Stage 1 quotient levels on Matrix
 

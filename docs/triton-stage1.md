@@ -1,5 +1,11 @@
 # Triton integration stage 1: execution-conditioned quotient LAQS
 
+> This document describes the earlier manual measurement path. Its coordinate
+> maps and selected-operand builders are retained only as compact experimental
+> and equivalence oracles. Production Triton-to-LAQS construction now uses the
+> unmodified-launch frontend documented in
+> [Automatic Triton-to-LAQS hypergraphs](triton-automatic-hypergraph.md).
+
 Stage 1 asks whether exact issue cohorts induced by Triton LinearLayouts are
 enough for RELAY to select a better persistent memory layout. It optimizes
 transaction locality only; resource placement and flag-fiber search remain

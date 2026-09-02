@@ -188,7 +188,10 @@ def build_resource_cohorts(
                     ResourceCohort(
                         family=family,
                         accesses=tuple(access for _event, access in entries),
-                        weight=min(event.weight for event, _access in entries),
+                        weight=(
+                            min(event.weight for event, _access in entries)
+                            * sequence.weight
+                        ),
                         source=(
                             f"{sequence.name}:cohort-slots"
                             f"[{interval * window}:{(interval + 1) * window}]"
@@ -327,12 +330,34 @@ def operation_class(access: Access) -> str:
 
 
 def dynamic_useful_bytes(
-    matrices: Mapping[str, MatrixSpec], events: Iterable[MemoryEvent]
+    matrices: Mapping[str, MatrixSpec],
+    events: Iterable[MemoryEvent] | Mapping[str, MemoryEvent],
+    sequences: Sequence[EventSequence] | None = None,
 ) -> float:
-    """Count lane-requested dynamic bytes for target-array accesses."""
+    """Count lane-requested dynamic bytes for target-array accesses.
+
+    When ``sequences`` is supplied, shared event definitions are counted once
+    per referencing trace class with effective weight
+    ``event.weight * sequence.weight``.  Omitting sequences retains the legacy
+    behavior for callers that already pass fully expanded weighted events.
+    """
 
     total = 0.0
-    for event in events:
+    if sequences is None:
+        event_occurrences = (
+            (event, event.weight)
+            for event in (events.values() if isinstance(events, Mapping) else events)
+        )
+    else:
+        if not isinstance(events, Mapping):
+            raise TypeError("events must be a mapping when sequences are supplied")
+        event_occurrences = (
+            (events[event_id], events[event_id].weight * sequence.weight)
+            for sequence in sequences
+            for event_id in sequence.event_ids
+        )
+
+    for event, effective_weight in event_occurrences:
         for access in event.accesses:
             matrix = matrices.get(access.array)
             if matrix is None:
@@ -344,7 +369,7 @@ def dynamic_useful_bytes(
                 if access.width_bytes is None
                 else access.width_bytes
             )
-            total += event.weight * width
+            total += effective_weight * width
     if total <= 0:
         raise ValueError("universal scopes require at least one target-array access")
     return total
@@ -354,7 +379,14 @@ def validate_trace_contract(
     events: Mapping[str, MemoryEvent],
     sequences: Sequence[EventSequence],
 ) -> None:
-    """Validate the complete ordered local-trace contract used by v1 scopes."""
+    """Validate the complete ordered trace-class contract used by v1 scopes.
+
+    Every event definition must be covered by at least one sequence.  Event ids
+    are unique within a class but may be shared between classes.  A class has
+    one common event base weight so grouped scopes have an exact multiplicity;
+    its effective dynamic multiplicity is that base weight times the sequence
+    weight.
+    """
 
     mismatched_ids = [key for key, event in events.items() if key != event.id]
     if mismatched_ids:
@@ -363,44 +395,49 @@ def validate_trace_contract(
             + ", ".join(sorted(mismatched_ids))
         )
 
-    owners: dict[str, str] = {}
+    sequence_names: set[str] = set()
+    covered: set[str] = set()
     for sequence in sequences:
-        if sequence.weight != 1.0:
+        if sequence.name in sequence_names:
             raise ValueError(
-                f"sequence {sequence.name}: universal-v1 requires weight 1"
+                f"duplicate event-sequence name {sequence.name!r}"
             )
+        sequence_names.add(sequence.name)
         previous_order: int | None = None
+        local_ids: set[str] = set()
+        base_weight: float | None = None
         for event_id in sequence.event_ids:
             if event_id not in events:
                 raise ValueError(
                     f"sequence {sequence.name}: unknown event id {event_id!r}"
                 )
-            owner = owners.get(event_id)
-            if owner is not None:
+            if event_id in local_ids:
                 raise ValueError(
-                    f"event {event_id!r} appears more than once "
-                    f"({owner!r} and {sequence.name!r})"
+                    f"event {event_id!r} appears more than once in sequence "
+                    f"{sequence.name!r}"
                 )
             event = events[event_id]
+            if base_weight is None:
+                base_weight = event.weight
+            elif event.weight != base_weight:
+                raise ValueError(
+                    f"sequence {sequence.name}: requires one common "
+                    "MemoryEvent.weight within the trace class"
+                )
             if previous_order is not None and event.order < previous_order:
                 raise ValueError(
                     f"sequence {sequence.name}: events are not in nondecreasing "
                     "MemoryEvent.order"
                 )
             previous_order = event.order
-            owners[event_id] = sequence.name
+            local_ids.add(event_id)
+            covered.add(event_id)
 
-    missing = sorted(set(events) - set(owners))
+    missing = sorted(set(events) - covered)
     if missing:
         raise ValueError(
-            "universal-v1 sequences must contain every event exactly once; missing: "
+            "universal-v1 sequences must contain every event at least once; missing: "
             + ", ".join(missing)
-        )
-
-    multiplicities = {event.weight for event in events.values()}
-    if len(multiplicities) > 1:
-        raise ValueError(
-            "universal-v1 requires one common MemoryEvent.weight across the trace"
         )
 
 
@@ -449,35 +486,41 @@ def _issue_edges(
     edges: dict[ScopeKey, dict[str, list[Hyperedge]]],
     basis: UniversalScopeBasis,
     matrices: Mapping[str, MatrixSpec],
-    events: Sequence[MemoryEvent],
+    events: Mapping[str, MemoryEvent],
+    sequences: Sequence[EventSequence],
 ) -> None:
-    for event in events:
-        by_stream: dict[tuple[str, str], list[Access]] = {}
-        for access, operation in _selected(event, matrices):
-            by_stream.setdefault((access.array, operation), []).append(access)
-        for (array, operation), accesses in by_stream.items():
-            if operation not in basis.operations:
-                continue
-            for group_size in basis.issue_lane_groups:
-                lane_groups: dict[int, list[Coord]] = {}
-                for access in accesses:
-                    if access.lane is None:
-                        raise ValueError(
-                            f"event {event.id}: issue scopes require lane ids"
+    for sequence in sequences:
+        for event_id in sequence.event_ids:
+            event = events[event_id]
+            by_stream: dict[tuple[str, str], list[Access]] = {}
+            for access, operation in _selected(event, matrices):
+                by_stream.setdefault((access.array, operation), []).append(access)
+            for (array, operation), accesses in by_stream.items():
+                if operation not in basis.operations:
+                    continue
+                for group_size in basis.issue_lane_groups:
+                    lane_groups: dict[int, list[Coord]] = {}
+                    for access in accesses:
+                        if access.lane is None:
+                            raise ValueError(
+                                f"event {event.id}: issue scopes require lane ids"
+                            )
+                        lane_groups.setdefault(access.lane // group_size, []).append(
+                            access.coord
                         )
-                    lane_groups.setdefault(access.lane // group_size, []).append(
-                        access.coord
-                    )
-                scope = ScopeKey("issue", group_size, "stream", operation)
-                for lane_group, points in lane_groups.items():
-                    _append_edge(
-                        edges,
-                        scope,
-                        array,
-                        points,
-                        weight=event.weight,
-                        source=f"{event.id}:g{group_size}:{lane_group}",
-                    )
+                    scope = ScopeKey("issue", group_size, "stream", operation)
+                    for lane_group, points in lane_groups.items():
+                        _append_edge(
+                            edges,
+                            scope,
+                            array,
+                            points,
+                            weight=event.weight * sequence.weight,
+                            source=(
+                                f"{sequence.name}:{event.id}:"
+                                f"g{group_size}:{lane_group}"
+                            ),
+                        )
 
 
 def _sequence_edges(
@@ -506,7 +549,9 @@ def _sequence_edges(
 
             for (site, array, operation, lane), points in lane_buckets.items():
                 occurrence = _Occurrence(
-                    tuple(points), event.weight, f"{event.id}:lane{lane}"
+                    tuple(points),
+                    event.weight * sequence.weight,
+                    f"{event.id}:lane{lane}",
                 )
                 lane_streams.setdefault(
                     (site, array, operation, lane), []
@@ -574,11 +619,19 @@ def _sequence_edges(
                 for (site, array, operation), points in by_site.items():
                     simd_streams.setdefault(
                         (site, array, operation, interval), []
-                    ).append(_Occurrence(tuple(points), event.weight, event.id))
+                    ).append(
+                        _Occurrence(
+                            tuple(points), event.weight * sequence.weight, event.id
+                        )
+                    )
                 for (array, operation), points in by_array.items():
                     simd_arrays.setdefault(
                         (array, operation, interval), []
-                    ).append(_Occurrence(tuple(points), event.weight, event.id))
+                    ).append(
+                        _Occurrence(
+                            tuple(points), event.weight * sequence.weight, event.id
+                        )
+                    )
 
             for (site, array, operation, interval), occurrences in simd_streams.items():
                 start = interval * window
@@ -632,61 +685,89 @@ def _workgroup_edges(
     edges: dict[ScopeKey, dict[str, list[Hyperedge]]],
     basis: UniversalScopeBasis,
     matrices: Mapping[str, MatrixSpec],
-    events: Sequence[MemoryEvent],
+    events: Mapping[str, MemoryEvent],
+    sequences: Sequence[EventSequence],
 ) -> None:
     steps: dict[tuple[object, ...], list[_Occurrence]] = {}
     windows: dict[tuple[object, ...], list[_Occurrence]] = {}
-    for event in events:
-        step_text = event.meta("step")
-        if step_text is None:
-            continue
-        try:
-            step = int(step_text)
-        except ValueError as error:
-            raise ValueError(
-                f"event {event.id}: step metadata must be an integer"
-            ) from error
-        workgroup = _metadata(event, "workgroup", event.group)
-        phase = _metadata(event, "phase")
-        by_array: dict[tuple[str, str], list[Coord]] = {}
-        for access, operation in _selected(event, matrices):
-            if operation in basis.operations:
-                by_array.setdefault((access.array, operation), []).append(access.coord)
-        for (array, operation), points in by_array.items():
-            occurrence = _Occurrence(tuple(points), event.weight, event.id)
-            steps.setdefault(
-                ("stream", workgroup, phase, step, event.site, array, operation), []
-            ).append(occurrence)
-            steps.setdefault(
-                ("array", workgroup, phase, step, array, operation), []
-            ).append(occurrence)
-            for window in basis.temporal_windows:
-                interval = step // window
-                windows.setdefault(
+    for sequence in sequences:
+        for event_id in sequence.event_ids:
+            event = events[event_id]
+            step_text = event.meta("step")
+            if step_text is None:
+                continue
+            try:
+                step = int(step_text)
+            except ValueError as error:
+                raise ValueError(
+                    f"event {event.id}: step metadata must be an integer"
+                ) from error
+            workgroup = _metadata(event, "workgroup", event.group)
+            phase = _metadata(event, "phase")
+            by_array: dict[tuple[str, str], list[Coord]] = {}
+            for access, operation in _selected(event, matrices):
+                if operation in basis.operations:
+                    by_array.setdefault((access.array, operation), []).append(
+                        access.coord
+                    )
+            for (array, operation), points in by_array.items():
+                occurrence = _Occurrence(
+                    tuple(points), event.weight * sequence.weight, event.id
+                )
+                steps.setdefault(
                     (
                         "stream",
-                        window,
+                        sequence.name,
                         workgroup,
                         phase,
-                        interval,
+                        step,
                         event.site,
                         array,
                         operation,
                     ),
                     [],
                 ).append(occurrence)
-                windows.setdefault(
+                steps.setdefault(
                     (
                         "array",
-                        window,
+                        sequence.name,
                         workgroup,
                         phase,
-                        interval,
+                        step,
                         array,
                         operation,
                     ),
                     [],
                 ).append(occurrence)
+                for window in basis.temporal_windows:
+                    interval = step // window
+                    windows.setdefault(
+                        (
+                            "stream",
+                            window,
+                            sequence.name,
+                            workgroup,
+                            phase,
+                            interval,
+                            event.site,
+                            array,
+                            operation,
+                        ),
+                        [],
+                    ).append(occurrence)
+                    windows.setdefault(
+                        (
+                            "array",
+                            window,
+                            sequence.name,
+                            workgroup,
+                            phase,
+                            interval,
+                            array,
+                            operation,
+                        ),
+                        [],
+                    ).append(occurrence)
 
     for key, occurrences in steps.items():
         partition = str(key[0])
@@ -717,70 +798,100 @@ def _phase_edges(
     edges: dict[ScopeKey, dict[str, list[Hyperedge]]],
     basis: UniversalScopeBasis,
     matrices: Mapping[str, MatrixSpec],
-    events: Sequence[MemoryEvent],
+    events: Mapping[str, MemoryEvent],
+    sequences: Sequence[EventSequence],
 ) -> None:
     if not basis.include_phase:
         return
     grouped: dict[tuple[object, ...], list[_Occurrence]] = {}
-    for event in events:
-        phase = event.meta("phase")
-        if phase is None:
-            continue
-        workgroup = _metadata(event, "workgroup", event.group)
-        simd = _metadata(event, "wave", event.group)
-        by_lane: dict[tuple[str, str, int], list[Coord]] = {}
-        by_array: dict[tuple[str, str], list[Coord]] = {}
-        for access, operation in _selected(event, matrices):
-            if operation not in basis.operations:
+    for sequence in sequences:
+        for event_id in sequence.event_ids:
+            event = events[event_id]
+            phase = event.meta("phase")
+            if phase is None:
                 continue
-            if access.lane is None:
-                raise ValueError(f"event {event.id}: phase scopes require lane ids")
-            by_lane.setdefault((access.array, operation, access.lane), []).append(
-                access.coord
-            )
-            by_array.setdefault((access.array, operation), []).append(access.coord)
+            workgroup = _metadata(event, "workgroup", event.group)
+            simd = _metadata(event, "wave", event.group)
+            by_lane: dict[tuple[str, str, int], list[Coord]] = {}
+            by_array: dict[tuple[str, str], list[Coord]] = {}
+            for access, operation in _selected(event, matrices):
+                if operation not in basis.operations:
+                    continue
+                if access.lane is None:
+                    raise ValueError(
+                        f"event {event.id}: phase scopes require lane ids"
+                    )
+                by_lane.setdefault(
+                    (access.array, operation, access.lane), []
+                ).append(access.coord)
+                by_array.setdefault((access.array, operation), []).append(
+                    access.coord
+                )
 
-        for (array, operation, lane), points in by_lane.items():
-            occurrence = _Occurrence(tuple(points), event.weight, event.id)
-            grouped.setdefault(
-                (
-                    "lane",
-                    "stream",
-                    workgroup,
-                    simd,
-                    phase,
-                    event.site,
-                    lane,
-                    array,
-                    operation,
-                ),
-                [],
-            ).append(occurrence)
-            grouped.setdefault(
-                (
-                    "lane",
-                    "array",
-                    workgroup,
-                    simd,
-                    phase,
-                    lane,
-                    array,
-                    operation,
-                ),
-                [],
-            ).append(occurrence)
-        for (array, operation), points in by_array.items():
-            occurrence = _Occurrence(tuple(points), event.weight, event.id)
-            for cohort, identity in (
-                ("simd", (workgroup, simd, phase)),
-                ("workgroup", (workgroup, phase)),
-            ):
+            for (array, operation, lane), points in by_lane.items():
+                occurrence = _Occurrence(
+                    tuple(points), event.weight * sequence.weight, event.id
+                )
                 grouped.setdefault(
-                    (cohort, "stream", *identity, event.site, array, operation), []
+                    (
+                        "lane",
+                        "stream",
+                        sequence.name,
+                        workgroup,
+                        simd,
+                        phase,
+                        event.site,
+                        lane,
+                        array,
+                        operation,
+                    ),
+                    [],
                 ).append(occurrence)
                 grouped.setdefault(
-                    (cohort, "array", *identity, array, operation), []
+                    (
+                        "lane",
+                        "array",
+                        sequence.name,
+                        workgroup,
+                        simd,
+                        phase,
+                        lane,
+                        array,
+                        operation,
+                    ),
+                    [],
                 ).append(occurrence)
+            for (array, operation), points in by_array.items():
+                occurrence = _Occurrence(
+                    tuple(points), event.weight * sequence.weight, event.id
+                )
+                for cohort, identity in (
+                    ("simd", (workgroup, simd, phase)),
+                    ("workgroup", (workgroup, phase)),
+                ):
+                    grouped.setdefault(
+                        (
+                            cohort,
+                            "stream",
+                            sequence.name,
+                            *identity,
+                            event.site,
+                            array,
+                            operation,
+                        ),
+                        [],
+                    ).append(occurrence)
+                    grouped.setdefault(
+                        (
+                            cohort,
+                            "array",
+                            sequence.name,
+                            *identity,
+                            array,
+                            operation,
+                        ),
+                        [],
+                    ).append(occurrence)
 
     for key, occurrences in grouped.items():
         cohort = str(key[0])
@@ -868,15 +979,12 @@ def build_edge_families(
     """Build the same scale-free scope grammar from any kernel event trace."""
 
     validate_trace_contract(events, sequences)
-    ordered_events = tuple(
-        sorted(events.values(), key=lambda event: (event.order, event.id))
-    )
-    exposure = dynamic_useful_bytes(matrices, ordered_events)
+    exposure = dynamic_useful_bytes(matrices, events, sequences)
     edge_lists: dict[ScopeKey, dict[str, list[Hyperedge]]] = {}
-    _issue_edges(edge_lists, basis, matrices, ordered_events)
+    _issue_edges(edge_lists, basis, matrices, events, sequences)
     _sequence_edges(edge_lists, basis, matrices, events, sequences)
-    _workgroup_edges(edge_lists, basis, matrices, ordered_events)
-    _phase_edges(edge_lists, basis, matrices, ordered_events)
+    _workgroup_edges(edge_lists, basis, matrices, events, sequences)
+    _phase_edges(edge_lists, basis, matrices, events, sequences)
 
     descriptions = {
         "issue": "one aligned contiguous lane group at one dynamic instruction",
