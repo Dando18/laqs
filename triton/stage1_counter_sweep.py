@@ -105,7 +105,7 @@ def _write_counter_config(path: Path, kernel_name: str) -> None:
 
 
 def _worker_command(args, *extra: str) -> list[str]:
-    return [
+    command = [
         sys.executable,
         str(Path(__file__).with_name("run-stage1-kernel-case.py")),
         "--case",
@@ -122,13 +122,18 @@ def _worker_command(args, *extra: str) -> list[str]:
         "1",
         "--temporal-mode",
         "issue",
-        *extra,
     ]
+    if hasattr(args, "platform"):
+        command.extend(("--counter-platform", str(args.platform)))
+    command.extend(extra)
+    return command
 
 
 def _panel_configuration(args, panel_mode: str) -> dict[str, object]:
     configuration = {
-        "candidate_panel_schema": 1,
+        "candidate_panel_schema": (
+            2 if panel_mode.startswith("experiment") else 1
+        ),
         "case": args.case,
         "panel_mode": panel_mode,
         "panel_tile_shape": (
@@ -138,13 +143,15 @@ def _panel_configuration(args, panel_mode: str) -> dict[str, object]:
         "transaction_bytes": args.transaction_bytes,
         "requested_retained_candidates": args.candidates,
     }
-    if panel_mode == "random_layouts":
+    if panel_mode == "random_layouts" or panel_mode.startswith("experiment"):
         configuration.update(
             {
                 "random_layout_samples": args.layouts,
                 "random_seed": args.seed,
             }
         )
+    if panel_mode.startswith("experiment"):
+        configuration["platform"] = args.platform
     return configuration
 
 
@@ -171,7 +178,7 @@ def prepare_panel(
         extra.extend(
             ["--panel-tile-shape", *(str(value) for value in args.tile_shape)]
         )
-    elif panel_mode == "random_layouts":
+    elif panel_mode == "random_layouts" or panel_mode.startswith("experiment"):
         extra.extend(
             (
                 "--panel-samples",

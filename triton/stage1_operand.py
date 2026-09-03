@@ -42,6 +42,8 @@ def rank_persistent_operand(
     benchmark: Callable | None = None,
     execution_layout=None,
     execution_layout_spec: tuple[tuple[int, ...], tuple[str, ...]] | None = None,
+    automatic_analysis=None,
+    automatic_target_name: str | None = None,
 ) -> dict[str, object]:
     """Solve, compile, validate, and time every retained operand layout."""
 
@@ -149,6 +151,7 @@ def rank_persistent_operand(
         {matrix.name: tuple(temporal_edges)},
     )
     counter_panel = None
+    counter_panels = None
     panel_mode = getattr(args, "counter_panel", None)
     if panel_mode is not None:
         from stage1_counter_candidates import (
@@ -174,18 +177,61 @@ def rank_persistent_operand(
                 samples=args.panel_samples,
                 seed=args.panel_seed,
             )
+        elif panel_mode.startswith("experiment"):
+            from pathlib import Path
+            import sys
+
+            experiment_source = str(Path(__file__).with_name("experiments"))
+            if experiment_source not in sys.path:
+                sys.path.insert(0, experiment_source)
+            from layout_panels import random_experiment_panel
+
+            if automatic_analysis is None or automatic_target_name is None:
+                raise ValueError(
+                    "final experiments require the automatic Triton graph"
+                )
+            experiments = (
+                (1, 2, 3)
+                if panel_mode == "experiments123"
+                else (int(panel_mode[len("experiment")]),)
+            )
+            counter_panels = {}
+            for experiment in experiments:
+                experiment_mode = {
+                    1: "experiment1_gc_whole",
+                    2: "experiment2_gc_tiles",
+                    3: "experiment3_goc",
+                }[experiment]
+                panel = random_experiment_panel(
+                    matrix,
+                    automatic_analysis,
+                    automatic_target_name,
+                    inner_tile_shapes,
+                    experiment=experiment,
+                    samples=args.panel_samples,
+                    seed=args.panel_seed,
+                    platform=args.counter_platform,
+                )
+                panel["mode"] = experiment_mode
+                panel["objective"] = "J_area"
+                counter_panels[str(experiment)] = panel
+            if len(counter_panels) == 1:
+                counter_panel = next(iter(counter_panels.values()))
         else:
             panel_tile_shapes = inner_tile_shapes
             group_by_tile = True
-        if counter_panel is None:
+        if counter_panel is None and counter_panels is None:
             counter_panel = canonical_counter_panel(
                 matrix,
                 issue_component,
                 panel_tile_shapes,
                 group_by_tile=group_by_tile,
             )
-        counter_panel["mode"] = panel_mode
-        counter_panel["objective"] = "issue_only"
+        if counter_panel is not None:
+            counter_panel["mode"] = panel_mode
+            counter_panel["objective"] = (
+                "J_area" if panel_mode.startswith("experiment") else "issue_only"
+            )
 
     def diagnostic_component_scores(layout):
         issue_score = weighted_component_region_count(
@@ -582,6 +628,7 @@ def rank_persistent_operand(
             "retained_candidates": len(retained),
         },
         "counter_panel": counter_panel,
+        "counter_panels": counter_panels,
         "profile_target": profile_target,
         "correct": True,
     }

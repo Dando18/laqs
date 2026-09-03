@@ -1,0 +1,7 @@
+__pycache__/
+plots/
+plots-old/
+results
+results-old
+.scratch-*
+rescore-logs/

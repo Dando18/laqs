@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -80,6 +81,166 @@ def validate_tensor(
     raise ValueError(f"{label} layout produced incorrect output: max error {error}")
 
 
+def launch_default(
+    args,
+    kernel,
+    grid,
+    *kernel_args,
+    _analysis_period: int | None = None,
+    _target_name: str | None = None,
+    _target_shape: tuple[int, ...] | None = None,
+    _target_modes: tuple[str, ...] | None = None,
+    **kernel_kwargs,
+):
+    """Launch once and construct the automatic graph for final experiments."""
+
+    panel = getattr(args, "counter_panel", None)
+    if panel is not None and panel.startswith("experiment"):
+        from dataclasses import replace
+
+        from relay import Access, MatrixSpec, build_edge_families
+        from relay.triton_frontend import (
+            AnalysisOptions,
+            EvaluationLimits,
+            MANIFEST_METADATA_KEY,
+            _manifest_compilation,
+            _normalize_grid,
+            _resolved_launch_arguments,
+            analyze_compiled_manifest,
+            analyze_launch,
+        )
+
+        options = AnalysisOptions(
+            limits=EvaluationLimits(
+                max_trace_contexts=1 << 16,
+                max_dynamic_events=1 << 20,
+            )
+        )
+        if _analysis_period is None:
+            analysis = analyze_launch(
+                kernel,
+                grid,
+                *kernel_args,
+                _laqs_options=options,
+                **kernel_kwargs,
+            )
+        else:
+            with _manifest_compilation(options.plugin_path):
+                compiled = kernel.run(
+                    *kernel_args,
+                    grid=grid,
+                    warmup=False,
+                    **kernel_kwargs,
+                )
+            bound, selected = _resolved_launch_arguments(
+                kernel, kernel_args, kernel_kwargs
+            )
+            concrete_grid = _normalize_grid(grid, bound)
+            if concrete_grid[0] % _analysis_period:
+                raise ValueError("analysis period must divide the launch grid")
+            metadata = compiled.metadata
+            payload = (
+                metadata.get(MANIFEST_METADATA_KEY)
+                if isinstance(metadata, dict)
+                else getattr(metadata, MANIFEST_METADATA_KEY)
+            )
+            analysis = analyze_compiled_manifest(
+                compiled,
+                payload,
+                (_analysis_period, *concrete_grid[1:]),
+                bound,
+                selected_config=selected,
+                options=options,
+            )
+            analysis.require_supported()
+            factor = concrete_grid[0] // _analysis_period
+            sequences = tuple(
+                replace(sequence, weight=sequence.weight * factor)
+                for sequence in analysis.sequences
+            )
+            matrix_map = {matrix.name: matrix for matrix in analysis.matrices}
+            event_map = {event.id: event for event in analysis.events}
+            analysis = replace(
+                analysis,
+                grid=concrete_grid,
+                sequences=sequences,
+                edge_families=build_edge_families(
+                    matrix_map, event_map, sequences
+                ),
+                selected_config={
+                    **dict(analysis.selected_config),
+                    "laqs_exact_pid_period": _analysis_period,
+                    "laqs_exact_pid_multiplicity": factor,
+                },
+            )
+        analysis.require_supported()
+        if _target_name is not None:
+            if _target_shape is None or _target_modes is None:
+                raise ValueError("automatic target reshape metadata is incomplete")
+            matrices = []
+            found = False
+            for candidate in analysis.matrices:
+                if candidate.name != _target_name:
+                    matrices.append(candidate)
+                    continue
+                found = True
+                if candidate.size != math.prod(_target_shape):
+                    raise ValueError("automatic target size disagrees with logical shape")
+                matrices.append(
+                    MatrixSpec(
+                        candidate.name,
+                        _target_shape,
+                        candidate.element_bytes,
+                        _target_modes,
+                        target=candidate.target,
+                        role=candidate.role,
+                    )
+                )
+            if not found:
+                raise ValueError(f"automatic graph has no target {_target_name!r}")
+
+            def logical_coord(flat: int) -> tuple[int, ...]:
+                result = [0] * len(_target_shape)
+                remaining = flat
+                for dimension in reversed(range(len(_target_shape))):
+                    result[dimension] = remaining % _target_shape[dimension]
+                    remaining //= _target_shape[dimension]
+                if remaining:
+                    raise ValueError("automatic target coordinate is out of bounds")
+                return tuple(result)
+
+            events = tuple(
+                replace(
+                    event,
+                    accesses=tuple(
+                        Access(
+                            access.array,
+                            logical_coord(access.coord[0]),
+                            lane=access.lane,
+                            kind=access.kind,
+                            width_bytes=access.width_bytes,
+                        )
+                        if access.array == _target_name
+                        else access
+                        for access in event.accesses
+                    ),
+                )
+                for event in analysis.events
+            )
+            matrix_map = {matrix.name: matrix for matrix in matrices}
+            event_map = {event.id: event for event in events}
+            analysis = replace(
+                analysis,
+                matrices=tuple(matrices),
+                events=events,
+                edge_families=build_edge_families(
+                    matrix_map, event_map, analysis.sequences
+                ),
+            )
+        return analysis.compiled_kernel, analysis
+    return kernel[grid](*kernel_args, **kernel_kwargs), None
+
+
 def result_record(case, matrix, blocked, execution, events, ranking, **metadata):
     return {
         "stage": 1,
@@ -131,7 +292,23 @@ def bias_relu(args):
             num_warps=4,
         )
 
-    compiled = make_launch(default_bias, probe, default_rows)()
+    compiled, automatic_analysis = launch_default(
+        args,
+        bias_relu_kernel,
+        (elements // block,),
+        device_source,
+        default_bias,
+        probe,
+        B_ROWS=default_rows,
+        N=n,
+        ELEMENTS=elements,
+        BLOCK=block,
+        num_warps=4,
+        _analysis_period=1,
+        _target_name="bias",
+        _target_shape=(n,),
+        _target_modes=("feature",),
+    )
     torch.cuda.synchronize()
     validate_tensor("bias_relu probe", probe.reshape(rows, n), reference)
     blocked, execution = execution_layout_from_compiled(
@@ -166,6 +343,8 @@ def bias_relu(args):
         temporal_mode=args.temporal_mode,
         execution_layout=execution,
         execution_layout_spec=((block,), ("feature",)),
+        automatic_analysis=automatic_analysis,
+        automatic_target_name="bias",
     )
     return result_record(
         "bias_relu", matrix, blocked, execution, events, ranking, rows=rows
@@ -196,7 +375,22 @@ def softmax_bias(args):
             num_warps=4,
         )
 
-    compiled = make_launch(default_bias, probe, default_rows)()
+    compiled, automatic_analysis = launch_default(
+        args,
+        softmax_bias_kernel,
+        (m,),
+        device_source,
+        default_bias,
+        probe.view(-1),
+        B_ROWS=default_rows,
+        ROW_BITS=m.bit_length() - 1,
+        N=n,
+        num_warps=4,
+        _analysis_period=1,
+        _target_name="bias",
+        _target_shape=(m, n),
+        _target_modes=("row", "feature"),
+    )
     torch.cuda.synchronize()
     validate_tensor("softmax_bias probe", probe, reference, rtol=2e-4)
     blocked, execution = execution_layout_from_compiled(
@@ -234,6 +428,8 @@ def softmax_bias(args):
         temporal_mode=args.temporal_mode,
         execution_layout=execution,
         execution_layout_spec=((n,), ("feature",)),
+        automatic_analysis=automatic_analysis,
+        automatic_target_name="bias",
     )
     return result_record(
         "softmax_bias", matrix, blocked, execution, events, ranking
@@ -269,7 +465,22 @@ def embedding_bag(args):
             num_warps=2,
         )
 
-    compiled = make_launch(default_weight, probe, default_rows)()
+    compiled, automatic_analysis = launch_default(
+        args,
+        embedding_bag_kernel,
+        (bags,),
+        default_weight,
+        device_indices,
+        probe.view(-1),
+        W_ROWS=default_rows,
+        ROW_BITS=rows.bit_length() - 1,
+        D=dimensions,
+        BAG_SIZE=bag_size,
+        num_warps=2,
+        _target_name="weight",
+        _target_shape=(rows, dimensions),
+        _target_modes=("row", "dimension"),
+    )
     torch.cuda.synchronize()
     validate_tensor("embedding_bag probe", probe, reference, atol=2e-2)
     blocked, execution = execution_layout_from_compiled(
@@ -308,6 +519,8 @@ def embedding_bag(args):
         temporal_mode=args.temporal_mode,
         execution_layout=execution,
         execution_layout_spec=((dimensions,), ("dimension",)),
+        automatic_analysis=automatic_analysis,
+        automatic_target_name="weight",
     )
     return result_record(
         "embedding_bag",
@@ -347,7 +560,23 @@ def gemv(args):
             num_warps=1,
         )
 
-    compiled = make_launch(default_weight, probe, default_rows)()
+    compiled, automatic_analysis = launch_default(
+        args,
+        gemv_kernel,
+        (m // block,),
+        default_weight,
+        device_vector,
+        probe,
+        W_ROWS=default_rows,
+        ROW_BITS=m.bit_length() - 1,
+        M=m,
+        K=k,
+        BLOCK=block,
+        num_warps=1,
+        _target_name="weight",
+        _target_shape=(m, k),
+        _target_modes=("row", "column"),
+    )
     torch.cuda.synchronize()
     validate_tensor("gemv probe", probe, reference, atol=2e-2)
     blocked, execution = execution_layout_from_compiled(
@@ -393,6 +622,8 @@ def gemv(args):
         temporal_mode=args.temporal_mode,
         execution_layout=execution,
         execution_layout_spec=((block,), ("row",)),
+        automatic_analysis=automatic_analysis,
+        automatic_target_name="weight",
     )
     return result_record("gemv", matrix, blocked, execution, events, ranking)
 
@@ -425,7 +656,24 @@ def mvt(args):
             num_warps=1,
         )
 
-    compiled = make_launch(default_matrix, probe, default_rows)()
+    compiled, automatic_analysis = launch_default(
+        args,
+        mvt_kernel,
+        (n // block,),
+        default_matrix,
+        device_x,
+        device_y,
+        probe,
+        A_ROWS=default_rows,
+        ROW_BITS=n.bit_length() - 1,
+        N=n,
+        BLOCK=block,
+        num_warps=1,
+        _analysis_period=1,
+        _target_name="matrix",
+        _target_shape=(n, n),
+        _target_modes=("row", "column"),
+    )
     torch.cuda.synchronize()
     validate_tensor("mvt probe", probe, reference, atol=4e-2)
     blocked, execution = execution_layout_from_compiled(
@@ -494,6 +742,8 @@ def mvt(args):
         temporal_mode=args.temporal_mode,
         execution_layout=execution,
         execution_layout_spec=((block,), ("row",)),
+        automatic_analysis=automatic_analysis,
+        automatic_target_name="matrix",
     )
     return result_record("mvt", matrix, blocked, execution, events, ranking)
 
@@ -532,7 +782,26 @@ def gesummv(args):
             num_warps=1,
         )
 
-    compiled = make_launch(default_a, probe, default_rows)()
+    compiled, automatic_analysis = launch_default(
+        args,
+        gesummv_kernel,
+        (n // block,),
+        default_a,
+        device_b,
+        device_x,
+        probe,
+        A_ROWS=default_rows,
+        B_ROWS=default_rows,
+        MODE_BITS=n.bit_length() - 1,
+        N=n,
+        BLOCK=block,
+        ALPHA=alpha,
+        BETA=beta,
+        num_warps=1,
+        _target_name="a",
+        _target_shape=(n, n),
+        _target_modes=("row", "column"),
+    )
     torch.cuda.synchronize()
     validate_tensor("gesummv probe", probe, reference, atol=4e-2)
     blocked, execution = execution_layout_from_compiled(
@@ -578,6 +847,8 @@ def gesummv(args):
         temporal_mode=args.temporal_mode,
         execution_layout=execution,
         execution_layout_spec=((block,), ("row",)),
+        automatic_analysis=automatic_analysis,
+        automatic_target_name="a",
     )
     return result_record(
         "gesummv", matrix, blocked, execution, events, ranking
@@ -612,7 +883,22 @@ def stencil5(args):
             num_warps=1,
         )
 
-    compiled = make_launch(default_field, probe, default_rows)()
+    compiled, automatic_analysis = launch_default(
+        args,
+        stencil5_kernel,
+        grid,
+        default_field,
+        probe.view(-1),
+        A_ROWS=default_rows,
+        ROW_BITS=m.bit_length() - 1,
+        M=m,
+        N=n,
+        BLOCK=block,
+        num_warps=1,
+        _target_name="source",
+        _target_shape=(m, n),
+        _target_modes=("row", "column"),
+    )
     torch.cuda.synchronize()
     validate_tensor("stencil5 probe", probe, reference)
     blocked, execution = execution_layout_from_compiled(
@@ -691,6 +977,8 @@ def stencil5(args):
         temporal_mode=args.temporal_mode,
         execution_layout=execution,
         execution_layout_spec=((block,), ("column",)),
+        automatic_analysis=automatic_analysis,
+        automatic_target_name="source",
     )
     return result_record(
         "stencil5", matrix, blocked, execution, events, ranking
@@ -764,7 +1052,15 @@ def parse_arguments(argv=None):
     )
     parser.add_argument(
         "--counter-panel",
-        choices=("fixed_tile_levels", "tile_layouts", "random_layouts"),
+        choices=(
+            "fixed_tile_levels",
+            "tile_layouts",
+            "random_layouts",
+            "experiment1_gc_whole",
+            "experiment2_gc_tiles",
+            "experiment3_goc",
+            "experiments123",
+        ),
         help="construct an issue-only counter candidate panel",
     )
     parser.add_argument(
@@ -772,6 +1068,11 @@ def parse_arguments(argv=None):
     )
     parser.add_argument("--panel-samples", type=positive_integer, default=100)
     parser.add_argument("--panel-seed", type=int, default=0)
+    parser.add_argument(
+        "--counter-platform",
+        choices=("tuolumne", "matrix"),
+        default="tuolumne",
+    )
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)

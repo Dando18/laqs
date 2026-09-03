@@ -1,0 +1,131 @@
+{
+  "byte_scales": [
+    32,
+    64,
+    128,
+    256
+  ],
+  "graph_construction": "automatic_post_coalescing_manifest_universal_v1",
+  "platforms": {
+    "matrix": {
+      "active_tau": {
+        "issue.g32.stream.load.32B": 1.0
+      },
+      "counter_components": {
+        "first_level_memory_accesses": "issue.g32.stream.load.32B",
+        "global_load_requests": "issue.g32.stream.load.32B",
+        "hbm_read_bytes": "lane_window.t4.stream.load.256B",
+        "l1_to_l2_read_traffic": "lane_window.t16.stream.load.32B",
+        "l2_read_misses": "simd_window.t16.array.load.64B",
+        "l2_read_work": "lane_window.t16.stream.load.32B",
+        "sectors_per_request": "issue.g32.stream.load.32B"
+      },
+      "fit": {
+        "candidate_feature_count": 96,
+        "counter_component_macro_spearman": {
+          "first_level_memory_accesses": 1.0,
+          "global_load_requests": null,
+          "hbm_read_bytes": 0.5172101730320191,
+          "l1_to_l2_read_traffic": 0.32512939778999,
+          "l2_read_misses": 0.5177787702771358,
+          "l2_read_work": 0.32512939778999,
+          "sectors_per_request": 1.0
+        },
+        "deduplicated_mapping_count": 1900,
+        "excluded_tuning_counter_aliases": {
+          "l2_read_work": "l1_to_l2_read_traffic"
+        },
+        "method": "nonnegative_ridge_coordinate_descent_then_deterministic_spearman_refinement",
+        "pilot_kernels": [
+          "bias_relu",
+          "embedding_bag",
+          "gemv",
+          "gesummv",
+          "mvt",
+          "softmax_bias",
+          "stencil5"
+        ],
+        "rank_refinement": {
+          "completed_greedy_iterations": 0,
+          "greedy_iteration_limit": 8,
+          "pair_grid_intervals": 40,
+          "selection_metric": "training_macro_spearman"
+        },
+        "regression_macro_spearman": 0.5680503977605472,
+        "screened_feature_count": 16,
+        "selected_feature_count": 1,
+        "target": "mean within-kernel rank of informative L1/L2 counters",
+        "training_macro_spearman": 0.5974613682231654,
+        "tuning_counters": [
+          "first_level_memory_accesses",
+          "l1_to_l2_read_traffic"
+        ]
+      },
+      "profile_id": "pilot-automatic-matrix-tau-v1"
+    },
+    "tuolumne": {
+      "active_tau": {
+        "issue.g16.stream.load.128B": 0.12672425390625,
+        "issue.g32.stream.load.128B": 0.024374999999999914,
+        "simd_window.t16.array.load.128B": 0.6142092578125,
+        "simd_window.t4.stream.load.128B": 0.23469148828125014
+      },
+      "counter_components": {
+        "first_level_read_events": "issue.g8.stream.load.32B",
+        "hbm_read_bytes": "lane_window.t4.array.load.128B",
+        "l1_cache_line_accesses": "issue.g16.stream.load.128B",
+        "l1_to_l2_read_requests": "simd_window.t4.array.load.128B",
+        "l1_to_l2_total_requests": "simd_window.t4.array.load.128B",
+        "l2_hits": "simd_window.t4.array.load.128B",
+        "l2_misses": "simd_window.t16.array.load.64B",
+        "l2_tag_requests": "simd_window.t4.array.load.128B",
+        "second_level_read_requests": "simd_window.t4.array.load.128B"
+      },
+      "fit": {
+        "candidate_feature_count": 96,
+        "counter_component_macro_spearman": {
+          "first_level_read_events": 0.5017310711912634,
+          "hbm_read_bytes": 0.4991148971856429,
+          "l1_cache_line_accesses": 0.7985679829726045,
+          "l1_to_l2_read_requests": 0.7090338577996018,
+          "l1_to_l2_total_requests": 0.7090338577996018,
+          "l2_hits": 0.8839280386223474,
+          "l2_misses": 0.41084831275971456,
+          "l2_tag_requests": 0.8830510346536629,
+          "second_level_read_requests": 0.8853941147597819
+        },
+        "deduplicated_mapping_count": 1900,
+        "excluded_tuning_counter_aliases": {},
+        "method": "nonnegative_ridge_coordinate_descent_then_deterministic_spearman_refinement",
+        "pilot_kernels": [
+          "bias_relu",
+          "embedding_bag",
+          "gemv",
+          "gesummv",
+          "mvt",
+          "softmax_bias",
+          "stencil5"
+        ],
+        "rank_refinement": {
+          "completed_greedy_iterations": 5,
+          "greedy_iteration_limit": 8,
+          "pair_grid_intervals": 40,
+          "selection_metric": "training_macro_spearman"
+        },
+        "regression_macro_spearman": 0.8758565661502637,
+        "screened_feature_count": 16,
+        "selected_feature_count": 4,
+        "target": "mean within-kernel rank of informative L1/L2 counters",
+        "training_macro_spearman": 0.8924665860356895,
+        "tuning_counters": [
+          "l1_cache_line_accesses",
+          "l1_to_l2_read_requests",
+          "second_level_read_requests"
+        ]
+      },
+      "profile_id": "pilot-automatic-tuolumne-tau-v1"
+    }
+  },
+  "schema": "relay.triton.pilot_tau_profile",
+  "version": 1
+}

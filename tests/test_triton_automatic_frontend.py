@@ -266,6 +266,25 @@ class ManifestParserAndExpressionTests(unittest.TestCase):
         self.assertEqual(evaluator.evaluate(2), TensorValue((4, 2), (0, 4, 1, 5, 2, 6, 3, 7)))
         self.assertEqual(evaluator.evaluate(4).values, (3, 7, 2, 6, 1, 5, 0, 4))
 
+    def test_expression_cache_is_shared_only_for_context_independent_values(self) -> None:
+        manifest = parse_access_manifest(vector_manifest(8))
+        shared = {}
+        first = ExpressionEvaluator(
+            manifest,
+            _EvaluationContext({}, (0, 0, 0), {}, {}),
+            shared_cache=shared,
+        )
+        second = ExpressionEvaluator(
+            manifest,
+            _EvaluationContext({}, (1, 0, 0), {}, {}),
+            shared_cache=shared,
+        )
+
+        self.assertEqual(first.evaluate(4).values, tuple(range(8)))
+        self.assertEqual(second.evaluate(4).values, tuple(range(8, 16)))
+        self.assertTrue({1, 3}.issubset(shared))
+        self.assertTrue({0, 2, 4}.isdisjoint(shared))
+
     def test_fixed_width_overflow_unsigned_and_cast_semantics(self) -> None:
         payload = vector_manifest()
         payload["expressions"] = [

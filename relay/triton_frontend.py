@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
+from functools import cached_property
 import hashlib
 import json
 import math
@@ -191,13 +192,39 @@ class AccessManifest:
     version: int = MANIFEST_VERSION
     status: str = "supported"
 
-    @property
+    @cached_property
     def expression_map(self) -> dict[int, ManifestExpression]:
         return {expression.id: expression for expression in self.expressions}
 
-    @property
+    @cached_property
     def layout_map(self) -> dict[str, ManifestLinearLayout]:
         return {layout.id: layout for layout in self.layouts}
+
+    @cached_property
+    def context_dependent_expressions(self) -> frozenset[int]:
+        expressions = self.expression_map
+        memo: dict[int, bool] = {}
+
+        def depends(expression_id: int) -> bool:
+            if expression_id in memo:
+                return memo[expression_id]
+            expression = expressions[expression_id]
+            memo[expression_id] = True
+            dependent = _canonical_op(expression.op) in {
+                "program_id",
+                "programid",
+                "iv",
+                "symbol",
+                "variable",
+            } or any(depends(operand) for operand in expression.operands)
+            memo[expression_id] = dependent
+            return dependent
+
+        return frozenset(
+            expression_id
+            for expression_id in expressions
+            if depends(expression_id)
+        )
 
 
 def _parse_argument(value: Any, index: int) -> ManifestArgument:
@@ -754,10 +781,19 @@ class _EvaluationContext:
 class ExpressionEvaluator:
     """Exact interpreter for the access-manifest integer expression subset."""
 
-    def __init__(self, manifest: AccessManifest, context: _EvaluationContext, *, max_tensor_elements: int = 1 << 18):
+    def __init__(
+        self,
+        manifest: AccessManifest,
+        context: _EvaluationContext,
+        *,
+        max_tensor_elements: int = 1 << 18,
+        shared_cache: dict[int, RuntimeValue] | None = None,
+    ):
         self.expressions = manifest.expression_map
         self.context = context
         self.max_tensor_elements = max_tensor_elements
+        self.context_dependent = manifest.context_dependent_expressions
+        self.shared_cache = shared_cache
         self._active: set[int] = set()
         self._cache: dict[int, RuntimeValue] = {}
 
@@ -765,6 +801,14 @@ class ExpressionEvaluator:
         cached = self._cache.get(expression_id)
         if cached is not None:
             return cached
+        if (
+            self.shared_cache is not None
+            and expression_id not in self.context_dependent
+        ):
+            cached = self.shared_cache.get(expression_id)
+            if cached is not None:
+                self._cache[expression_id] = cached
+                return cached
         if expression_id in self._active:
             raise ManifestError(f"expression DAG contains a cycle at {expression_id}")
         try:
@@ -780,6 +824,11 @@ class ExpressionEvaluator:
         if isinstance(result, TensorValue) and len(result.values) > self.max_tensor_elements:
             raise UnsupportedTritonAnalysis("expression_bound", f"expression {expression_id} materializes {len(result.values)} tensor elements; limit is {self.max_tensor_elements}")
         self._cache[expression_id] = result
+        if (
+            self.shared_cache is not None
+            and expression_id not in self.context_dependent
+        ):
+            self.shared_cache[expression_id] = result
         return result
 
     def _check_shape_bound(self, shape: Sequence[int], owner: str) -> None:
@@ -1384,19 +1433,27 @@ class _TraceState:
     variables: dict[str, RuntimeValue] = field(default_factory=dict)
     phase_counter: int = 0
     dynamic_events: int = 0
+    shared_expression_cache: dict[int, RuntimeValue] = field(default_factory=dict)
+    _evaluator: ExpressionEvaluator | None = field(default=None, init=False)
 
     def evaluator(self) -> ExpressionEvaluator:
-        return ExpressionEvaluator(
-            self.manifest,
-            _EvaluationContext(
-                self.arguments,
-                self.pid,
-                self.variables,
-                self.readonly_tensors,
-                self.grid,
-            ),
-            max_tensor_elements=self.limits.max_tensor_elements,
-        )
+        if self._evaluator is None:
+            self._evaluator = ExpressionEvaluator(
+                self.manifest,
+                _EvaluationContext(
+                    self.arguments,
+                    self.pid,
+                    self.variables,
+                    self.readonly_tensors,
+                    self.grid,
+                ),
+                max_tensor_elements=self.limits.max_tensor_elements,
+                shared_cache=self.shared_expression_cache,
+            )
+        return self._evaluator
+
+    def invalidate_evaluator(self) -> None:
+        self._evaluator = None
 
 
 def _scalar(value: RuntimeValue, owner: str) -> int | bool:
@@ -1593,16 +1650,20 @@ def _execute_nodes(nodes: Sequence[ManifestNode], state: _TraceState, path: tupl
             initial = state.evaluator()
             for name, init, _yielded in node.iter_args:
                 state.variables[name] = initial.evaluate(init)
+            state.invalidate_evaluator()
             for iteration, iv in enumerate(range(lower, upper, step)):
                 state.variables[node.iv] = iv
+                state.invalidate_evaluator()
                 _execute_nodes(node.body, state, region + (f"iter{iteration}",))
                 if node.iter_args:
                     yielded = state.evaluator()
                     updates = {name: yielded.evaluate(yield_expression) for name, _init, yield_expression in node.iter_args}
                     state.variables.update(updates)
+                    state.invalidate_evaluator()
             state.variables.pop(node.iv, None)
             for name, _init, _yielded in node.iter_args:
                 state.variables.pop(name, None)
+            state.invalidate_evaluator()
         else:
             raise AssertionError(type(node))
 
@@ -2187,7 +2248,13 @@ def evaluate_manifest(
             "the first exact frontend subset requires a singleton LinearLayout block dimension",
         )
     context_count = math.prod(normalized_grid) * max_blocks * max_waves
-    launch_classes = None
+    launch_classes = (
+        None
+        if preserve_resource_anchors
+        else _translation_launch_classes(
+            manifest, arguments, allocations, normalized_grid, limits
+        )
+    )
     if context_count > limits.max_trace_contexts:
         if preserve_resource_anchors:
             raise UnsupportedTritonAnalysis(
@@ -2196,9 +2263,6 @@ def evaluate_manifest(
                 f"limit is {limits.max_trace_contexts}, and hardware resource "
                 "color phases cannot be discarded by translation compression",
             )
-        launch_classes = _translation_launch_classes(
-            manifest, arguments, allocations, normalized_grid, limits
-        )
         if launch_classes is None:
             raise UnsupportedTritonAnalysis("enumeration_bound", f"launch needs {context_count} exact workgroup/wave contexts; limit is {limits.max_trace_contexts}, and aligned-translation exactness was not proved")
         if len(launch_classes) * max_blocks * max_waves > limits.max_trace_contexts:
@@ -2206,6 +2270,7 @@ def evaluate_manifest(
     readonly = _readonly_launch_tensors(allocations, arguments)
     concrete = []
     total_events = 0
+    shared_expression_cache: dict[int, RuntimeValue] = {}
     pid_classes = (
         tuple((pid, 1) for pid in _grid_points(normalized_grid))
         if launch_classes is None
@@ -2225,6 +2290,7 @@ def evaluate_manifest(
                     wave,
                     normalized_grid,
                     [],
+                    shared_expression_cache=shared_expression_cache,
                 )
                 _execute_nodes(manifest.body, state)
                 total_events += len(state.events)
