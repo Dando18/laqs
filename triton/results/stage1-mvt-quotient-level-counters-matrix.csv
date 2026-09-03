@@ -1,4 +1,0 @@
-case,candidate_id,mapping_id,inner_tile_shape,inner_word,quotient_score,address_expression_runs,xor_count,completed_profile_launches,complete,l1_cache_line_accesses,l1_cache_line_accesses_min,l1_cache_line_accesses_max,duration_ns,duration_ns_min,duration_ns_max
-mvt,counter_candidate_a0977940d8fb,mapping_0ac2dcc7b3fb,"[64, 64]",ccrrrrrrcccc,786432.0,4,0,3,True,1605632.0,1605632.0,1605632.0,386608.0,386576.0,389792.0
-mvt,counter_candidate_792bcce411df,mapping_006423de7947,"[64, 64]",rrrrrrcccccc,1114112.0,3,0,3,True,1343488.0,1343488.0,1343488.0,360592.0,358048.0,360640.0
-mvt,counter_candidate_c1fb31771026,mapping_b035d0be6f95,"[64, 64]",crrrrrrccccc,1179648.0,4,0,3,True,1605632.0,1605632.0,1605632.0,341248.0,341232.0,341264.0

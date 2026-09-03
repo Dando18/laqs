@@ -1,6 +1,0 @@
-case,candidate_id,mapping_id,inner_tile_shape,inner_word,quotient_score,address_expression_runs,xor_count,completed_profile_launches,complete,l1_cache_line_accesses,l1_cache_line_accesses_min,l1_cache_line_accesses_max,duration_ns,duration_ns_min,duration_ns_max
-softmax_bias,counter_candidate_983e12424ba3,mapping_0fadc8968e5d,"[64, 256]",ffffffffrrrrrr,16384.0,2,0,3,True,98304.0,98304.0,98304.0,4416.0,4416.0,4416.0
-softmax_bias,counter_candidate_443095863b3d,mapping_d77b0c2a035b,"[64, 256]",rffffffffrrrrr,32768.0,3,0,3,True,163840.0,163840.0,163840.0,4320.0,4304.0,4320.0
-softmax_bias,counter_candidate_55407d8efa1c,mapping_2caef75a49fd,"[64, 256]",rrffffffffrrrr,65536.0,3,0,3,True,294912.0,294912.0,294912.0,4352.0,4352.0,4384.0
-softmax_bias,counter_candidate_56cdde638cdf,mapping_209d4bcfa2fd,"[64, 256]",rrrffffffffrrr,131072.0,3,0,3,True,294912.0,294912.0,294912.0,4480.0,4448.0,4480.0
-softmax_bias,counter_candidate_ab65a60b9248,mapping_7f716903c14c,"[64, 256]",rrrrrrffffffff,262144.0,3,0,3,True,294912.0,294912.0,294912.0,5264.0,5248.0,5296.0
