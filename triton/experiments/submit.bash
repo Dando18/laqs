@@ -31,51 +31,79 @@ kernels=(
 layout_count="${RELAY_FINAL_LAYOUTS:-100}"
 seed="${RELAY_FINAL_SEED:-0}"
 profile_launches="${RELAY_FINAL_PROFILE_LAUNCHES:-3}"
-log_dir="${PWD}/triton/experiments/results/experiment-${experiment}/${platform}/logs"
-mkdir -p "${log_dir}"
+pool_multiplier="${RELAY_FINAL_POOL_MULTIPLIER:-20}"
+read -r -a stratifications <<< "${RELAY_FINAL_STRATIFICATIONS:-all issue temporal}"
+results_root="${RELAY_FINAL_RESULTS_ROOT:-${PWD}/triton/experiments/results}"
+plots_root="${RELAY_FINAL_PLOTS_ROOT:-${PWD}/triton/experiments/plots}"
+
+for stratification in "${stratifications[@]}"; do
+    case "${stratification}" in
+        all|issue|temporal) ;;
+        *)
+            echo "error: invalid stratification ${stratification}" >&2
+            exit 2
+            ;;
+    esac
+done
 
 if [[ "${platform}" == "tuolumne" ]]; then
     queue="${RELAY_FINAL_TUOLUMNE_QUEUE:-pbatch}"
     wall_time="${RELAY_FINAL_TUOLUMNE_WALL_TIME:-8h}"
-    for kernel in "${kernels[@]}"; do
-        name="relay-e${experiment}-${kernel}-mi300a"
-        flux submit \
-            -N 1 -n 1 -g 1 -q "${queue}" -t "${wall_time}" \
-            --cwd="${PWD}" \
-            --job-name="${name}" \
-            --output="${log_dir}/${name}.out" \
-            --error="${log_dir}/${name}.err" \
-            triton/experiments/run-tuolumne-job.bash \
-            --experiment "${experiment}" \
-            --platform tuolumne \
-            --case "${kernel}" \
-            --layouts "${layout_count}" \
-            --seed "${seed}" \
-            --profile-launches "${profile_launches}" \
-            "$@"
+    for stratification in "${stratifications[@]}"; do
+        log_dir="${results_root}/experiment-${experiment}/${platform}/stratified-${stratification}/logs"
+        mkdir -p "${log_dir}"
+        for kernel in "${kernels[@]}"; do
+            name="relay-e${experiment}-${stratification}-${kernel}-mi300a"
+            flux submit \
+                -N 1 -n 1 -g 1 -q "${queue}" -t "${wall_time}" \
+                --cwd="${PWD}" \
+                --job-name="${name}" \
+                --output="${log_dir}/${name}.out" \
+                --error="${log_dir}/${name}.err" \
+                triton/experiments/run-tuolumne-job.bash \
+                --experiment "${experiment}" \
+                --platform tuolumne \
+                --case "${kernel}" \
+                --layouts "${layout_count}" \
+                --seed "${seed}" \
+                --stratification "${stratification}" \
+                --pool-multiplier "${pool_multiplier}" \
+                --profile-launches "${profile_launches}" \
+                --results-root "${results_root}" \
+                --plots-root "${plots_root}" \
+                "$@"
+        done
     done
 elif [[ "${platform}" == "matrix" ]]; then
     partition="${RELAY_FINAL_MATRIX_PARTITION:-pbatch}"
     wall_time="${RELAY_FINAL_MATRIX_WALL_TIME:-06:00:00}"
-    for kernel in "${kernels[@]}"; do
-        name="relay-e${experiment}-${kernel}-h100"
-        sbatch \
-            --nodes=1 \
-            --ntasks=1 \
-            --gpus=1 \
-            --partition="${partition}" \
-            --time="${wall_time}" \
-            --chdir="${PWD}" \
-            --job-name="${name}" \
-            --output="${log_dir}/%x-%j.log" \
-            triton/experiments/run-matrix-job.bash \
-            --experiment "${experiment}" \
-            --platform matrix \
-            --case "${kernel}" \
-            --layouts "${layout_count}" \
-            --seed "${seed}" \
-            --profile-launches "${profile_launches}" \
-            "$@"
+    for stratification in "${stratifications[@]}"; do
+        log_dir="${results_root}/experiment-${experiment}/${platform}/stratified-${stratification}/logs"
+        mkdir -p "${log_dir}"
+        for kernel in "${kernels[@]}"; do
+            name="relay-e${experiment}-${stratification}-${kernel}-h100"
+            sbatch \
+                --nodes=1 \
+                --ntasks=1 \
+                --gpus=1 \
+                --partition="${partition}" \
+                --time="${wall_time}" \
+                --chdir="${PWD}" \
+                --job-name="${name}" \
+                --output="${log_dir}/%x-%j.log" \
+                triton/experiments/run-matrix-job.bash \
+                --experiment "${experiment}" \
+                --platform matrix \
+                --case "${kernel}" \
+                --layouts "${layout_count}" \
+                --seed "${seed}" \
+                --stratification "${stratification}" \
+                --pool-multiplier "${pool_multiplier}" \
+                --profile-launches "${profile_launches}" \
+                --results-root "${results_root}" \
+                --plots-root "${plots_root}" \
+                "$@"
+        done
     done
 else
     echo "error: platform must be tuolumne or matrix" >&2

@@ -35,10 +35,23 @@ MEASUREMENT_FIELDS = (
 )
 
 
-def _counter_report(root: Path, experiment: int, platform: str, case: str) -> Path:
+def _counter_report(
+    root: Path,
+    experiment: int,
+    platform: str,
+    stratification: str,
+    case: str,
+) -> Path:
     if root.is_file():
         return root
-    return root / f"experiment-{experiment}" / platform / case / "report.json"
+    return (
+        root
+        / f"experiment-{experiment}"
+        / platform
+        / f"stratified-{stratification}"
+        / case
+        / "report.json"
+    )
 
 
 def _expected_profile(platform: str) -> str:
@@ -55,6 +68,7 @@ def _outputs_current(args) -> bool:
             args.results_root
             / f"experiment-{experiment}"
             / args.platform
+            / f"stratified-{args.stratification}"
             / args.case
             / "report.json"
         )
@@ -62,6 +76,7 @@ def _outputs_current(args) -> bool:
             args.plots_root
             / f"experiment-{experiment}"
             / args.platform
+            / f"stratified-{args.stratification}"
             / f"{args.case}.pdf"
         )
         if (
@@ -73,7 +88,11 @@ def _outputs_current(args) -> bool:
             return False
         report = json.loads(path.read_text(encoding="utf-8"))
         source = _counter_report(
-            args.counter_source, experiment, args.platform, args.case
+            args.counter_source,
+            experiment,
+            args.platform,
+            args.stratification,
+            args.case,
         ).resolve()
         graph = report.get("panel", {}).get("score_profile", {}).get(
             "component_model", {}
@@ -83,6 +102,10 @@ def _outputs_current(args) -> bool:
             != "automatic_post_coalescing_manifest_universal_v1"
             or report["panel"].get("requested_sample_count") != args.layouts
             or report["panel"].get("random_seed") != args.seed
+            or report["panel"].get("candidate_pool_multiplier")
+            != args.pool_multiplier
+            or report["panel"].get("stratification", {}).get("mode")
+            != args.stratification
             or report["panel"]["score_profile"].get("profile_id")
             != expected_profile
             or Path(report.get("counter_source", {}).get("report", "")).resolve()
@@ -117,7 +140,13 @@ def _write_counter_csv(platform: str, report, path: Path) -> None:
 
 
 def _automatic_panels(args) -> tuple[dict[str, object], Path, list[str]]:
-    cache = args.results_root / "automatic-graphs" / args.platform / args.case
+    cache = (
+        args.results_root
+        / "automatic-graphs"
+        / args.platform
+        / f"stratified-{args.stratification}"
+        / args.case
+    )
     worker_json = cache / "worker.json"
     command = _worker_command(
         args,
@@ -127,6 +156,12 @@ def _automatic_panels(args) -> tuple[dict[str, object], Path, list[str]]:
         str(args.layouts),
         "--panel-seed",
         str(args.seed),
+        "--panel-stratification",
+        args.stratification,
+        "--panel-pool-multiplier",
+        str(args.pool_multiplier),
+        "--automatic-temporal-windows",
+        *(str(value) for value in args.temporal_windows),
         "--json",
         str(worker_json.resolve()),
         "--quiet",
@@ -154,8 +189,56 @@ def _automatic_panels(args) -> tuple[dict[str, object], Path, list[str]]:
     return worker, worker_json, command
 
 
+def _automatic_recorded_panel(
+    args, source: Path, experiment: int
+) -> tuple[dict[str, object], dict[str, object], Path, list[str]]:
+    cache = (
+        args.results_root
+        / "automatic-graphs"
+        / args.platform
+        / f"stratified-{args.stratification}"
+        / args.case
+        / f"experiment-{experiment}"
+    )
+    worker_json = cache / "worker.json"
+    command = _worker_command(
+        args,
+        "--counter-panel",
+        "recorded_experiment",
+        "--panel-source",
+        str(source.resolve()),
+        "--automatic-temporal-windows",
+        *(str(value) for value in args.temporal_windows),
+        "--json",
+        str(worker_json.resolve()),
+        "--quiet",
+    )
+    worker_json.parent.mkdir(parents=True, exist_ok=True)
+    environment = _worker_environment(args.platform)
+    source_root = Path(environment["PYTHONPATH"].split(os.pathsep)[0])
+    plugin = source_root / "triton" / "plugins" / "libLAQSTritonAccessManifest.so"
+    configured_plugin = environment.get("LAQS_TRITON_PLUGIN_PATH")
+    if configured_plugin is None and not plugin.is_file():
+        raise FileNotFoundError(
+            f"automatic manifest plugin is missing from {plugin}; rerun the "
+            f"{args.platform} Triton setup before rescoring"
+        )
+    subprocess.run(command, check=True, cwd=REPOSITORY, env=environment)
+    worker = json.loads(worker_json.read_text(encoding="utf-8"))
+    panel = worker["ranking"].get("counter_panel")
+    if (
+        panel is None
+        or panel.get("rescore", {}).get("worker_mode")
+        != "recorded_experiment"
+    ):
+        raise ValueError("automatic worker did not rescore the recorded panel")
+    return worker, panel, worker_json, command
+
+
 def _statistics(report: dict[str, object], platform: str) -> dict[str, object]:
-    candidates = [candidate for candidate in report["candidates"] if candidate["complete"]]
+    candidates = [
+        candidate for candidate in report["candidates"] if candidate["complete"]
+    ]
     if platform == "tuolumne":
         metric = "l1_cache_line_accesses"
         native = "TCP_TOTAL_CACHE_ACCESSES_sum"
@@ -165,7 +248,10 @@ def _statistics(report: dict[str, object], platform: str) -> dict[str, object]:
         native = report["native_counter"]
         unit = report["native_unit"]
     x = [float(candidate["quotient_score"]) for candidate in candidates]
-    y = [float(candidate["counters"]["steady_state"][metric]) for candidate in candidates]
+    y = [
+        float(candidate["counters"]["steady_state"][metric])
+        for candidate in candidates
+    ]
     return {
         "observation_count": len(x),
         "primary_hardware_metric": metric,
@@ -231,6 +317,10 @@ def _merge_report(
         candidates.append(merged)
 
     report = dict(old)
+    component_model = panel["score_profile"]["component_model"]
+    temporal_windows = component_model.get("scope_basis", {}).get(
+        "temporal_windows", [4, 16]
+    )
     report.update(
         {
             "target_operand": worker["target_operand"],
@@ -249,7 +339,8 @@ def _merge_report(
                 **old["measurement_scope"],
                 "quotient": (
                     "automatic post-coalescing manifest graph; complete "
-                    "universal-v1 scope vector for the varied operand"
+                    "universal-v1 scope vector for the varied operand, with "
+                    f"temporal windows {temporal_windows}"
                 ),
                 "counter_reuse": (
                     "saved counter aggregates joined to regenerated scores by "
@@ -269,7 +360,8 @@ def _merge_report(
     report["configuration"] = {
         **old["configuration"],
         "candidate_panel_schema": 3,
-        "graph_construction": "automatic_post_coalescing_manifest_universal_v1",
+        "graph_construction": component_model["construction"],
+        "automatic_temporal_windows": temporal_windows,
         "score_profile": panel["score_profile"]["profile_id"],
         "counter_source": str(counter_path.resolve()),
     }
@@ -286,29 +378,82 @@ def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--platform", choices=("tuolumne", "matrix"), required=True)
     parser.add_argument("--case", choices=CASES, required=True)
+    parser.add_argument("--experiment", type=int, choices=(1, 2, 3))
     parser.add_argument("--counter-source", type=Path, required=True)
-    parser.add_argument("--results-root", type=Path, default=EXPERIMENT_ROOT / "results")
+    parser.add_argument(
+        "--results-root", type=Path, default=EXPERIMENT_ROOT / "results"
+    )
     parser.add_argument("--plots-root", type=Path, default=EXPERIMENT_ROOT / "plots")
     parser.add_argument("--layouts", type=positive_integer, default=100)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--stratification", choices=("all", "issue", "temporal"), default="all"
+    )
+    parser.add_argument("--pool-multiplier", type=positive_integer, default=20)
     parser.add_argument("--candidates", type=positive_integer, default=8)
+    parser.add_argument(
+        "--gemv-k",
+        type=positive_integer,
+        help="override GEMV's reduction dimension for a sweep rescore",
+    )
+    parser.add_argument(
+        "--preserve-panel",
+        action="store_true",
+        help="rescore exactly the mappings in the counter-source report",
+    )
+    parser.add_argument(
+        "--temporal-windows",
+        type=positive_integer,
+        nargs="+",
+        default=(4, 16),
+        help="automatic temporal-window ladder (sorted powers of two)",
+    )
     parser.add_argument("--skip-existing", action="store_true")
     return parser.parse_args(argv)
 
 
 def main() -> None:
     args = parse_arguments()
+    args.temporal_windows = tuple(args.temporal_windows)
+    if (
+        tuple(sorted(set(args.temporal_windows))) != args.temporal_windows
+        or any(value & (value - 1) for value in args.temporal_windows)
+    ):
+        raise ValueError("--temporal-windows must be sorted unique powers of two")
+    if args.preserve_panel and args.experiment is None:
+        raise ValueError("--preserve-panel requires --experiment")
+    if args.gemv_k is not None:
+        if args.case != "gemv":
+            raise ValueError("--gemv-k is only valid with --case gemv")
+        if args.gemv_k & (args.gemv_k - 1):
+            raise ValueError("--gemv-k must be a power of two")
     args.transaction_bytes = 64 if args.platform == "tuolumne" else 32
-    if args.skip_existing and _outputs_current(args):
+    if not args.preserve_panel and args.skip_existing and _outputs_current(args):
         print(f"already current: {args.platform}/{args.case}")
         return
-    worker, worker_json, command = _automatic_panels(args)
-    for experiment in (1, 2, 3):
+    if args.preserve_panel:
+        experiments = (args.experiment,)
+        shared_worker = None
+    else:
+        experiments = (1, 2, 3)
+        shared_worker = _automatic_panels(args)
+    for experiment in experiments:
         source = _counter_report(
-            args.counter_source, experiment, args.platform, args.case
+            args.counter_source,
+            experiment,
+            args.platform,
+            args.stratification,
+            args.case,
         )
         old = json.loads(source.read_text(encoding="utf-8"))
-        panel = worker["ranking"]["counter_panels"][str(experiment)]
+        if args.preserve_panel:
+            worker, panel, worker_json, command = _automatic_recorded_panel(
+                args, source, experiment
+            )
+        else:
+            assert shared_worker is not None
+            worker, worker_json, command = shared_worker
+            panel = worker["ranking"]["counter_panels"][str(experiment)]
         report = _merge_report(
             old,
             panel,
@@ -323,6 +468,7 @@ def main() -> None:
             args.results_root
             / f"experiment-{experiment}"
             / args.platform
+            / f"stratified-{args.stratification}"
             / args.case
         )
         panel_record = {
@@ -350,6 +496,7 @@ def main() -> None:
             args.plots_root
             / f"experiment-{experiment}"
             / args.platform
+            / f"stratified-{args.stratification}"
             / f"{args.case}.pdf"
         )
         analyze_report(report_path, plot_path)

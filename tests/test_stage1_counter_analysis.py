@@ -68,6 +68,7 @@ class Stage1CounterAnalysisTests(unittest.TestCase):
         summary = result["steady_state"]
         self.assertEqual(result["target_dispatch_count"], 3)
         self.assertEqual(summary["l1_to_l2_read_requests"], 120)
+        self.assertEqual(summary["l1_miss_demand_to_l2"], 120)
         self.assertEqual(summary["first_level_read_events"], 142.5)
         self.assertEqual(summary["second_level_read_requests"], 105)
         self.assertEqual(summary["l2_hit_rate_percent"], 200 / 3)
@@ -84,6 +85,7 @@ class Stage1CounterAnalysisTests(unittest.TestCase):
                         "l1_cache_line_accesses",
                         "first_level_read_events",
                         "l1_to_l2_read_requests",
+                        "l1_miss_demand_to_l2",
                         "l1_to_l2_write_requests",
                         "l1_to_l2_total_requests",
                         "l2_tag_requests",

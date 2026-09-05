@@ -125,6 +125,8 @@ def _worker_command(args, *extra: str) -> list[str]:
     ]
     if hasattr(args, "platform"):
         command.extend(("--counter-platform", str(args.platform)))
+    if getattr(args, "gemv_k", None) is not None:
+        command.extend(("--gemv-k", str(args.gemv_k)))
     command.extend(extra)
     return command
 
@@ -151,7 +153,19 @@ def _panel_configuration(args, panel_mode: str) -> dict[str, object]:
             }
         )
     if panel_mode.startswith("experiment"):
-        configuration["platform"] = args.platform
+        configuration.update(
+            {
+                "candidate_panel_schema": 3,
+                "counter_score_profile_schema": 2,
+                "platform": args.platform,
+                "stratification": getattr(args, "stratification", "all"),
+                "stratification_pool_multiplier": getattr(
+                    args, "pool_multiplier", 20
+                ),
+            }
+        )
+    if getattr(args, "gemv_k", None) is not None:
+        configuration["gemv_k"] = args.gemv_k
     return configuration
 
 
@@ -187,6 +201,15 @@ def prepare_panel(
                 str(args.seed),
             )
         )
+        if panel_mode.startswith("experiment"):
+            extra.extend(
+                (
+                    "--panel-stratification",
+                    str(getattr(args, "stratification", "all")),
+                    "--panel-pool-multiplier",
+                    str(getattr(args, "pool_multiplier", 20)),
+                )
+            )
     extra.extend(("--json", str(worker_json.resolve()), "--quiet"))
     command = _worker_command(args, *extra)
     subprocess.run(
@@ -243,6 +266,8 @@ def _profile_configuration(
         "temporal_mode": "issue",
         "transaction_bytes": args.transaction_bytes,
         "requested_retained_candidates": args.candidates,
+        "stratification": getattr(args, "stratification", None),
+        "gemv_k": getattr(args, "gemv_k", None),
         "profile_warmup": args.profile_warmup,
         "profile_iterations": args.profile_iterations,
         "counter_passes": list(COUNTER_PASSES),
@@ -653,9 +678,12 @@ def collect_report(
 def write_csv(report: dict[str, object], path: Path) -> None:
     fields = [
         "case",
+        "stratification",
         "candidate_id",
         "mapping_id",
         "sample_index",
+        "candidate_pool_index",
+        "sampling_origin",
         "grammar",
         "inner_tile_shape",
         "inner_word",
@@ -677,6 +705,9 @@ def write_csv(report: dict[str, object], path: Path) -> None:
             if field not in SUMMARY_METRICS
         }
         row["case"] = report["case"]
+        row["stratification"] = report["panel"].get("stratification", {}).get(
+            "mode", "none"
+        )
         if "counters" in candidate:
             summary = candidate["counters"]["steady_state"]
             for metric in SUMMARY_METRICS:

@@ -12,6 +12,8 @@ import statistics
 import tempfile
 from typing import Iterable, Mapping, Sequence
 
+from layout_panels import STRATIFICATION_MODES
+
 
 EXPERIMENT_NAMES = {
     1: r"Memory Counters Over Whole-Tensor $G_C$",
@@ -82,6 +84,15 @@ def _predictors(candidate: Mapping[str, object]) -> dict[str, float]:
     return result
 
 
+def _quotient_coordinate(predictor: str) -> tuple[str | None, int | None]:
+    if not predictor.startswith("Q:"):
+        return None, None
+    scope, separator, scale = predictor.removeprefix("Q:").rpartition(".")
+    if not separator or not scale.endswith("B") or not scale[:-1].isdigit():
+        return None, None
+    return scope, int(scale[:-1])
+
+
 def _observations(report: Mapping[str, object]):
     profile = report["panel"]["score_profile"]
     counter_names = tuple(profile["counter_components"])
@@ -106,23 +117,34 @@ def correlation_rows(report: Mapping[str, object]) -> list[dict[str, object]]:
         return []
     profile = report["panel"]["score_profile"]
     matches = profile["counter_components"]
+    focus_counters = set(profile.get("focus_counters", ()))
     predictors = tuple(observations[0]["predictors"])
     rows = []
     for counter, matched_component in matches.items():
         available = [item for item in observations if counter in item["counters"]]
+        matched_scope, _ = _quotient_coordinate(f"Q:{matched_component}")
         for predictor in predictors:
             left = [item["predictors"][predictor] for item in available]
             right = [item["counters"][counter] for item in available]
+            predictor_scope, predictor_byte_scale = _quotient_coordinate(predictor)
             rows.append(
                 {
                     "experiment": report["final_experiment"],
                     "platform": profile["platform"],
                     "case": report["case"],
+                    "stratification": report["panel"]["stratification"]["mode"],
                     "counter": counter,
+                    "counter_role": (
+                        "focus" if counter in focus_counters else "diagnostic"
+                    ),
                     "predictor": predictor,
+                    "predictor_scope": predictor_scope,
+                    "predictor_byte_scale": predictor_byte_scale,
                     "relationship": (
                         "counter_component"
                         if predictor == f"Q:{matched_component}"
+                        else "counter_scope_bytescale"
+                        if predictor_scope == matched_scope
                         else "aggregate"
                         if predictor == "J_area"
                         else "diagnostic"
@@ -154,9 +176,12 @@ def _raw_rows(
         "experiment",
         "platform",
         "case",
+        "stratification",
         "candidate_id",
         "mapping_id",
         "sample_index",
+        "candidate_pool_index",
+        "sampling_origin",
         "grammar",
         "inner_tile_shape",
         "inner_word",
@@ -174,9 +199,12 @@ def _raw_rows(
             "experiment": report["final_experiment"],
             "platform": report["panel"]["score_profile"]["platform"],
             "case": report["case"],
+            "stratification": report["panel"]["stratification"]["mode"],
             "candidate_id": candidate["candidate_id"],
             "mapping_id": candidate["mapping_id"],
             "sample_index": candidate["sample_index"],
+            "candidate_pool_index": candidate["candidate_pool_index"],
+            "sampling_origin": candidate["sampling_origin"],
             "grammar": candidate["grammar"],
             "inner_tile_shape": json.dumps(candidate["inner_tile_shape"]),
             "inner_word": candidate["inner_word"],
@@ -215,16 +243,47 @@ def _plot_report(
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     with PdfPages(path) as pdf:
-        for counter, component in profile["counter_components"].items():
+        focus = set(profile.get("focus_counters", ()))
+        counter_components = profile["counter_components"]
+        counter_order = sorted(
+            counter_components,
+            key=lambda counter: (
+                counter not in focus,
+                list(counter_components).index(counter),
+            ),
+        )
+        for counter in counter_order:
+            component = counter_components[counter]
             available = [item for item in observations if counter in item["counters"]]
             if not available:
                 continue
-            figure, axes = plt.subplots(1, 2, figsize=(11.5, 5.25))
-            specifications = (
-                (f"Q:{component}", f"Counter-matched quotient component: {component}"),
-                ("J_area", r"Aggregate selection score: $J_{area}$"),
+            matched_scope, _ = _quotient_coordinate(f"Q:{component}")
+            quotient_predictors = sorted(
+                (
+                    predictor
+                    for predictor in available[0]["predictors"]
+                    if _quotient_coordinate(predictor)[0] == matched_scope
+                ),
+                key=lambda predictor: _quotient_coordinate(predictor)[1],
             )
-            for axis, (predictor, title) in zip(axes, specifications):
+            specifications = [
+                (
+                    predictor,
+                    rf"$Q_{{{_quotient_coordinate(predictor)[1]}B}}$ at "
+                    f"{matched_scope}",
+                )
+                for predictor in quotient_predictors
+            ]
+            specifications.append(
+                ("J_area", r"Aggregate selection score: $J_{area}$")
+            )
+            columns = 3
+            rows = (len(specifications) + columns - 1) // columns
+            figure, axes = plt.subplots(
+                rows, columns, figsize=(16.5, 5.0 * rows), squeeze=False
+            )
+            flat_axes = list(axes.flat)
+            for axis, (predictor, title) in zip(flat_axes, specifications):
                 x = [item["predictors"][predictor] for item in available]
                 y = [item["counters"][counter] for item in available]
                 axis.scatter(
@@ -251,15 +310,19 @@ def _plot_report(
                 axis.set_xlim(left=0)
                 axis.set_ylim(bottom=0)
                 axis.tick_params(labelsize=10)
+            for axis in flat_axes[len(specifications):]:
+                axis.set_visible(False)
             experiment = int(report["final_experiment"])
+            shape = "x".join(str(value) for value in report["operand_shape"])
             figure.suptitle(
                 f"{EXPERIMENT_NAMES[experiment]} — {report['case']} on "
                 f"{PLATFORM_LABELS[profile['platform']]}\n"
-                f"{len(available)} independently profiled "
-                "layout mappings",
+                f"{len(available)} independently profiled layout mappings; "
+                f"target {shape}; stratified over "
+                f"{report['panel']['stratification']['mode']} components",
                 fontsize=14,
             )
-            figure.tight_layout(rect=(0, 0, 1, 0.88))
+            figure.tight_layout(rect=(0, 0, 1, 0.91))
             pdf.savefig(figure, bbox_inches="tight")
             plt.close(figure)
 
@@ -280,8 +343,12 @@ def analyze_report(report_path: Path, plot_path: Path) -> dict[str, object]:
         "experiment",
         "platform",
         "case",
+        "stratification",
         "counter",
+        "counter_role",
         "predictor",
+        "predictor_scope",
+        "predictor_byte_scale",
         "relationship",
         "observations",
         "spearman_rho",
@@ -292,12 +359,14 @@ def analyze_report(report_path: Path, plot_path: Path) -> dict[str, object]:
     primary = [
         row
         for row in correlations
-        if row["relationship"] in {"counter_component", "aggregate"}
+        if row["relationship"]
+        in {"counter_component", "counter_scope_bytescale", "aggregate"}
     ]
     result = {
         "experiment": report["final_experiment"],
         "platform": report["panel"]["score_profile"]["platform"],
         "case": report["case"],
+        "stratification": report["panel"]["stratification"]["mode"],
         "complete": report["complete"],
         "correct": report["correct"],
         "profiled_mapping_count": len(rows),
@@ -324,18 +393,24 @@ def analyze_suite(
     *,
     experiment: int,
     platform: str,
+    stratification: str,
     regenerate_reports: bool = True,
 ) -> Path:
     """Combine per-kernel correlations, optionally regenerating each case."""
 
     rows = []
-    for report_path in sorted(
-        (results_root / f"experiment-{experiment}" / platform).glob("*/report.json")
-    ):
+    suite_root = (
+        results_root
+        / f"experiment-{experiment}"
+        / platform
+        / f"stratified-{stratification}"
+    )
+    for report_path in sorted(suite_root.glob("*/report.json")):
         plot = (
             plots_root
             / f"experiment-{experiment}"
             / platform
+            / f"stratified-{stratification}"
             / f"{report_path.parent.name}.pdf"
         )
         if regenerate_reports:
@@ -346,7 +421,7 @@ def analyze_suite(
             rows.extend(csv.DictReader(stream))
     if not rows:
         raise FileNotFoundError("no per-kernel reports were found")
-    output = results_root / f"experiment-{experiment}" / platform / "spearman.csv"
+    output = suite_root / "spearman.csv"
     _write_csv(output, rows, rows[0].keys())
     return output
 
@@ -356,6 +431,9 @@ def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiment", type=int, choices=(1, 2, 3), required=True)
     parser.add_argument("--platform", choices=("tuolumne", "matrix"), required=True)
+    parser.add_argument(
+        "--stratification", choices=STRATIFICATION_MODES, default="all"
+    )
     parser.add_argument("--case")
     parser.add_argument("--results-root", type=Path, default=root / "results")
     parser.add_argument("--plots-root", type=Path, default=root / "plots")
@@ -369,6 +447,7 @@ def main() -> None:
             args.results_root
             / f"experiment-{args.experiment}"
             / args.platform
+            / f"stratified-{args.stratification}"
             / args.case
             / "report.json"
         )
@@ -376,6 +455,7 @@ def main() -> None:
             args.plots_root
             / f"experiment-{args.experiment}"
             / args.platform
+            / f"stratified-{args.stratification}"
             / f"{args.case}.pdf"
         )
         result = analyze_report(report, plot)
@@ -386,6 +466,7 @@ def main() -> None:
             args.plots_root,
             experiment=args.experiment,
             platform=args.platform,
+            stratification=args.stratification,
         )
         print(f"Wrote {output}")
 

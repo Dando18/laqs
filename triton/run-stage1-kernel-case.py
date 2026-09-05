@@ -95,10 +95,18 @@ def launch_default(
     """Launch once and construct the automatic graph for final experiments."""
 
     panel = getattr(args, "counter_panel", None)
-    if panel is not None and panel.startswith("experiment"):
+    automatic_panel = panel is not None and (
+        panel.startswith("experiment") or panel == "recorded_experiment"
+    )
+    if automatic_panel:
         from dataclasses import replace
 
-        from relay import Access, MatrixSpec, build_edge_families
+        from relay import (
+            Access,
+            MatrixSpec,
+            UniversalScopeBasis,
+            build_edge_families,
+        )
         from relay.triton_frontend import (
             AnalysisOptions,
             EvaluationLimits,
@@ -236,6 +244,28 @@ def launch_default(
                 edge_families=build_edge_families(
                     matrix_map, event_map, analysis.sequences
                 ),
+            )
+        temporal_windows = getattr(args, "automatic_temporal_windows", None)
+        if temporal_windows is not None:
+            basis = UniversalScopeBasis(
+                temporal_windows=tuple(temporal_windows)
+            )
+            matrix_map = {matrix.name: matrix for matrix in analysis.matrices}
+            event_map = {event.id: event for event in analysis.events}
+            analysis = replace(
+                analysis,
+                edge_families=build_edge_families(
+                    matrix_map,
+                    event_map,
+                    analysis.sequences,
+                    basis=basis,
+                ),
+                selected_config={
+                    **dict(analysis.selected_config),
+                    "laqs_scope_temporal_windows": list(
+                        basis.temporal_windows
+                    ),
+                },
             )
         return analysis.compiled_kernel, analysis
     return kernel[grid](*kernel_args, **kernel_kwargs), None
@@ -537,7 +567,7 @@ def embedding_bag(args):
 def gemv(args):
     from relay import MatrixSpec, row_major_layout
 
-    m, k, block = 1024, 1024, 64
+    m, k, block = 1024, args.gemv_k, 64
     matrix = MatrixSpec("weight", (m, k), 4, ("row", "column"))
     default_rows = layout_rows(row_major_layout(matrix), matrix)
     logical_weight = patterned((m, k), 17, 13, 101)
@@ -625,7 +655,19 @@ def gemv(args):
         automatic_analysis=automatic_analysis,
         automatic_target_name="weight",
     )
-    return result_record("gemv", matrix, blocked, execution, events, ranking)
+    return result_record(
+        "gemv",
+        matrix,
+        blocked,
+        execution,
+        events,
+        ranking,
+        m=m,
+        k=k,
+        block=block,
+        target_bytes=m * k * matrix.element_bytes,
+        target_bytes_per_program=block * k * matrix.element_bytes,
+    )
 
 
 def mvt(args):
@@ -1060,8 +1102,14 @@ def parse_arguments(argv=None):
             "experiment2_gc_tiles",
             "experiment3_goc",
             "experiments123",
+            "recorded_experiment",
         ),
         help="construct an issue-only counter candidate panel",
+    )
+    parser.add_argument(
+        "--panel-source",
+        type=Path,
+        help="saved report whose exact mapping panel should be rescored",
     )
     parser.add_argument(
         "--panel-tile-shape", type=positive_integer, nargs="+"
@@ -1069,10 +1117,28 @@ def parse_arguments(argv=None):
     parser.add_argument("--panel-samples", type=positive_integer, default=100)
     parser.add_argument("--panel-seed", type=int, default=0)
     parser.add_argument(
+        "--panel-stratification",
+        choices=("all", "issue", "temporal"),
+        default="all",
+    )
+    parser.add_argument(
+        "--panel-pool-multiplier", type=positive_integer, default=20
+    )
+    parser.add_argument(
+        "--automatic-temporal-windows",
+        type=positive_integer,
+        nargs="+",
+        help=(
+            "replace the automatic graph's temporal-window ladder; values "
+            "must be sorted, unique powers of two"
+        ),
+    )
+    parser.add_argument(
         "--counter-platform",
         choices=("tuolumne", "matrix"),
         default="tuolumne",
     )
+    parser.add_argument("--gemv-k", type=positive_integer, default=1024)
     parser.add_argument("--json", type=Path)
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args(argv)
@@ -1096,6 +1162,10 @@ def main():
         raise ValueError(
             "fixed_tile_levels requires --panel-tile-shape"
         )
+    if args.counter_panel == "recorded_experiment" and args.panel_source is None:
+        raise ValueError("recorded_experiment requires --panel-source")
+    if args.gemv_k & (args.gemv_k - 1):
+        raise ValueError("--gemv-k must be a power of two")
     if not torch.cuda.is_available():
         raise RuntimeError("the kernel breadth case requires a Flux GPU")
     result = RUNNERS[args.case](args)

@@ -31,14 +31,18 @@ TUNING_COUNTERS = {
     ),
     "matrix": (
         "first_level_memory_accesses",
+        "tex_source_l2_read_requests",
         "l1_to_l2_read_traffic",
     ),
 }
 
 TUNING_COUNTER_ALIASES = {
-    "tuolumne": {},
+    "tuolumne": {
+        "l1_miss_demand_to_l2": "l1_to_l2_read_requests",
+    },
     "matrix": {
         "l2_read_work": "l1_to_l2_read_traffic",
+        "l1_miss_demand_to_l2": "tex_source_l2_read_requests",
     },
 }
 
@@ -47,6 +51,7 @@ ANALYSIS_COUNTERS = {
         "l1_cache_line_accesses",
         "first_level_read_events",
         "l1_to_l2_read_requests",
+        "l1_miss_demand_to_l2",
         "l1_to_l2_total_requests",
         "l2_tag_requests",
         "second_level_read_requests",
@@ -57,6 +62,8 @@ ANALYSIS_COUNTERS = {
     "matrix": (
         "first_level_memory_accesses",
         "global_load_requests",
+        "tex_source_l2_read_requests",
+        "l1_miss_demand_to_l2",
         "l1_to_l2_read_traffic",
         "l2_read_work",
         "l2_read_misses",
@@ -82,7 +89,7 @@ def _ranks(values: list[float]) -> np.ndarray:
 def _reports(results_root: Path, platform: str):
     for experiment in (1, 2, 3):
         root = results_root / f"experiment-{experiment}" / platform
-        yield from sorted(root.glob("*/report.json"))
+        yield from sorted(root.glob("stratified-*/*/report.json"))
 
 
 def _observations(results_root: Path, platform: str) -> list[dict[str, object]]:
@@ -523,7 +530,9 @@ def _apply_profile(report: dict[str, object], profile: dict[str, object]) -> Non
 
 def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--results-root", type=Path, default=EXPERIMENT_ROOT / "results")
+    parser.add_argument(
+        "--results-root", type=Path, default=EXPERIMENT_ROOT / "results"
+    )
     parser.add_argument("--plots-root", type=Path, default=EXPERIMENT_ROOT / "plots")
     parser.add_argument("--output", type=Path, default=TAU_PROFILES)
     return parser.parse_args(argv)
@@ -562,17 +571,20 @@ def main() -> None:
                 args.plots_root
                 / f"experiment-{experiment}"
                 / platform
+                / f"stratified-{report['panel']['stratification']['mode']}"
                 / f"{report['case']}.pdf"
             )
             analyze_report(path, plot)
         for experiment in (1, 2, 3):
-            analyze_suite(
-                args.results_root,
-                args.plots_root,
-                experiment=experiment,
-                platform=platform,
-                regenerate_reports=False,
-            )
+            for stratification in ("all", "issue", "temporal"):
+                analyze_suite(
+                    args.results_root,
+                    args.plots_root,
+                    experiment=experiment,
+                    platform=platform,
+                    stratification=stratification,
+                    regenerate_reports=False,
+                )
     print(json.dumps(document, indent=2, sort_keys=True))
 
 

@@ -15,6 +15,7 @@ REPOSITORY = TRITON_ROOT.parent
 sys.path[:0] = (str(TRITON_ROOT), str(REPOSITORY))
 
 from analyze import analyze_report
+from layout_panels import STRATIFICATION_MODES
 from run_stage1_kernel_cases import CASES
 from stage1_common import positive_integer
 from stage1_counter_sweep import run_sweep as run_amd_sweep
@@ -35,6 +36,15 @@ def parse_arguments(argv=None):
     parser.add_argument("--case", choices=CASES, required=True)
     parser.add_argument("--layouts", type=positive_integer, default=100)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--stratification", choices=STRATIFICATION_MODES, default="all"
+    )
+    parser.add_argument("--pool-multiplier", type=positive_integer, default=20)
+    parser.add_argument(
+        "--gemv-k",
+        type=positive_integer,
+        help="override GEMV's reduction dimension for the working-set sweep",
+    )
     parser.add_argument("--profile-launches", type=positive_integer, default=3)
     parser.add_argument("--profile-warmup", type=positive_integer, default=5)
     parser.add_argument("--profile-iterations", type=positive_integer, default=20)
@@ -60,11 +70,17 @@ def parse_arguments(argv=None):
 
 def main() -> None:
     args = parse_arguments()
+    if args.gemv_k is not None:
+        if args.case != "gemv":
+            raise ValueError("--gemv-k is only valid with --case gemv")
+        if args.gemv_k & (args.gemv_k - 1):
+            raise ValueError("--gemv-k must be a power of two")
     args.transaction_bytes = 64 if args.platform == "tuolumne" else 32
     case_root = (
         args.results_root
         / f"experiment-{args.experiment}"
         / args.platform
+        / f"stratified-{args.stratification}"
         / args.case
     ).resolve()
     args.results_dir = case_root / "profiles"
@@ -74,6 +90,7 @@ def main() -> None:
         args.plots_root
         / f"experiment-{args.experiment}"
         / args.platform
+        / f"stratified-{args.stratification}"
         / f"{args.case}.pdf"
     ).resolve()
 
@@ -82,10 +99,12 @@ def main() -> None:
             "panel_mode": PANEL_MODES[args.experiment],
             "experiment": f"triton_final_experiment_{args.experiment}",
             "panel_experiment": (
-                f"triton_final_experiment_{args.experiment}_panel_{args.platform}"
+                f"triton_final_experiment_{args.experiment}_panel_"
+                f"{args.platform}_{args.stratification}"
             ),
             "profile_experiment": (
-                f"triton_final_experiment_{args.experiment}_profile_{args.platform}"
+                f"triton_final_experiment_{args.experiment}_profile_"
+                f"{args.platform}_{args.stratification}"
             ),
         }
         if args.platform == "tuolumne":

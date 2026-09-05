@@ -184,7 +184,7 @@ def rank_persistent_operand(
             experiment_source = str(Path(__file__).with_name("experiments"))
             if experiment_source not in sys.path:
                 sys.path.insert(0, experiment_source)
-            from layout_panels import random_experiment_panel
+            from layout_panels import stratified_experiment_panel
 
             if automatic_analysis is None or automatic_target_name is None:
                 raise ValueError(
@@ -202,7 +202,7 @@ def rank_persistent_operand(
                     2: "experiment2_gc_tiles",
                     3: "experiment3_goc",
                 }[experiment]
-                panel = random_experiment_panel(
+                panel = stratified_experiment_panel(
                     matrix,
                     automatic_analysis,
                     automatic_target_name,
@@ -211,12 +211,41 @@ def rank_persistent_operand(
                     samples=args.panel_samples,
                     seed=args.panel_seed,
                     platform=args.counter_platform,
+                    stratification=args.panel_stratification,
+                    pool_multiplier=args.panel_pool_multiplier,
                 )
                 panel["mode"] = experiment_mode
                 panel["objective"] = "J_area"
                 counter_panels[str(experiment)] = panel
             if len(counter_panels) == 1:
                 counter_panel = next(iter(counter_panels.values()))
+        elif panel_mode == "recorded_experiment":
+            from pathlib import Path
+            import json
+            import sys
+
+            experiment_source = str(Path(__file__).with_name("experiments"))
+            if experiment_source not in sys.path:
+                sys.path.insert(0, experiment_source)
+            from layout_panels import rescore_recorded_panel
+
+            if automatic_analysis is None or automatic_target_name is None:
+                raise ValueError(
+                    "recorded experiment rescoring requires the automatic "
+                    "Triton graph"
+                )
+            source_path = getattr(args, "panel_source", None)
+            if source_path is None:
+                raise ValueError("recorded experiment rescoring needs a source")
+            source = json.loads(Path(source_path).read_text(encoding="utf-8"))
+            source_panel = source.get("panel", source)
+            counter_panel = rescore_recorded_panel(
+                automatic_analysis,
+                automatic_target_name,
+                source_panel,
+                platform=args.counter_platform,
+                source_path=Path(source_path),
+            )
         else:
             panel_tile_shapes = inner_tile_shapes
             group_by_tile = True
@@ -228,9 +257,15 @@ def rank_persistent_operand(
                 group_by_tile=group_by_tile,
             )
         if counter_panel is not None:
-            counter_panel["mode"] = panel_mode
+            if panel_mode == "recorded_experiment":
+                counter_panel["rescore"]["worker_mode"] = panel_mode
+            else:
+                counter_panel["mode"] = panel_mode
             counter_panel["objective"] = (
-                "J_area" if panel_mode.startswith("experiment") else "issue_only"
+                "J_area"
+                if panel_mode.startswith("experiment")
+                or panel_mode == "recorded_experiment"
+                else "issue_only"
             )
 
     def diagnostic_component_scores(layout):

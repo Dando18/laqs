@@ -72,7 +72,7 @@ def _profile_configuration(
     launch: int,
 ) -> dict[str, object]:
     return {
-        "profile_schema": 4,
+        "profile_schema": 6,
         "profiler_backend": "nvidia_ncu",
         "case": args.case,
         "kernel_name": KERNEL_NAMES[args.case],
@@ -85,6 +85,8 @@ def _profile_configuration(
         "temporal_mode": "issue",
         "transaction_bytes": args.transaction_bytes,
         "requested_retained_candidates": args.candidates,
+        "stratification": getattr(args, "stratification", None),
+        "gemv_k": getattr(args, "gemv_k", None),
         "profile_warmup": args.profile_warmup,
         "profile_iterations": args.profile_iterations,
         "native_counter": FIRST_LEVEL_COUNTER,
@@ -418,8 +420,13 @@ def collect_report(
 def write_csv(report: dict[str, object], path: Path) -> None:
     fields = [
         "case",
+        "stratification",
         "candidate_id",
         "mapping_id",
+        "sample_index",
+        "candidate_pool_index",
+        "sampling_origin",
+        "grammar",
         "inner_tile_shape",
         "inner_word",
         "quotient_score",
@@ -441,6 +448,9 @@ def write_csv(report: dict[str, object], path: Path) -> None:
             if field not in SUMMARY_METRICS
         }
         row["case"] = report["case"]
+        row["stratification"] = report["panel"].get("stratification", {}).get(
+            "mode", "none"
+        )
         row["native_counter"] = report["native_counter"]
         row["native_unit"] = report["native_unit"]
         if "counters" in candidate:

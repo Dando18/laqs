@@ -20,6 +20,7 @@ from stage1_nvidia_counter_analysis import (
     L2_READ_MISS_COUNTER,
     NATIVE_UNIT,
     SUMMARY_METRICS,
+    TEX_SOURCE_L2_READ_REQUESTS_COUNTER,
     aggregate_profiles,
     parse_counter_csv,
 )
@@ -29,6 +30,7 @@ def counter_row(index: int, kernel: str, scale: float) -> list[str]:
     values = {
         FIRST_LEVEL_COUNTER: 20 * scale,
         GLOBAL_LOAD_REQUESTS_COUNTER: 10 * scale,
+        TEX_SOURCE_L2_READ_REQUESTS_COUNTER: 6 * scale,
         L1_TO_L2_READ_COUNTER: 8 * scale,
         L2_READ_MISS_COUNTER: 3 * scale,
         HBM_READ_COUNTER: 96 * scale,
@@ -68,6 +70,10 @@ class Stage1NvidiaCounterAnalysisTests(unittest.TestCase):
         )
         self.assertEqual(result["steady_state"]["duration_ns"], 3.0)
         self.assertEqual(result["steady_state"]["l1_to_l2_read_traffic"], 12.0)
+        self.assertEqual(
+            result["steady_state"]["tex_source_l2_read_requests"], 9.0
+        )
+        self.assertEqual(result["steady_state"]["l1_miss_demand_to_l2"], 9.0)
         self.assertEqual(result["steady_state"]["l2_read_work"], 12.0)
         self.assertEqual(result["steady_state"]["l2_read_misses"], 4.5)
         self.assertEqual(result["steady_state"]["hbm_read_bytes"], 144.0)

@@ -26,6 +26,7 @@ COUNT_METRICS = (
     "l1_cache_line_accesses",
     "first_level_read_events",
     "l1_to_l2_read_requests",
+    "l1_miss_demand_to_l2",
     "l1_to_l2_write_requests",
     "l1_to_l2_total_requests",
     "l2_tag_requests",
@@ -50,6 +51,9 @@ COUNTER_DEFINITIONS = {
     ),
     "TCP_TOTAL_READ_sum": "read pixels or buffers received by TCP from TA",
     "TCP_TCC_READ_REQ_sum": "read requests sent from TCP/L1 to TCC/L2",
+    "l1_miss_demand_to_l2": (
+        "primary cross-platform analysis alias backed by TCP_TCC_READ_REQ_sum"
+    ),
     "TCP_TCC_WRITE_REQ_sum": "write requests sent from TCP/L1 to TCC/L2",
     "TCC_REQ_sum": "requests processed by the TCC/L2 tag blocks",
     "TCC_READ_sum": (
@@ -98,6 +102,7 @@ def _dispatch(record: Mapping[str, str], path: Path) -> dict[str, object]:
         ],
         "first_level_read_events": counters["TCP_TOTAL_READ_sum"],
         "l1_to_l2_read_requests": counters["TCP_TCC_READ_REQ_sum"],
+        "l1_miss_demand_to_l2": counters["TCP_TCC_READ_REQ_sum"],
         "l1_to_l2_write_requests": counters["TCP_TCC_WRITE_REQ_sum"],
         "l1_to_l2_total_requests": (
             counters["TCP_TCC_READ_REQ_sum"]

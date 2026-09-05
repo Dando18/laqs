@@ -1,7 +1,9 @@
-"""Random layout panels and quotient scores for final experiments 1--3."""
+"""Stratified layout panels and quotient scores for final experiments 1--3."""
 
 from __future__ import annotations
 
+from bisect import bisect_right
+from collections import Counter
 from dataclasses import dataclass
 import hashlib
 import json
@@ -12,6 +14,8 @@ from typing import Iterable, Sequence
 
 
 BYTE_SCALES = (32, 64, 128, 256)
+STRATIFICATION_MODES = ("all", "issue", "temporal")
+AMPLIFICATION_BREAKS = (1.5, 2.0, 4.0, 8.0)
 TAU_PROFILES = Path(__file__).with_name("tau-profiles.json")
 
 
@@ -25,6 +29,7 @@ class CounterScoreProfile:
     fine_component: str
     active_weights: dict[str, float]
     counter_components: dict[str, str]
+    focus_counters: tuple[str, ...]
 
 
 def counter_score_profile(
@@ -39,6 +44,7 @@ def counter_score_profile(
             "l1_cache_line_accesses": fine,
             "first_level_read_events": fine,
             "l1_to_l2_read_requests": "simd_window.t16.stream.load.128B",
+            "l1_miss_demand_to_l2": "simd_window.t16.stream.load.128B",
             "l1_to_l2_total_requests": "simd_window.t16.stream.load.128B",
             "l2_tag_requests": "simd_window.t16.stream.load.128B",
             "second_level_read_requests": "simd_window.t16.stream.load.128B",
@@ -46,18 +52,27 @@ def counter_score_profile(
             "l2_misses": "simd_window.t16.stream.load.256B",
             "hbm_read_bytes": "simd_window.t16.stream.load.256B",
         }
+        focus_counters = ("l1_to_l2_read_requests",)
     elif platform == "matrix":
         native = 32
         fine = "issue.g32.stream.load.32B"
         counters = {
             "first_level_memory_accesses": fine,
             "global_load_requests": fine,
+            "tex_source_l2_read_requests": (
+                "simd_window.t16.stream.load.128B"
+            ),
+            "l1_miss_demand_to_l2": "simd_window.t16.stream.load.128B",
             "l1_to_l2_read_traffic": "simd_window.t16.stream.load.128B",
             "l2_read_work": "simd_window.t16.stream.load.128B",
             "l2_read_misses": "simd_window.t16.stream.load.256B",
             "hbm_read_bytes": "simd_window.t16.stream.load.256B",
             "sectors_per_request": fine,
         }
+        focus_counters = (
+            "tex_source_l2_read_requests",
+            "l1_to_l2_read_traffic",
+        )
     else:
         raise ValueError(f"unknown experiment platform {platform!r}")
 
@@ -102,6 +117,7 @@ def counter_score_profile(
         fine,
         active,
         counters,
+        focus_counters,
     )
 
 
@@ -218,8 +234,26 @@ def _score_components(analysis, target_name: str):
     if not components:
         raise ValueError("automatic graph produced no objective components")
     exposure = float(components[0].normalization_bytes)
+    requested_windows = analysis.selected_config.get(
+        "laqs_scope_temporal_windows"
+    )
+    temporal_windows = (
+        [int(value) for value in requested_windows]
+        if requested_windows is not None
+        else sorted(
+            {
+                int(family.scope.parameter)
+                for family in analysis.edge_families
+                if family.scope.family.endswith("window")
+                and isinstance(family.scope.parameter, int)
+            }
+        )
+    )
+    construction = "automatic_post_coalescing_manifest_universal_v1"
+    if temporal_windows != [4, 16]:
+        construction += "_extended_temporal"
     graph = {
-        "construction": "automatic_post_coalescing_manifest_universal_v1",
+        "construction": construction,
         "manifest_schema": analysis.manifest.schema,
         "manifest_version": analysis.manifest.version,
         "grid": list(analysis.grid),
@@ -240,6 +274,17 @@ def _score_components(analysis, target_name: str):
         "scored_edge_family_count": len(families),
         "component_count": len(components),
         "byte_scales": list(BYTE_SCALES),
+        "scope_basis": {
+            "issue_lane_groups": sorted(
+                {
+                    int(family.scope.parameter)
+                    for family in analysis.edge_families
+                    if family.scope.family == "issue"
+                    and isinstance(family.scope.parameter, int)
+                }
+            ),
+            "temporal_windows": temporal_windows,
+        },
     }
     return matrices[target_name], matrices, components, exposure, graph
 
@@ -254,6 +299,7 @@ def _layout_record(
     experiment: int,
     sample_index: int,
     sampling_attempt: int,
+    sampling_origin: str,
 ) -> dict[str, object]:
     from relay import (
         CanonicalLayout,
@@ -323,6 +369,7 @@ def _layout_record(
         "xor_count": int(layout.xor_count),
         "sample_index": sample_index,
         "sampling_attempt": sampling_attempt,
+        "sampling_origin": sampling_origin,
     }
 
 
@@ -358,16 +405,62 @@ def _candidate_layouts(
     layouts = []
     mappings = set()
 
-    def add(layout, attempt: int) -> None:
+    def add(layout, attempt: int, origin: str) -> None:
         layout.validate(matrix)
         mapping = tuple(layout_matrix_rows(matrix, layout))
         if mapping in mappings:
             return
         mappings.add(mapping)
-        layouts.append((layout, attempt))
+        layouts.append((layout, attempt, origin))
 
-    if grammar_size is not None and grammar_size <= samples * 4:
-        attempt = 0
+    def canonical_anchor(exponents, *, row_major: bool):
+        mode_order = (
+            reversed(range(matrix.rank))
+            if row_major
+            else range(matrix.rank)
+        )
+        word = tuple(
+            mode
+            for mode in mode_order
+            for _ in range(exponents[mode])
+        )
+        return CanonicalLayout(
+            (
+                f"experiment{experiment}_row_major_anchor"
+                if row_major
+                else f"experiment{experiment}_column_major_anchor"
+            ),
+            matrix.name,
+            exponents,
+            word,
+            outer_order,
+        )
+
+    attempt = 0
+    for exponents in tile_exponents:
+        for row_major in (True, False):
+            attempt += 1
+            canonical = canonical_anchor(exponents, row_major=row_major)
+            origin = (
+                "row_major_anchor" if row_major else "column_major_anchor"
+            )
+            if experiment in (1, 2):
+                add(canonical, attempt, origin)
+            else:
+                add(
+                    LinearInnerLayout(
+                        canonical.name,
+                        matrix.name,
+                        exponents,
+                        canonical.matrix_rows(),
+                        outer_order,
+                    ),
+                    attempt,
+                    origin,
+                )
+
+    anchor_count = len(layouts)
+    if grammar_size is not None and grammar_size <= samples:
         for exponents in tile_exponents:
             for word in _canonical_words(exponents):
                 attempt += 1
@@ -380,12 +473,15 @@ def _candidate_layouts(
                         outer_order,
                     ),
                     attempt,
+                    "grammar_census",
                 )
-        generator.shuffle(layouts)
-        layouts = layouts[:samples]
+        tail = layouts[anchor_count:]
+        generator.shuffle(tail)
+        layouts[anchor_count:] = tail
     else:
         max_attempts = max(10_000, samples * 1_000)
-        for attempt in range(1, max_attempts + 1):
+        for _ in range(max_attempts):
+            attempt += 1
             exponents = tile_exponents[generator.randrange(len(tile_exponents))]
             if experiment in (1, 2):
                 word = _random_canonical_word(exponents, generator)
@@ -407,7 +503,7 @@ def _candidate_layouts(
                 )
             else:
                 raise ValueError(f"unknown final experiment {experiment}")
-            add(layout, attempt)
+            add(layout, attempt, "random_pool")
             if len(layouts) == samples:
                 break
         if not layouts:
@@ -416,7 +512,159 @@ def _candidate_layouts(
     return layouts, tile_exponents, grammar_size
 
 
-def random_experiment_panel(
+def _component_family(name: str) -> str:
+    family, separator, scale = name.rpartition(".")
+    if not separator or not scale.endswith("B") or not scale[:-1].isdigit():
+        raise ValueError(f"invalid automatic component name {name!r}")
+    return family
+
+
+def _stratification_features(
+    candidates: Sequence[dict[str, object]], mode: str
+) -> tuple[str, ...]:
+    if mode not in STRATIFICATION_MODES:
+        raise ValueError(f"unknown stratification mode {mode!r}")
+    components = candidates[0]["score"]["components"]
+    names = []
+    for component in components:
+        name = str(component["name"])
+        issue = _component_family(name).startswith("issue.")
+        if mode == "issue" and not issue:
+            continue
+        if mode == "temporal" and issue:
+            continue
+        names.append(name)
+    if not names:
+        raise ValueError(f"automatic graph has no {mode} stratification features")
+    return tuple(names)
+
+
+def _amplification_cell(component: dict[str, object]) -> int:
+    bound = float(component["packing_lower_bound"])
+    if bound <= 0.0:
+        raise ValueError("stratification component has a nonpositive lower bound")
+    amplification = float(component["raw_region_count"]) / bound
+    return bisect_right(AMPLIFICATION_BREAKS, amplification)
+
+
+def _stratified_candidates(
+    candidates: Sequence[dict[str, object]], *, samples: int, mode: str
+) -> tuple[list[dict[str, object]], dict[str, object]]:
+    """Balance model-score amplification strata in every selected dimension."""
+
+    requested_features = _stratification_features(candidates, mode)
+    component_maps = [
+        {
+            str(component["name"]): component
+            for component in candidate["score"]["components"]
+        }
+        for candidate in candidates
+    ]
+    all_cells = [
+        tuple(_amplification_cell(components[name]) for name in requested_features)
+        for components in component_maps
+    ]
+    active_indices = tuple(
+        index
+        for index in range(len(requested_features))
+        if len({cells[index] for cells in all_cells}) > 1
+    )
+    features = tuple(requested_features[index] for index in active_indices)
+    cells = [tuple(row[index] for index in active_indices) for row in all_cells]
+    occupied = [
+        Counter(row[index] for row in cells)
+        for index in range(len(features))
+    ]
+
+    limit = min(samples, len(candidates))
+    anchor_indices = [
+        index
+        for index, candidate in enumerate(candidates)
+        if str(candidate["sampling_origin"]).endswith("_anchor")
+    ]
+    selected = anchor_indices[:limit]
+    remaining = set(range(len(candidates))) - set(selected)
+    counts = [Counter() for _ in features]
+
+    def include(index: int) -> None:
+        for dimension, cell in enumerate(cells[index]):
+            counts[dimension][cell] += 1
+
+    for index in selected:
+        include(index)
+
+    while len(selected) < limit:
+        if not features:
+            chosen = min(remaining)
+        else:
+            def priority(index: int):
+                balance = sum(
+                    1.0 / (1.0 + counts[dimension][cell])
+                    for dimension, cell in enumerate(cells[index])
+                )
+                rarity = sum(
+                    1.0 / occupied[dimension][cell]
+                    for dimension, cell in enumerate(cells[index])
+                )
+                return (balance, rarity, -index)
+
+            chosen = max(remaining, key=priority)
+        remaining.remove(chosen)
+        selected.append(chosen)
+        include(chosen)
+
+    result = []
+    for sample_index, pool_index in enumerate(selected, 1):
+        candidate = dict(candidates[pool_index])
+        candidate["candidate_pool_index"] = pool_index + 1
+        candidate["sample_index"] = sample_index
+        candidate["stratification"] = {
+            "mode": mode,
+            "selection_step": sample_index,
+            "cells": {
+                feature: cells[pool_index][index]
+                for index, feature in enumerate(features)
+            },
+        }
+        result.append(candidate)
+
+    metadata = {
+        "method": "balanced marginal amplification strata",
+        "mode": mode,
+        "amplification": "raw Q divided by the capacity-only packing bound",
+        "amplification_breaks": list(AMPLIFICATION_BREAKS),
+        "strata": (
+            "[1,1.5), [1.5,2), [2,4), [4,8), [8,infinity)"
+        ),
+        "requested_feature_count": len(requested_features),
+        "active_feature_count": len(features),
+        "active_features": list(features),
+        "invariant_or_single_stratum_features": sorted(
+            set(requested_features) - set(features)
+        ),
+        "anchor_policy": (
+            "include distinct row-major and column-major mappings for each "
+            "tile hypothesis before balancing the remaining marginal strata"
+        ),
+        "pool_marginal_stratum_counts": {
+            feature: {
+                str(cell): count
+                for cell, count in sorted(occupied[index].items())
+            }
+            for index, feature in enumerate(features)
+        },
+        "selected_marginal_stratum_counts": {
+            feature: {
+                str(cell): count
+                for cell, count in sorted(counts[index].items())
+            }
+            for index, feature in enumerate(features)
+        },
+    }
+    return result, metadata
+
+
+def stratified_experiment_panel(
     matrix,
     automatic_analysis,
     automatic_target_name: str,
@@ -426,25 +674,32 @@ def random_experiment_panel(
     samples: int,
     seed: int,
     platform: str,
+    stratification: str,
+    pool_multiplier: int,
 ) -> dict[str, object]:
-    """Build and score a reproducible random panel for experiment 1, 2, or 3."""
+    """Build a pre-counter stratified panel for experiment 1, 2, or 3."""
 
     if experiment not in (1, 2, 3):
-        raise ValueError("only final experiments 1--3 define random panels")
+        raise ValueError("only final experiments 1--3 define stratified panels")
+    if stratification not in STRATIFICATION_MODES:
+        raise ValueError(f"unknown stratification mode {stratification!r}")
+    if pool_multiplier <= 0:
+        raise ValueError("stratification pool multiplier must be positive")
     matrix, matrices, components, exposure, graph = _score_components(
         automatic_analysis, automatic_target_name
     )
     profile = counter_score_profile(
         platform, {component.name for component in components}
     )
+    requested_pool_count = samples * pool_multiplier
     layouts, tile_exponents, grammar_size = _candidate_layouts(
         matrix,
         tile_shapes,
         experiment=experiment,
-        samples=samples,
+        samples=requested_pool_count,
         seed=seed,
     )
-    candidates = [
+    pool = [
         _layout_record(
             matrix,
             matrices,
@@ -454,9 +709,13 @@ def random_experiment_panel(
             experiment=experiment,
             sample_index=index,
             sampling_attempt=attempt,
+            sampling_origin=origin,
         )
-        for index, (layout, attempt) in enumerate(layouts, 1)
+        for index, (layout, attempt, origin) in enumerate(layouts, 1)
     ]
+    candidates, stratification_record = _stratified_candidates(
+        pool, samples=samples, mode=stratification
+    )
     levels = sorted({candidate["j_area"] for candidate in candidates})
     for candidate in candidates:
         candidate["panel_rank"] = candidate["sample_index"]
@@ -469,29 +728,41 @@ def random_experiment_panel(
     }[experiment]
     distribution = {
         1: {
-            "layout": "uniform over distinct whole-tensor canonical words",
+            "candidate_pool": (
+                "uniform over distinct whole-tensor canonical words"
+            ),
         },
         2: {
-            "tile_shape": "uniform over kernel tile hypotheses",
-            "layout_given_tile": "uniform over distinct canonical words",
+            "candidate_pool_tile_shape": (
+                "uniform over kernel tile hypotheses"
+            ),
+            "candidate_pool_layout_given_tile": (
+                "uniform over distinct canonical words"
+            ),
         },
         3: {
-            "tile_shape": "uniform over kernel tile hypotheses",
-            "layout_given_tile": "uniform over GL(p,2)",
+            "candidate_pool_tile_shape": (
+                "uniform over kernel tile hypotheses"
+            ),
+            "candidate_pool_layout_given_tile": "uniform over GL(p,2)",
         },
     }[experiment]
     return {
-        "selection": "seeded random sampling without replacement",
-        "grouping": "none",
+        "selection": "pre-counter stratified sampling without replacement",
+        "grouping": f"stratified_{stratification}",
         "layout_grammar": grammar,
         "sampling_distribution": distribution,
+        "stratification": stratification_record,
         "random_seed": seed,
+        "candidate_pool_multiplier": pool_multiplier,
+        "requested_candidate_pool_count": requested_pool_count,
+        "realized_candidate_pool_count": len(pool),
         "requested_sample_count": samples,
         "realized_sample_count": len(candidates),
         "sample_shortfall": samples - len(candidates),
         "finite_grammar_size_before_mapping_deduplication": grammar_size,
         "sampling_attempt_count": max(
-            candidate["sampling_attempt"] for candidate in candidates
+            candidate["sampling_attempt"] for candidate in pool
         ),
         "outer_layout": "row_major_tiles",
         "fixed_outer_order": [
@@ -516,8 +787,106 @@ def random_experiment_panel(
             "dynamic_useful_byte_exposure": exposure,
             "active_tau": profile.active_weights,
             "counter_components": profile.counter_components,
+            "focus_counters": list(profile.focus_counters),
             "selection_score": "J_area",
             "component_model": graph,
         },
         "candidates": candidates,
     }
+
+
+def rescore_recorded_panel(
+    automatic_analysis,
+    automatic_target_name: str,
+    source_panel: dict[str, object],
+    *,
+    platform: str,
+    source_path: Path,
+) -> dict[str, object]:
+    """Rescore exactly the mappings in a saved experiment panel."""
+
+    from relay import LinearInnerLayout
+
+    matrix, matrices, components, exposure, graph = _score_components(
+        automatic_analysis, automatic_target_name
+    )
+    profile = counter_score_profile(
+        platform, {component.name for component in components}
+    )
+    old_candidates = source_panel.get("candidates")
+    if not isinstance(old_candidates, list) or not old_candidates:
+        raise ValueError("saved experiment panel has no candidates")
+
+    rescored = []
+    outer_order = tuple(reversed(range(matrix.rank)))
+    for index, old in enumerate(old_candidates, 1):
+        rows = tuple(int(value) for value in old["a_rows"])
+        layout = LinearInnerLayout(
+            name=str(old["layout"]),
+            matrix_name=matrix.name,
+            tile_exponents=tuple(matrix.mode_bits),
+            a_rows=rows,
+            outer_order=outer_order,
+        )
+        layout.validate(matrix)
+        score = _layout_record(
+            matrix,
+            matrices,
+            layout,
+            components,
+            profile,
+            experiment=int(str(source_panel["mode"])[len("experiment")]),
+            sample_index=int(old.get("sample_index", index)),
+            sampling_attempt=int(old.get("sampling_attempt", index)),
+            sampling_origin=str(old.get("sampling_origin", "recorded_panel")),
+        )
+        if score["mapping_id"] != old["mapping_id"]:
+            raise ValueError(
+                f"saved candidate {old['mapping_id']} reconstructed as "
+                f"{score['mapping_id']}"
+            )
+        candidate = dict(old)
+        for field in (
+            "quotient_score",
+            "fine_component",
+            "j_area",
+            "peak_normalized_excess",
+            "score",
+        ):
+            candidate[field] = score[field]
+        rescored.append(candidate)
+
+    levels = sorted({candidate["j_area"] for candidate in rescored})
+    for candidate in rescored:
+        candidate["j_area_rank"] = levels.index(candidate["j_area"]) + 1
+
+    panel = dict(source_panel)
+    panel.update(
+        {
+            "selection": (
+                "fixed recorded counter panel rescored without replacement"
+            ),
+            "j_area_levels": levels,
+            "unique_mapping_count": len(rescored),
+            "representative_count": len(rescored),
+            "score_profile": {
+                "profile_id": profile.profile_id,
+                "platform": profile.platform,
+                "native_first_level_bytes": profile.native_bytes,
+                "byte_scales": list(BYTE_SCALES),
+                "dynamic_useful_byte_exposure": exposure,
+                "active_tau": profile.active_weights,
+                "counter_components": profile.counter_components,
+                "focus_counters": list(profile.focus_counters),
+                "selection_score": "J_area",
+                "component_model": graph,
+            },
+            "rescore": {
+                "mapping_selection": "preserved exactly from saved panel",
+                "source": str(source_path.resolve()),
+                "profiler_measurements_reused": True,
+            },
+            "candidates": rescored,
+        }
+    )
+    return panel
