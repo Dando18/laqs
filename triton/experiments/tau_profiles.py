@@ -56,7 +56,11 @@ def load_hardware_profile(platform: str, path: Path, name: str | None = None):
         raise ValueError(f"{platform}/{selected} has a negative tau weight")
     return HardwareProfile(
         profile_id=str(record["profile_id"]),
-        device={"platform": platform, "tau_name": selected},
+        device={"platform": platform, "tau_name": selected,
+                "tau_semantics": "analytical expert weights" if selected == "expert" else
+                    "frozen pilot weight ablation; inspect training protocol and source before transferring",
+                "training_protocol": record.get("fit", {}).get("measurement_protocol", "legacy_v1"),
+                "training_source_hash": record.get("fit", {}).get("source_hash")},
         byte_scales=tuple(map(int, document["byte_scales"])),
         fine_component=str(record["fine_component"]),
         tau=tau,

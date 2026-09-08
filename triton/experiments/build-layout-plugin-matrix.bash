@@ -10,7 +10,7 @@ relay_search_commit="$(git -C triton/triton-lang rev-parse HEAD)"
 relay_search_short="${relay_search_commit:0:12}"
 relay_search_storage="${RELAY_TRITON_MATRIX_STORAGE:-/usr/WS1/${USER:?}/record-replay/relay/triton}"
 relay_search_build="${RELAY_TRITON_MATRIX_BUILD_DIR:-${relay_search_storage}/triton-lang-build-matrix-${relay_search_short}}"
-cmake --build "${relay_search_build}" --target LAQSTritonLayoutRewrite -j "${RELAY_TRITON_MATRIX_MAX_JOBS:-8}"
+cmake --build "${relay_search_build}" --target LAQSTritonAccessManifest LAQSTritonLayoutRewrite -j "${RELAY_TRITON_MATRIX_MAX_JOBS:-8}"
 
 triton/.venv-matrix/bin/python - <<'PY'
 from importlib import metadata

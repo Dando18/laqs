@@ -15,44 +15,7 @@ import triton
 import triton.language as tl
 
 
-@dataclass(frozen=True)
-class RuntimeLayout:
-    name: str
-    argument: int
-    shape: tuple[int, ...]
-    strides: tuple[int, ...]
-    envelope_shape: tuple[int, ...]
-    rows: tuple[int, ...]
-
-    def pass_argument(self) -> str:
-        fields = (
-            str(self.argument),
-            ",".join(map(str, self.shape)),
-            ",".join(map(str, self.strides)),
-            ",".join(map(str, self.rows)),
-        )
-        return "|".join(fields)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "name": self.name,
-            "argument": self.argument,
-            "shape": list(self.shape),
-            "strides": list(self.strides),
-            "envelope_shape": list(self.envelope_shape),
-            "rows": list(self.rows),
-        }
-
-    @classmethod
-    def from_dict(cls, value: Mapping[str, Any]) -> "RuntimeLayout":
-        return cls(
-            str(value["name"]),
-            int(value["argument"]),
-            tuple(map(int, value["shape"])),
-            tuple(map(int, value["strides"])),
-            tuple(map(int, value["envelope_shape"])),
-            tuple(map(int, value["rows"])),
-        )
+from layout_contract import RuntimeLayout
 
 
 def _plugin_path() -> Path:
@@ -81,6 +44,7 @@ def _plugin_path() -> Path:
 
 
 _LOADED: set[Path] = set()
+_PLUGIN_DIGESTS: dict[tuple, bytes] = {}
 
 
 @contextmanager
@@ -98,7 +62,10 @@ def rewrite_layouts(layouts: Sequence[RuntimeLayout]) -> Iterator[None]:
         passes.plugin.extend_with(str(path))
         _LOADED.add(path)
     arguments = [layout.pass_argument() for layout in layouts]
-    digest = hashlib.sha256(path.read_bytes() + "\0".join(arguments).encode()).hexdigest()
+    stamp = (path, path.stat().st_size, path.stat().st_mtime_ns)
+    if stamp not in _PLUGIN_DIGESTS:
+        _PLUGIN_DIGESTS[stamp] = hashlib.sha256(path.read_bytes()).digest()
+    digest = hashlib.sha256(_PLUGIN_DIGESTS[stamp] + "\0".join(arguments).encode()).hexdigest()
 
     def hook(pm=None):
         key = f"laqs-layout-rewrite-v1:{digest}"
@@ -229,5 +196,5 @@ def fresh_outputs(launch: FrozenLaunch, output_arguments: Sequence[int]) -> Froz
     for argument in output_arguments:
         value = result.values[argument]
         if isinstance(value, torch.Tensor):
-            result.values[argument] = torch.empty_like(value)
+            result.values[argument] = value.clone()
     return result

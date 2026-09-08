@@ -162,6 +162,7 @@ class Stage1Case:
     event_count: int
     access_count: int
     loop_site_count: int = 0
+    wave_operation_count: int = 0
 
 
 def _rows(name: str, shape: tuple[int, ...], modes: tuple[str, ...]) -> tuple[int, ...]:
@@ -365,13 +366,11 @@ def embedding_bag_case() -> Stage1Case:
 def gemm_prepacked_b_case() -> Stage1Case:
     constants = {"B_ROWS": _rows("b", (16, 16), ("k", "column")), "MODE_BITS": 4, "N": 16, "BLOCK_M": 16, "BLOCK_N": 16, "BLOCK_K": 16}
     tensors = _tensors((("a", (16, 16), FP32, None), ("b", (16, 16), FP32, None), ("c", (16, 16), FP32, None)))
-    # The post-coalesce blocked encoding assigns one consecutive four-row
-    # stripe to each wave. The trace keeps wave zero and multiplicity four.
-    stripe = _matrix_coords(range(4), range(16))
-    operations = (
-        _operation("a", "load", stripe),
-        _operation("b", "load", stripe),
-        _operation("c", "store", stripe),
+    # Four waves own disjoint four-row stripes. Workgroup scopes must union
+    # those owners once; lane/SIMD scopes still use four distinct wave streams.
+    operations = tuple(
+        _operation(array, kind, _matrix_coords(range(4 * wave, 4 * (wave + 1)), range(16)))
+        for wave in range(4) for array, kind in (("a", "load"), ("b", "load"), ("c", "store"))
     )
     return Stage1Case(
         gemm_prepacked_b_kernel,
@@ -379,9 +378,10 @@ def gemm_prepacked_b_case() -> Stage1Case:
         constants,
         (1, 1),
         tensors,
-        _single_trace(operations, multiplicity=4),
-        3,
-        192,
+        _single_trace(operations),
+        12,
+        768,
+        wave_operation_count=3,
     )
 
 
@@ -470,6 +470,8 @@ def _oracle_matrices(case: Stage1Case) -> tuple[MatrixSpec, ...]:
 def _oracle_site_and_phase(
     case: Stage1Case, operation_index: int
 ) -> tuple[str, str]:
+    if case.wave_operation_count:
+        operation_index %= case.wave_operation_count
     if case.loop_site_count and operation_index < len(case.traces[0].operations) - 1:
         site = operation_index % case.loop_site_count
         iteration = operation_index // case.loop_site_count
@@ -509,8 +511,8 @@ def _oracle_events(
                     metadata={
                         "block": 0,
                         "phase": phase,
-                        "step": operation_index,
-                        "wave": trace.wave,
+                        "step": operation_index % case.wave_operation_count if case.wave_operation_count else operation_index,
+                        "wave": operation_index // case.wave_operation_count if case.wave_operation_count else trace.wave,
                         "workgroup": workgroup,
                     },
                 )

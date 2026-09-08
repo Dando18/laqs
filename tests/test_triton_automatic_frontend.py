@@ -1053,5 +1053,30 @@ class LaunchWrapperTests(unittest.TestCase):
         self.assertEqual(analysis.bound_arguments["n"], 8)
 
 
+class ExactCompressionRepairTests(unittest.TestCase):
+    def test_aligned_matrix_launch_uses_exact_translation_proof(self):
+        args = bound_arguments(1024)
+        for key, value in tuple(args.items()):
+            if isinstance(value, FakeTensor):
+                args[key] = FakeTensor((128, 8), value.pointer)
+        analysis = analyze_compiled_manifest(None, vector_manifest(), (128,), args,
+            options=AnalysisOptions(limits=EvaluationLimits(max_trace_contexts=8)))
+        self.assertTrue(analysis.supported, analysis.unsupported)
+        self.assertEqual([s.weight for s in analysis.sequences], [128])
+        self.assertTrue(all(len(a.coord) == 2 for e in analysis.events for a in e.accesses))
+
+    def test_event_budget_counts_retained_classes_after_exact_compression(self):
+        # Disable the early affine proof with a finite nonlinear PID expression;
+        # exhaustively enumerate all contexts but retain only the two classes.
+        payload = vector_manifest()
+        payload["expressions"].append({"id": 7, "op": "urem", "type": "i32", "operands": [0, 1]})
+        payload["expressions"][2] = {"id": 2, "op": "mul", "type": "i32", "operands": [7, 1]}
+        analysis = analyze_compiled_manifest(None, payload, (32,), bound_arguments(256),
+            options=AnalysisOptions(limits=EvaluationLimits(max_trace_contexts=32, max_dynamic_events=4)))
+        self.assertTrue(analysis.supported, analysis.unsupported)
+        self.assertEqual(len(analysis.events), 2)
+        self.assertEqual(sum(s.weight for s in analysis.sequences), 32)
+
+
 if __name__ == "__main__":
     unittest.main()

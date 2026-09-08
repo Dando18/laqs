@@ -487,6 +487,7 @@ def _speedup_groups(results_root: Path, platform: str):
     """Build deduplicated measured-layout groups for the speedup objective."""
 
     grouped = defaultdict(list)
+    training_sources = set()
     baseline_ids = {}
     baseline_measurements = defaultdict(list)
     for path in _reports(results_root, platform):
@@ -505,10 +506,24 @@ def _speedup_groups(results_root: Path, platform: str):
                 if previous != observed:
                     raise ValueError(f"row-major mapping changed for {case}")
         for candidate in report["candidates"]:
-            steady = candidate.get("counters", {}).get("steady_state", {})
-            duration = steady.get("duration_ns")
+            timing = candidate.get("unprofiled_timing", {})
+            duration = timing.get("median_ns")
+            if candidate.get("complete") and (
+                timing.get("method") != "gpu_graph_replay"
+                or candidate.get("realization_protocol") != "post_coalescing_rewrite_v2"
+                or not timing.get("source_hash")
+            ):
+                raise ValueError(
+                    f"{platform}/{case}: speedup fitting requires new unprofiled graph timings "
+                    "and the experiment's post-coalescing realization; profiler duration is not a timing oracle"
+                )
             if not candidate.get("complete") or duration is None:
                 continue
+            if not math.isfinite(float(duration)) or float(duration) <= 0:
+                raise ValueError(f"invalid unprofiled duration for {platform}/{case}")
+            training_sources.add(timing["source_hash"])
+            if len(training_sources) != 1:
+                raise ValueError("pilot timing/feature sources changed within the fit")
             components = {
                 component["name"]: float(component["excess_footprint"])
                 for component in candidate["score"]["components"]
@@ -585,6 +600,7 @@ def _speedup_groups(results_root: Path, platform: str):
                 "experiment": experiment,
                 "case": case,
                 "baseline_mapping_id": baseline_id,
+                "source_hash": next(iter(training_sources)),
                 "baseline_duration_ns": float(local_baseline),
                 "mapping_ids": tuple(record["mapping_id"] for record in records),
                 "features": np.asarray(
@@ -743,12 +759,15 @@ def _fit_speedup_profile(
 
     objective, tau = best
     return {
-        "profile_id": f"pilot-{platform}-speedup-tau-v2",
+        "profile_id": f"pilot-{platform}-speedup-tau-v3",
         "name": "speedup",
         "fine_component": FINE_COMPONENT[platform],
         "active_tau": tau,
         "counter_components": dict(counter_components),
         "fit": {
+            "measurement_protocol": "post_coalescing_rewrite_v2",
+            "timing_method": "gpu_graph_replay",
+            "source_hash": groups[0]["source_hash"],
             "method": (
                 "one_hot_screen_then_pair_grid_and_greedy_mixture_search"
             ),

@@ -13,4 +13,4 @@ export TRITON_HOME="${RELAY_SEARCH_TUOLUMNE_CACHE_DIR:-${TMPDIR:-/tmp}/relay-sea
 export MPLCONFIGDIR="${RELAY_SEARCH_MPLCONFIGDIR:-${TMPDIR:-/tmp}/relay-search-matplotlib-${USER:?}}"
 unset CUDA_VISIBLE_DEVICES
 
-exec "${PWD}/triton/.venv/bin/python" triton/experiments/run-search.py "$@"
+exec "${PWD}/triton/.venv/bin/python" "${RELAY_SEARCH_DRIVER:-triton/experiments/run-search.py}" "$@"

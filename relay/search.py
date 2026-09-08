@@ -413,8 +413,14 @@ def search_canonical(
     *,
     candidates_per_tile: int = 8,
     stats_sink: list[SearchStats] | None = None,
+    required_prefix: tuple[int, ...] = (),
 ) -> list[LayoutSeed]:
     tile_bits = sum(tile_exponents)
+    if len(required_prefix) > tile_bits or any(
+        required_prefix.count(mode) > count
+        for mode, count in enumerate(tile_exponents)
+    ) or any(mode not in range(matrix.rank) for mode in required_prefix):
+        raise ValueError("required canonical prefix does not fit the tile")
     if tile_bits == 0:
         return []
     dimensions = _component_dimensions(matrix, components, tile_bits)
@@ -442,6 +448,8 @@ def search_canonical(
         for (_, _), paths in layer.items():
             for path in paths:
                 for mode, limit in enumerate(tile_exponents):
+                    if dimension < len(required_prefix) and mode != required_prefix[dimension]:
+                        continue
                     if path.counts[mode] >= limit:
                         continue
                     counts = list(path.counts)

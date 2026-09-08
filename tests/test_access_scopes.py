@@ -375,5 +375,22 @@ class UniversalAccessScopeTests(unittest.TestCase):
         )
 
 
+class WorkgroupOwnershipTests(unittest.TestCase):
+    def test_workgroup_union_does_not_merge_lane_streams_between_waves(self):
+        matrix = MatrixSpec("x", (8,), 4, ("i",), role="read")
+        events = [MemoryEvent.make(str(wave), "load", [Access("x", (wave,), lane=0)],
+            metadata={"wave": str(wave), "workgroup": "0", "step": "0", "phase": "0"})
+            for wave in range(2)]
+        sequence = EventSequence.make("workgroup", [e.id for e in events], weight=3)
+        families = {f.name: f for f in build_edge_families({"x": matrix}, {e.id: e for e in events}, (sequence,))}
+        workgroup = families["workgroup_step.stream.load"].edges_by_array["x"]
+        lane = families["lane_window.t4.stream.load"].edges_by_array["x"]
+        self.assertEqual(len(workgroup), 1)
+        self.assertEqual(len(workgroup[0].points), 2)
+        self.assertEqual(workgroup[0].weight, 3)
+        self.assertTrue(all(len(edge.points) == 1 for edge in lane))
+        self.assertEqual(sum(edge.weight for edge in lane), 6)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -530,7 +530,20 @@ def _sequence_edges(
     events: Mapping[str, MemoryEvent],
     sequences: Sequence[EventSequence],
 ) -> None:
+    wave_sequences = []
     for sequence in sequences:
+        waves = {}
+        for event_id in sequence.event_ids:
+            event = events[event_id]
+            waves.setdefault((event.meta("block", "0"), event.meta("wave", "0")), []).append(event_id)
+        if len(waves) == 1:
+            wave_sequences.append(sequence)
+            continue
+        for wave, event_ids in waves.items():
+            wave_sequences.append(EventSequence.make(
+                f"{sequence.name}:wave{wave}", event_ids, weight=sequence.weight,
+                metadata=dict(sequence.metadata)))
+    for sequence in wave_sequences:
         lane_streams: dict[tuple[str, str, str, int], list[_Occurrence]] = {}
 
         for event_id in sequence.event_ids:

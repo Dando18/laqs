@@ -53,6 +53,7 @@ def parse_arguments(argv=None):
     parser.add_argument("--profile-warmup", type=positive, default=5)
     parser.add_argument("--profile-iterations", type=positive, default=20)
     parser.add_argument("--no-profile", action="store_true")
+    parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--rerun", action="store_true")
     parser.add_argument("--worker", choices=("timing", "profile"))
     parser.add_argument("--layout", choices=("baseline", "selected"))
@@ -111,7 +112,28 @@ def _activate_triton_source(platform: str) -> None:
 def _selection(args) -> dict[str, Any]:
     if args.selection is None:
         raise ValueError("internal workers require --selection")
-    return json.loads(args.selection.read_text(encoding="utf-8"))
+    selection = json.loads(args.selection.read_text(encoding="utf-8"))
+    _verify_runtime(selection)
+    return selection
+
+
+def _verify_runtime(selection):
+    import hashlib
+    import torch
+    import triton
+    from relay.triton_frontend import _default_plugin_path
+    from layout_runtime import _plugin_path
+    from experiment_support import compiler_source_identity
+    expected = selection["capture_identity"]
+    if compiler_source_identity(triton.__file__) != expected["actual_triton_source"]:
+        raise ValueError("active Triton checkout changed after capture")
+    actual = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in (_default_plugin_path(), _plugin_path())}
+    if actual != expected["plugins"]:
+        raise ValueError("plugin binaries changed after capture")
+    if (torch.__version__ != expected["torch"] or triton.__version__ != expected["triton"]
+            or torch.cuda.get_device_name() != expected["gpu"]):
+        raise ValueError("GPU or compiler runtime changed after capture")
 
 
 def _runtime_layouts(selection):
@@ -135,14 +157,14 @@ def _prepared_launches(args, selection):
     return baseline, selected
 
 
-def _run(launch, layout: str, layouts) -> None:
+def _run(launch, layout: str, layouts):
     from layout_runtime import rewrite_layouts
 
     if layout == "selected":
         with rewrite_layouts(layouts):
-            launch.run()
+            return launch.run()
     else:
-        launch.run()
+        return launch.run()
 
 
 def _validate_outputs(baseline, selected, output_arguments) -> dict[str, Any]:
@@ -153,9 +175,8 @@ def _validate_outputs(baseline, selected, output_arguments) -> dict[str, Any]:
     for argument in output_arguments:
         expected = baseline.values[argument]
         observed = selected.values[argument]
-        close = torch.allclose(observed, expected, rtol=1e-2, atol=5e-2, equal_nan=True)
-        error = float((observed.float() - expected.float()).abs().max().item())
-        records.append({"argument": argument, "allclose": bool(close), "max_abs_error": error})
+        from reference_validation import comparison
+        records.append({"argument": argument, **comparison(observed, expected)})
     if not records or not all(record["allclose"] for record in records):
         raise RuntimeError(f"transformed layout failed numerical validation: {records}")
     return {"correct": True, "outputs": records}
@@ -177,36 +198,48 @@ def timing_worker(args) -> None:
         _run(selected, "selected", layouts)
     torch.cuda.synchronize()
 
-    samples = {"baseline": [], "selected": []}
-    launches = {"baseline": baseline, "selected": selected}
-    labels = ("baseline", "selected")
-    for sample in range(args.timing_samples):
-        order = (
-            labels
-            if (sample + args.timing_process_index) % 2 == 0
-            else tuple(reversed(labels))
-        )
-        for label in order:
-            from layout_runtime import rewrite_layouts
-
-            context = (
-                rewrite_layouts(layouts)
-                if label == "selected"
-                else nullcontext()
-            )
+    from layout_runtime import rewrite_layouts
+    from layout_runtime import fresh_outputs
+    identity = fresh_outputs(baseline, outputs)
+    launches = {"baseline": baseline, "selected": selected, "identity": identity}
+    graphs = {}
+    stream = torch.cuda.Stream()
+    stream.wait_stream(torch.cuda.current_stream())
+    with torch.cuda.stream(stream):
+        for label, launch in launches.items():
+            context = rewrite_layouts(layouts) if label == "selected" else nullcontext()
             with context:
-                start = torch.cuda.Event(enable_timing=True)
-                end = torch.cuda.Event(enable_timing=True)
-                start.record()
-                for _ in range(args.timing_iterations):
-                    launches[label].run()
-                end.record()
+                launch.run()
+                graph = torch.cuda.CUDAGraph()
+                with torch.cuda.graph(graph, stream=stream):
+                    for _ in range(args.timing_iterations):
+                        launch.run()
+                graphs[label] = graph
+    torch.cuda.current_stream().wait_stream(stream)
+    torch.cuda.synchronize()
+    for _ in range(args.timing_warmup):
+        for graph in graphs.values():
+            graph.replay()
+    torch.cuda.synchronize()
+    samples = {label: [] for label in graphs}
+    labels = tuple(graphs)
+    for sample in range(args.timing_samples):
+        rotation = (sample + args.timing_process_index) % len(labels)
+        order = labels[rotation:] + labels[:rotation]
+        if (sample + args.timing_process_index) % 2:
+            order = tuple(reversed(order))
+        for label in order:
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+            start.record()
+            graphs[label].replay()
+            end.record()
             end.synchronize()
-            samples[label].append(
-                float(start.elapsed_time(end)) / args.timing_iterations
-            )
+            samples[label].append(float(start.elapsed_time(end)) / args.timing_iterations)
     result = {
-        "schema": "relay.tritonbench.timing.v1",
+        "schema": "relay.tritonbench.timing.v2",
+        "selection_hash": selection["selection_hash"],
+        "method": "CUDA/HIP graph replay; warm cache; identity control",
         "process_index": args.timing_process_index,
         "configuration": {
             "warmup": args.timing_warmup,
@@ -281,7 +314,9 @@ def _run_timing_processes(args, case_root: Path, selection_path: Path):
     timing_dir.mkdir(parents=True, exist_ok=True)
     for index in range(args.timing_processes):
         output = timing_dir / f"process-{index}.json"
-        if args.rerun or not output.exists():
+        selection_hash = json.loads(selection_path.read_text())["selection_hash"]
+        reusable = (output.exists() and json.loads(output.read_text()).get("selection_hash") == selection_hash)
+        if args.rerun or not reusable:
             subprocess.run(
                 _worker_command(args, selection_path, worker="timing", output=output, process_index=index),
                 check=True, cwd=REPOSITORY,
@@ -301,8 +336,11 @@ def _profile_once(args, case_root: Path, selection_path: Path, kernel_name: str,
                   layout: str, launch: int):
     directory = case_root / "profiles" / layout / f"launch-{launch}"
     checkpoint = directory / "profile.json"
+    selection_hash = json.loads(selection_path.read_text())["selection_hash"]
     if checkpoint.exists() and not args.rerun:
-        return json.loads(checkpoint.read_text(encoding="utf-8"))
+        previous = json.loads(checkpoint.read_text(encoding="utf-8"))
+        if previous.get("selection_hash") == selection_hash:
+            return previous
     directory.mkdir(parents=True, exist_ok=True)
     worker_output = directory / "worker.json"
     raw = directory / "counters.csv"
@@ -337,7 +375,8 @@ def _profile_once(args, case_root: Path, selection_path: Path, kernel_name: str,
         counters = parse_counter_csv(raw, kernel_name=kernel_name,
                                      profile_iterations=args.profile_iterations)
     record = {
-        "schema": "relay.tritonbench.profile.v1", "layout": layout,
+        "schema": "relay.tritonbench.profile.v2", "layout": layout,
+        "selection_hash": selection_hash,
         "launch": launch, "kernel_name": kernel_name, "counters": counters,
         "command": command, "artifacts": {"raw_csv": str(raw), "worker": str(worker_output)},
     }
@@ -364,22 +403,8 @@ def _run_profiles(args, case_root: Path, selection_path: Path, kernel_name: str)
 
 
 def _timing_summary(records):
-    result = {}
-    for layout in ("baseline", "selected"):
-        values = [
-            value
-            for record in records
-            for value in record["timings"][layout]["samples_ms"]
-        ]
-        result[layout] = {
-            "median_ms": statistics.median(values),
-            "mean_ms": statistics.fmean(values),
-            "min_ms": min(values),
-            "samples_ms": values,
-        }
-    result["speedup"] = result["baseline"]["median_ms"] / result["selected"]["median_ms"]
-    result["processes"] = records
-    return result
+    from experiment_support import process_summary
+    return process_summary(records)
 
 
 def _counter_reductions(counters):
@@ -467,153 +492,135 @@ def _plot(path: Path, report):
 
 
 def orchestrate(args) -> None:
+    """Measure a selection prepared by the shared GPU-capture/CPU-search stages."""
     import torch
-    from relay import AnalysisOptions, EvaluationLimits, analyze_launch
-    from layout_runtime import freeze_launch, fresh_outputs, replace_inputs, unwrap_jit
-    from search_algorithms import load_tau_profile, select_layouts
+    from experiment_support import digest, source_identity, proposal_key
+    from layout_contract import compiler_statistics, realization_rejections
+    from reference_validation import operator_reference
 
+    if args.selection is None:
+        raise ValueError("prepare shared captures first with submit-experiments-4-6-<platform>.bash")
     case = _case(args)
     case_root = (args.results_root / f"experiment-{args.experiment}" / args.platform / case.case_id).resolve()
+    case_root.mkdir(parents=True, exist_ok=True)
     report_path = case_root / "report.json"
     selection_path = case_root / "selection.json"
-    plot_path = (args.plots_root / f"experiment-{args.experiment}" / args.platform / f"{case.case_id}.pdf").resolve()
-    profile = load_tau_profile(args.platform, args.tau_profile, args.tau_name)
+    proposed = json.loads(args.selection.read_text())
+    _verify_runtime(proposed)
+    if proposed["source_identity"]["source_hash"] != source_identity()["source_hash"]:
+        raise ValueError("sources changed after capture; submit a new suite")
+    for key, expected in (("experiment", args.experiment), ("tau_name", args.tau_name),
+                          ("platform", args.platform), ("operator", case.operator), ("config", case.config)):
+        if proposed[key] != expected:
+            raise ValueError(f"prepared selection mismatch: {key}")
+    fingerprint = digest({"proposal_hash": proposal_key(proposed),
+        "timing": [args.timing_processes, args.timing_warmup, args.timing_samples, args.timing_iterations],
+        "profiling": [args.no_profile, args.profile_launches, args.profile_warmup, args.profile_iterations]})
     if report_path.exists() and not args.rerun:
-        existing = json.loads(report_path.read_text(encoding="utf-8"))
-        if existing.get("status") in {"complete", "excluded"}:
-            if existing.get("tau_name") != args.tau_name:
-                raise RuntimeError(
-                    f"{report_path} belongs to tau {existing.get('tau_name')!r}, "
-                    f"not {args.tau_name!r}; use a tau-specific results root"
-                )
-            existing_profile = existing.get("hardware_profile", {})
-            if existing_profile and (
-                existing_profile.get("profile_id") != profile.profile_id
-                or existing_profile.get("tau") != dict(profile.tau)
-            ):
-                raise RuntimeError(
-                    f"{report_path} used an older {args.tau_name!r} profile; "
-                    "pass --rerun after confirming the replacement"
-                )
-            print(f"Reusing {existing['status']} result: {report_path}")
+        old = json.loads(report_path.read_text())
+        if old.get("run_hash") == fingerprint and (old.get("status") == "complete" or (args.validate_only and old.get("status") == "validated")):
+            print(f"Reusing {report_path}")
             return
-
-    spec = case.factory()
-    analysis_start = perf_counter()
-    analysis = analyze_launch(
-        spec.kernel, spec.grid, *spec.args,
-        _laqs_options=AnalysisOptions(
-            hardware_profile=profile,
-            limits=EvaluationLimits(
-                max_trace_contexts=1 << 16,
-                max_dynamic_events=1 << 20,
-            ),
-        ),
-        **spec.kwargs,
-    )
-    analysis_seconds = perf_counter() - analysis_start
-    if not analysis.supported:
-        report = {
-            "schema": "relay.tritonbench.search.v1", "experiment": args.experiment,
-            "platform": args.platform, "operator": case.operator, "config": case.config,
-            "description": case.description, "tau_name": args.tau_name,
-            "status": "excluded",
-            "hardware_profile": profile.to_dict(),
-            "exclusion": {"category": analysis.unsupported.category,
-                          "message": analysis.unsupported.message,
-                          "site": analysis.unsupported.site},
-            "analysis_seconds": analysis_seconds,
-        }
-        write_json(report_path, report)
-        _write_raw_csv(case_root / "raw-data.csv", report)
-        print(f"Excluded {case.case_id}: {analysis.unsupported.category}: {analysis.unsupported.message}")
-        return
-
-    try:
-        search_start = perf_counter()
-        runtime_layouts, search = select_layouts(analysis, args.experiment, profile)
-        search.setdefault("elapsed_seconds", perf_counter() - search_start)
-        argument_names = {
-            str(name): int(index)
-            for index, name in analysis.bound_arguments.get("__names__", {}).items()
-        }
-        outputs = sorted({
-            (
-                int(allocation.argument)
-                if isinstance(allocation.argument, int)
-                else argument_names[str(allocation.argument)]
-            )
-            for allocation in analysis.allocations
-            if allocation.role != "read"
-            and not allocation.path
-            and (
-                isinstance(allocation.argument, int)
-                or str(allocation.argument) in argument_names
-            )
-        })
-        frozen = freeze_launch(spec, analysis.selected_config)
-        baseline = fresh_outputs(frozen, outputs)
-        selected = fresh_outputs(replace_inputs(frozen, runtime_layouts), outputs)
-        _run(baseline, "baseline", runtime_layouts)
-        _run(selected, "selected", runtime_layouts)
-        validation = _validate_outputs(baseline, selected, outputs)
-    except Exception as error:
-        report = {
-            "schema": "relay.tritonbench.search.v1",
-            "experiment": args.experiment,
-            "platform": args.platform,
-            "operator": case.operator,
-            "config": case.config,
-            "description": case.description,
-            "tau_name": args.tau_name,
-            "status": "excluded",
-            "hardware_profile": profile.to_dict(),
-            "exclusion": {
-                "category": "search_or_realization",
-                "message": f"{type(error).__name__}: {error}",
-                "site": None,
-            },
-            "analysis_seconds": analysis_seconds,
-        }
-        write_json(report_path, report)
-        _write_raw_csv(case_root / "raw-data.csv", report)
-        print(f"Excluded {case.case_id}: {type(error).__name__}: {error}")
-        return
-    selection = {
-        "schema": "relay.tritonbench.selection.v1", "experiment": args.experiment,
+    report = {"schema": "relay.tritonbench.search.v2", "experiment": args.experiment,
         "platform": args.platform, "operator": case.operator, "config": case.config,
-        "selected_config": dict(analysis.selected_config),
-        "runtime_layouts": [layout.to_dict() for layout in runtime_layouts],
-        "output_arguments": outputs, "kernel_name": unwrap_jit(spec.kernel).fn.__name__,
-        "search": search, "validation": validation,
-    }
-    write_json(selection_path, selection)
-
-    del selected, baseline, frozen, analysis, spec
-    torch.cuda.empty_cache()
-    timing_records = _run_timing_processes(args, case_root, selection_path)
-    counters = None if args.no_profile else _run_profiles(
-        args, case_root, selection_path, selection["kernel_name"]
-    )
-    report = {
-        "schema": "relay.tritonbench.search.v1", "experiment": args.experiment,
-        "platform": args.platform, "operator": case.operator, "config": case.config,
-        "description": case.description, "status": "complete",
-        "analysis_seconds": analysis_seconds, "tau_name": args.tau_name,
-        "hardware_profile": profile.to_dict(),
-        "frozen_triton_config": selection["selected_config"], "search": search,
-        "validation": validation, "timing": _timing_summary(timing_records),
-        "counters": counters, "counter_reductions_percent": _counter_reductions(counters),
-        "artifacts": {"selection": str(selection_path), "raw_data": str(case_root / "raw-data.csv"),
-                      "plot": str(plot_path)},
-    }
+        "description": case.description, "tau_name": args.tau_name, "status": "running",
+        "run_hash": fingerprint, "source_identity": proposed["source_identity"],
+        "capture_identity": proposed["capture_identity"], "hardware_profile": proposed["hardware_profile"],
+        "capture_seconds": proposed["capture_seconds"],
+        "analysis_seconds": proposed["analysis_seconds"], "stage": "realization"}
     write_json(report_path, report)
-    _write_raw_csv(case_root / "raw-data.csv", report)
-    _plot(plot_path, report)
-    print(f"Completed Experiment {args.experiment}, {case.case_id}, {args.platform}")
-    print(f"Speedup: {report['timing']['speedup']:.3f}x")
-    print(f"Report: {report_path}")
-    print(f"Plot: {plot_path}")
+    setup = {}
+    selection = dict(proposed)
+    search = selection["search"]
+    try:
+        start = perf_counter()
+        baseline, selected = _prepared_launches(args, selection)
+        torch.cuda.synchronize()
+        setup["packing_and_allocation_seconds"] = perf_counter() - start
+        layouts = _runtime_layouts(selection)
+        start = perf_counter()
+        baseline_kernel = _run(baseline, "baseline", layouts)
+        compile_error = None
+        try:
+            selected_kernel = _run(selected, "selected", layouts)
+        except Exception as error:
+            if not layouts:
+                raise
+            compile_error = f"candidate compilation failed: {type(error).__name__}: {error}"
+            selected = baseline.clone()
+            selected_kernel = baseline_kernel
+        torch.cuda.synchronize()
+        setup["compilation_and_first_launch_seconds"] = perf_counter() - start
+        codegen = {"baseline": compiler_statistics(baseline_kernel, case_root / "codegen", "baseline"),
+                   "proposed": compiler_statistics(selected_kernel, case_root / "codegen", "proposed")}
+        reasons = ([compile_error] if compile_error else realization_rejections(codegen["baseline"], codegen["proposed"])) if layouts else []
+        start = perf_counter()
+        reference = operator_reference(case.operator, baseline)
+        try:
+            validation = _validate_outputs(baseline, selected, _output_arguments(selection))
+        except RuntimeError as error:
+            if not layouts:
+                raise
+            reasons.append(str(error))
+        if reasons:
+            selection["proposed_runtime_layouts"] = selection["runtime_layouts"]
+            selection["runtime_layouts"] = []
+            search["proposed_score"] = search["score"]
+            search["score"] = search["baseline_score"]
+            search["proposed_layouts"] = search["layouts"]
+            search["layouts"] = selection["baseline_layouts"]
+            search["proposed_transformed_array_count"] = search["transformed_array_count"]
+            search["transformed_array_count"] = 0
+            selected = baseline.clone()
+            _run(selected, "baseline", ())
+            validation = _validate_outputs(baseline, selected, _output_arguments(selection))
+        validation["operator_reference"] = reference
+        setup["validation_seconds"] = perf_counter() - start
+        selection["realization"] = {"accepted": not reasons, "rejections": reasons, "codegen": codegen}
+        selection["validation"] = validation
+        selection["selection_hash"] = digest({"run_hash": fingerprint, "layouts": selection["runtime_layouts"],
+            "codegen": {label: {"statistics": {k: v for k, v in c.items() if k != "artifacts"},
+                                  "artifact_hashes": {kind: a["sha256"] for kind, a in c["artifacts"].items()}}
+                        for label, c in codegen.items()}})
+        write_json(selection_path, selection)
+        if args.validate_only:
+            report.update(status="validated", stage="validated", search=search,
+                validation=validation, realization=selection["realization"], setup=setup,
+                frozen_triton_config=selection["selected_config"])
+            write_json(report_path, report)
+            print(f"Preflight passed E{args.experiment} {case.case_id} {args.tau_name}")
+            return
+        del selected, baseline, baseline_kernel, selected_kernel
+        torch.cuda.empty_cache()
+        report["stage"] = "timing"
+        write_json(report_path, report)
+        timing = _timing_summary(_run_timing_processes(args, case_root, selection_path))
+        report["stage"] = "profiling"
+        write_json(report_path, report)
+        counters = None if args.no_profile else _run_profiles(args, case_root, selection_path, selection["kernel_name"])
+        plot_path = (args.plots_root / f"experiment-{args.experiment}" / args.platform / f"{case.case_id}.pdf").resolve()
+        saved_ms = timing["baseline"]["median_ms"] - timing["selected"]["median_ms"]
+        report.update({"status": "complete", "stage": "complete", "search": search,
+            "frozen_triton_config": selection["selected_config"], "validation": validation,
+            "realization": selection["realization"], "setup": setup,
+            "packing_break_even_reuses_upper_bound": (
+                int(setup["packing_and_allocation_seconds"] * 1000 / saved_ms) + 1
+                if saved_ms > 0 and selection["runtime_layouts"] else None),
+            "timing": timing, "counters": counters,
+            "credible_speedup": bool(selection["runtime_layouts"] and timing["speedup_ci95"]
+                and timing["speedup_ci95"][0] > 1.01 and timing["identity_max_deviation"] <= .01),
+            "counter_reductions_percent": _counter_reductions(counters),
+            "artifacts": {"selection": str(selection_path), "plot": str(plot_path)}})
+        write_json(report_path, report)
+        _write_raw_csv(case_root / "raw-data.csv", report)
+        _plot(plot_path, report)
+        print(f"Completed E{args.experiment} {case.case_id} {args.tau_name}: {timing['speedup']:.3f}x")
+    except Exception as error:
+        report.update({"status": "failed", "exclusion": {"category": report["stage"],
+                       "message": f"{type(error).__name__}: {error}"}})
+        write_json(report_path, report)
+        _write_raw_csv(case_root / "raw-data.csv", report)
+        raise
 
 
 def main() -> None:

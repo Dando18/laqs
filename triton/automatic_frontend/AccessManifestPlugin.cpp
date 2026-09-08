@@ -188,7 +188,7 @@ std::optional<StringRef> canonicalExpressionName(StringRef name) {
 }
 
 bool preservesPointerProvenance(StringRef name) {
-  return name == "tt.splat" || name == "tt.broadcast" ||
+  return name == "tt.bitcast" || name == "tt.splat" || name == "tt.broadcast" ||
          name == "tt.expand_dims" || name == "tt.reshape" ||
          name == "tt.trans" || name == "ttg.convert_layout" ||
          name == "builtin.unrealized_conversion_cast";
@@ -590,13 +590,21 @@ private:
             operands, {}, definition->getLoc(), shapeRef(value.getType()));
       }
     } else if (preservesPointerProvenance(name)) {
+      if (name == "tt.bitcast") {
+        Type source = elementType(definition->getOperand(0).getType());
+        Type target = elementType(value.getType());
+        if ((source.getIntOrFloatBitWidth() + 7) / 8 !=
+            (target.getIntOrFloatBitWidth() + 7) / 8)
+          addDiagnostic("unsupported.pointer_bitcast_width",
+                        "pointer bitcast changes the storage element width", useLocation);
+      }
       auto canonical = canonicalExpressionName(name);
       if (!canonical)
         canonical = StringRef("convert_layout");
       int64_t operand = pointerOffset(definition->getOperand(0), useLocation);
       if (zeroExpressions.contains(operand)) {
         result = operand;
-      } else if (name == "ttg.convert_layout" ||
+      } else if (name == "tt.bitcast" || name == "ttg.convert_layout" ||
                  name == "builtin.unrealized_conversion_cast") {
         result = operand;
       } else {
@@ -851,9 +859,18 @@ private:
   llvm::json::Object serializeIssue(Operation *operation, Value address,
                                     Type distributedType) {
     llvm::json::Object issue;
-    issue["partition"] = "conservative_register_slices";
-    issue["register_slice_elements"] = 1;
-    issue["register_slice_size"] = 1;
+    issue["partition"] = "post_coalescing_vector_accesses_v2";
+    unsigned vectorElements = 1;
+    if (address && isa<RankedTensorType>(address.getType()) &&
+        isPointerLike(address.getType())) {
+      unsigned bits = std::max(8u, elementType(address.getType()).getIntOrFloatBitWidth());
+      vectorElements = std::min(128u / bits, axisInfo.getContiguity(address));
+      if (auto predicated = dyn_cast<PredicatedOpInterface>(operation))
+        if (Value mask = predicated.getPredicateOperand())
+          vectorElements = std::min(vectorElements, axisInfo.getMaskAlignment(mask));
+    }
+    issue["register_slice_elements"] = std::max(1u, vectorElements);
+    issue["register_slice_size"] = std::max(1u, vectorElements);
     issue["common_parent_operation"] = siteIds.lookup(operation);
 
     if (auto tensor = dyn_cast<RankedTensorType>(distributedType)) {

@@ -1432,6 +1432,7 @@ class _TraceState:
     events: list[MemoryEvent]
     variables: dict[str, RuntimeValue] = field(default_factory=dict)
     phase_counter: int = 0
+    operation_counter: int = 0
     dynamic_events: int = 0
     shared_expression_cache: dict[int, RuntimeValue] = field(default_factory=dict)
     _evaluator: ExpressionEvaluator | None = field(default=None, init=False)
@@ -1604,7 +1605,9 @@ def _memory_events(node: ManifestMemory, state: _TraceState, structural_phase: s
             "workgroup": ".".join(str(value) for value in state.pid),
             "wave": str(state.wave),
             "block": str(state.block),
-            "step": str(order),
+            "step": str(state.operation_counter),
+            "operation_instance": str(state.operation_counter),
+            "vector_elements": str(len(registers)),
             "phase": f"{structural_phase}.sync{state.phase_counter}",
             "issue_slice": str(slice_index),
         }
@@ -1627,6 +1630,7 @@ def _execute_nodes(nodes: Sequence[ManifestNode], state: _TraceState, path: tupl
             if state.dynamic_events > state.limits.max_dynamic_events:
                 raise UnsupportedTritonAnalysis("enumeration_bound", f"dynamic event count exceeds exact bound {state.limits.max_dynamic_events}", site=node.site_id)
             state.events.extend(events)
+            state.operation_counter += 1
         elif isinstance(node, ManifestBarrier):
             state.phase_counter += 1
         elif isinstance(node, ManifestIf):
@@ -1694,7 +1698,7 @@ def _sequence_signature(
             )
             for access in event.accesses
         )
-        signature.append((event.site, event.group.split(".w", 1)[0], accesses, metadata))
+        signature.append((event.site, event.group, accesses, metadata))
     return tuple(signature)
 
 
@@ -2062,7 +2066,10 @@ def _translation_launch_classes(
     if any(not isinstance(node, (ManifestMemory, ManifestBarrier)) for node in nodes):
         return None
     memories = tuple(node for node in nodes if isinstance(node, ManifestMemory))
-    if not memories or any(len(allocation.true_shape) != 1 for allocation in allocations):
+    if not memories or any(
+        len(a.true_shape) > 1 and a.true_shape != a.envelope_shape
+        for a in allocations
+    ):
         return None
     expressions = manifest.expression_map
     if any(
@@ -2106,17 +2113,19 @@ def _translation_launch_classes(
         if len(differences) != 1:
             return None
         stride = next(iter(differences))
-        if stride <= 0 or stride & (stride - 1):
+        if stride < 0 or stride & (stride - 1):
             return None
-        if max(first) - min(first) >= stride or min(first) < 0:
+        if (stride and max(first) - min(first) >= stride) or min(first) < 0:
             return None
         base_key = (node.base_arg, node.base_path)
         existing = stride_by_base.setdefault(base_key, stride)
         if existing != stride:
             return None
         offsets_by_base.setdefault(base_key, []).extend(first)
-        if node.mask is None:
+        if node.mask is None or not _depends_on_program_id(node.mask, expressions):
             continue
+        if stride == 0:
+            return None
         mask_expression = expressions[
             _unwrap_predicate_expression(node.mask, expressions)
         ]
@@ -2157,7 +2166,7 @@ def _translation_launch_classes(
         )
     for base_key, offsets in offsets_by_base.items():
         stride = stride_by_base[base_key]
-        if len({offset // stride for offset in offsets}) != 1:
+        if stride and len({offset // stride for offset in offsets}) != 1:
             return None
     ordered = sorted(breakpoints)
     classes = []
@@ -2268,16 +2277,17 @@ def evaluate_manifest(
         if len(launch_classes) * max_blocks * max_waves > limits.max_trace_contexts:
             raise UnsupportedTritonAnalysis("enumeration_bound", "aligned-translation trace classes still exceed the exact context bound")
     readonly = _readonly_launch_tensors(allocations, arguments)
-    concrete = []
-    total_events = 0
+    concrete = {}
+    retained_events = 0
     shared_expression_cache: dict[int, RuntimeValue] = {}
     pid_classes = (
-        tuple((pid, 1) for pid in _grid_points(normalized_grid))
+        ((pid, 1) for pid in _grid_points(normalized_grid))
         if launch_classes is None
         else launch_classes
     )
     for pid, multiplicity in pid_classes:
         for block in range(max_blocks):
+            workgroup_events = []
             for wave in range(max_waves):
                 state = _TraceState(
                     manifest,
@@ -2293,20 +2303,22 @@ def evaluate_manifest(
                     shared_expression_cache=shared_expression_cache,
                 )
                 _execute_nodes(manifest.body, state)
-                total_events += len(state.events)
-                if total_events > limits.max_dynamic_events:
-                    raise UnsupportedTritonAnalysis("enumeration_bound", f"launch dynamic event count exceeds exact bound {limits.max_dynamic_events}")
-                concrete.append(
-                    _ConcreteSequence(
-                        state.events,
-                        pid,
-                        block,
-                        wave,
-                        multiplicity,
-                    )
-                )
+                workgroup_events.extend(state.events)
+            # Temporal lane/SIMD scopes split this workgroup into wave streams;
+            # workgroup scopes union every owner of the same dynamic operation.
+            sequence = _ConcreteSequence(workgroup_events, pid, block, 0, multiplicity)
+            signature = _sequence_signature(sequence, matrix_map,
+                normalize_translations=not preserve_resource_anchors)
+            if signature in concrete:
+                concrete[signature].multiplicity += multiplicity
+            else:
+                retained_events += len(workgroup_events)
+                if retained_events > limits.max_dynamic_events:
+                    raise UnsupportedTritonAnalysis("enumeration_bound",
+                        f"retained exact trace classes exceed {limits.max_dynamic_events} events")
+                concrete[signature] = sequence
     events, sequences = _compress_sequences(
-        concrete,
+        tuple(concrete.values()),
         matrix_map,
         normalize_translations=not preserve_resource_anchors,
     )
@@ -2315,6 +2327,8 @@ def evaluate_manifest(
 
 @dataclass(frozen=True)
 class AnalysisOptions:
+    evaluate: bool = True
+    require_native_baseline: bool = False
     plugin_path: str | os.PathLike[str] | None = None
     hardware_profile: HardwareProfile | None = None
     limits: EvaluationLimits = field(default_factory=EvaluationLimits)
@@ -2584,6 +2598,28 @@ def _manifest_compilation(plugin_path: str | os.PathLike[str] | None) -> Iterato
         yield
 
 
+def _native_row_major_score_equivalent(allocation: AllocationMetadata, byte_scales: Sequence[int]) -> bool:
+    """Prove ordinary pitches and envelope pitches induce the same regions.
+
+    Identical strides are sufficient. Otherwise every row must start on every
+    modeled region boundary. Regions then partition points by outer coordinate
+    and floor(inner-coordinate/capacity), independent of the row pitch.
+    """
+    if byte_scales and getattr(allocation, "base_pointer", 0) % max(byte_scales):
+        return False
+    stride = 1
+    expected = []
+    for extent in reversed(allocation.envelope_shape):
+        expected.append(stride)
+        stride *= extent
+    if allocation.strides == tuple(reversed(expected)):
+        return True
+    return (bool(byte_scales) and allocation.dense_status == "dense"
+            and allocation.strides[-1] == 1
+            and all(stride * allocation.element_bytes % scale == 0
+                    for stride in allocation.strides[:-1] for scale in byte_scales))
+
+
 def analyze_compiled_manifest(
     compiled_kernel: Any,
     manifest_payload: str | bytes | Mapping[str, Any],
@@ -2607,6 +2643,14 @@ def analyze_compiled_manifest(
                 and options.hardware_profile.resource_maps
             ),
         )
+        if options.require_native_baseline:
+            scales = options.hardware_profile.byte_scales if options.hardware_profile is not None else ()
+            native = {a.name: _native_row_major_score_equivalent(a, scales) for a in allocations}
+            matrices = tuple(replace(matrix, target=matrix.target and native[matrix.name])
+                             for matrix in matrices)
+            if not any(matrix.target for matrix in matrices):
+                raise UnsupportedTritonAnalysis("native_baseline",
+                    "no eligible operand has a proved ordinary region partition in its logical-bit envelope")
         matrix_map = {matrix.name: matrix for matrix in matrices}
         event_map = {event.id: event for event in events}
         families = build_edge_families(matrix_map, event_map, sequences)
@@ -2723,6 +2767,10 @@ def analyze_launch(kernel: Any, grid: Any, *args: Any, _laqs_options: AnalysisOp
         )
         if payload is None:
             raise UnsupportedTritonAnalysis("manifest_missing", f"CompiledKernel.metadata has no {MANIFEST_METADATA_KEY!r}")
+        if not options.evaluate:
+            return TritonLaunchAnalysis(True, compiled_kernel=compiled,
+                manifest=parse_access_manifest(payload), grid=resolved_grid,
+                bound_arguments=bound, selected_config=selected)
         return analyze_compiled_manifest(compiled, payload, resolved_grid, bound, selected_config=selected, options=options)
     except UnsupportedTritonAnalysis as error:
         return TritonLaunchAnalysis(False, compiled_kernel=compiled, grid=resolved_grid, bound_arguments=MappingProxyType(dict(bound)), selected_config=MappingProxyType(dict(selected)), unsupported=UnsupportedReason(error.category, str(error), error.site))

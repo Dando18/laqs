@@ -14,4 +14,4 @@ export TRITON_HOME="${RELAY_SEARCH_MATRIX_CACHE_DIR:-${TMPDIR:-/tmp}/relay-searc
 export MPLCONFIGDIR="${RELAY_SEARCH_MPLCONFIGDIR:-${TMPDIR:-/tmp}/relay-search-matplotlib-${USER:?}}"
 unset ROCR_VISIBLE_DEVICES GPU_DEVICE_ORDINAL HIP_VISIBLE_DEVICES
 
-exec "${PWD}/triton/.venv-matrix/bin/python" triton/experiments/run-search.py "$@"
+exec "${PWD}/triton/.venv-matrix/bin/python" "${RELAY_SEARCH_DRIVER:-triton/experiments/run-search.py}" "$@"

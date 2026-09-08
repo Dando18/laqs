@@ -79,7 +79,7 @@ LayoutSpec parseSpec(StringRef text) {
 }
 
 bool preservesPointerProvenance(StringRef name) {
-  return name == "tt.splat" || name == "tt.broadcast" ||
+  return name == "tt.bitcast" || name == "tt.splat" || name == "tt.broadcast" ||
          name == "tt.expand_dims" || name == "tt.reshape" ||
          name == "tt.trans" || name == "ttg.convert_layout" ||
          name == "builtin.unrealized_conversion_cast";
@@ -146,7 +146,10 @@ Type i64Like(OpBuilder &builder, Type type) {
 
 Value constantLike(OpBuilder &builder, Location location, Type type,
                    uint64_t value) {
-  auto scalar = builder.getIntegerAttr(builder.getI64Type(), value);
+  Type scalarType = type;
+  if (auto tensor = dyn_cast<RankedTensorType>(type))
+    scalarType = tensor.getElementType();
+  auto scalar = builder.getIntegerAttr(scalarType, value);
   if (auto tensor = dyn_cast<RankedTensorType>(type))
     return arith::ConstantOp::create(builder, location,
                                      SplatElementsAttr::get(tensor, scalar));
@@ -371,8 +374,17 @@ public:
       Type pointerType = load.getPtr().getType();
       Type integerType = i64Like(builder, pointerType);
       Value baseLike = base;
+      Type scalarPointerType = pointerType;
       if (auto tensor = dyn_cast<RankedTensorType>(pointerType))
-        baseLike = SplatOp::create(builder, location, tensor, base);
+        scalarPointerType = tensor.getElementType();
+      auto loadPointer = cast<PointerType>(scalarPointerType);
+      unsigned loadBytes = (loadPointer.getPointeeType().getIntOrFloatBitWidth() + 7) / 8;
+      if (loadBytes != elementBytes)
+        llvm::report_fatal_error("LAQS pointer bitcast changes storage element width");
+      if (baseLike.getType() != scalarPointerType)
+        baseLike = BitcastOp::create(builder, location, scalarPointerType, baseLike);
+      if (auto tensor = dyn_cast<RankedTensorType>(pointerType))
+        baseLike = SplatOp::create(builder, location, tensor, baseLike);
       Value address =
           PtrToIntOp::create(builder, location, integerType, load.getPtr());
       Value baseAddress =
@@ -387,6 +399,14 @@ public:
         elementOffset = arith::ShRUIOp::create(
             builder, location, byteOffset,
             constantLike(builder, location, integerType, byteShift));
+      }
+      // The complete packed allocation fits signed 32-bit element addressing.
+      // Narrow after recovering the offset, before coordinate/bit arithmetic.
+      if (found->second.rows.size() < 31) {
+        Type narrowType = builder.getI32Type();
+        if (auto tensor = dyn_cast<RankedTensorType>(integerType))
+          narrowType = RankedTensorType::get(tensor.getShape(), builder.getI32Type(), tensor.getEncoding());
+        elementOffset = arith::TruncIOp::create(builder, location, narrowType, elementOffset);
       }
       Value offset =
           physicalOffset(builder, location, elementOffset, found->second);

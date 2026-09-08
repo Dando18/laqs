@@ -189,116 +189,142 @@ Python environment.
 
 ## TritonBench searches (Experiments 4--6)
 
-These experiments use the 15-operator, 29-configuration broad portable panel
-specified in `notes/final-experiments.md`. Each configuration is an independent
-job. An ordinary Triton launch first selects and freezes its native autotune
-configuration and produces the exact automatic access trace. Experiment 4
-runs the exact count-grid DP over whole-tensor `G_C`; Experiment 5 runs the
-same DP over the largest natural single-operation access tile; Experiment 6
-runs the exact `G_OC` search with at most four inner bits and its canonical
-outer DP. All eligible read-only ordinary-dense inputs are selected jointly
-under the platform's frozen `J_area` profile. Exact score ties keep the
-ordinary row-major layout.
+The repaired protocol evaluates all 29 configurations from 15 operator families.
+It keeps the actual ordinary mapping on ties or score regressions, protects
+native vector bits, and requires a 1% predicted benefit with no growth in
+native-issue region counts. Final assembly must preserve memory and matrix
+instruction forms and execution encodings, add no registers/spills/shared
+memory, and stay within a declared 10% static instruction-count budget.
+Compilation or numerical failures of a proposed layout cause an ordinary-layout
+fallback; failures of the native operator reference remain failed cases.
+These are conservative admission rules, not a guarantee of faster execution.
 
-The selected persistent layouts are realized by
-`libLAQSTritonLayoutRewrite.so`. This is a separate post-coalescing compiler
-pass: it neither replaces nor changes `libLAQSTritonAccessManifest.so`, so
-building it does not change the frontend or commands used by queued
-Experiments 1--3. Canonical matrix rows are recognized as one-hot bit runs and
-lowered to masks, shifts, and ORs without XORs. Dense power-of-two tensors are
-rewritten directly from their flat element offsets. For `G_OC`, only genuinely
-multi-source inner rows emit XORs; one-hot inner rows and the canonical outer
-layout use the same bit-run lowering. Build just this new target once on each
-platform:
+Experiment 4 uses whole-tensor canonical DP. Experiment 5 derives natural tiles
+by unioning register slices and waves of a dynamic parent operation and
+using its aligned dyadic enclosing footprint. Experiment 6
+uses scalar bounded `G_OC` selection and a declared one-swap/one-XOR extension
+above protected vector bits. It skips inner maps invisible to all active byte
+scales. It does not build a joint Pareto frontier or claim an unrestricted
+`G_OC` optimum. Full baseline and selected component vectors are saved.
 
-```bash
-# On Tuolumne
-triton/experiments/build-layout-plugin-tuolumne.bash
-
-# On Matrix
-triton/experiments/build-layout-plugin-matrix.bash
-```
-
-Then submit the three stages from the repository root:
+Run **one command on each platform**, from the repository root:
 
 ```bash
 # Tuolumne / MI300A
-triton/experiments/submit-experiment-4-tuolumne.bash
-triton/experiments/submit-experiment-5-tuolumne.bash
-triton/experiments/submit-experiment-6-tuolumne.bash
+triton/experiments/submit-experiments-4-6-tuolumne.bash
 
 # Matrix / H100
-triton/experiments/submit-experiment-4-matrix.bash
-triton/experiments/submit-experiment-5-matrix.bash
-triton/experiments/submit-experiment-6-matrix.bash
+triton/experiments/submit-experiments-4-6-matrix.bash
 ```
 
-Each submission launches 87 jobs: 29 configurations under each of `expert`,
-`l1_to_l2`, and `speedup`. Set `RELAY_FINAL_TAU_NAMES` to retry only selected
-profiles. Defaults are intentionally queue-friendly: Experiments 4
-and 5 request 1 hour on Tuolumne and 45 minutes on Matrix; Experiment 6
-requests 90 minutes and 1 hour, respectively. Override them only if observed
-runtimes warrant it:
+Each command builds **both** compiler plugins and submits a dependency graph:
+
+1. One GPU capture and independent operator-reference check per case. This
+   freezes native autotuning and compiler defaults for every grammar and tau.
+2. One CPU job per case constructs the exact graph once and performs all nine
+   selections. Trace compression is online over complete workgroups; regular
+   aligned matrix launches also use proved translation classes. More general
+   loops and ragged launches still require bounded exact enumeration.
+3. GPU preflight compiles, checks outputs, and applies the compiler contract to
+   every selected cell. Both accepted and rejected code are saved.
+4. After that device's complete preflight, GPU jobs collect timings and counters.
+   A CPU summary reports device-specific and common-panel results, including
+   every missing or failed configuration.
+
+There are 118 jobs per platform: 29 captures, 29 CPU searches, 29 GPU preflights,
+29 GPU measurements, and two CPU summaries. Each GPU job uses one task and one
+GPU. Default user-submitted limits are 1h for capture, 4h for CPU search, 2h for
+preflight validation, and 4h for measurement. They are limits, not predicted
+costs. Inspect the submission without allocating resources:
 
 ```bash
-RELAY_SEARCH_TUOLUMNE_TIME_E6=2h
-RELAY_SEARCH_MATRIX_TIME_E4=01:00:00
-RELAY_SEARCH_MATRIX_TIME_E6=01:30:00
-RELAY_SEARCH_TUOLUMNE_QUEUE=pbatch
-RELAY_SEARCH_MATRIX_PARTITION=pbatch
-RELAY_FINAL_TAU_NAMES="l1_to_l2 speedup"
+.venv/bin/python triton/experiments/submit-search-suite.py \
+  --platform tuolumne --dry-run
 ```
 
-Use `RELAY_SEARCH_CASES` for a smoke test or targeted retry. Extra arguments
-are forwarded to every job:
+Use `--suite-root /path/on/shared/storage` to choose an output directory. The
+default is `triton/experiments/results/search-v2`, preserving the old data.
+A short user-submitted diagnostic is:
 
 ```bash
-RELAY_SEARCH_CASES="vector_add--small softmax--small" \
-  triton/experiments/submit-experiment-4-tuolumne.bash \
-  --timing-processes 1 --timing-samples 3 --timing-iterations 10 \
-  --profile-launches 1 --profile-iterations 5
+triton/experiments/submit-experiments-4-6-tuolumne.bash \
+  --cases vector_add--small low_mem_dropout--small softmax--small \
+  --tau-names expert --no-profile \
+  --timing-processes 3 --timing-samples 7 --timing-iterations 20
 ```
 
-The full protocol uses three fresh timing processes, 10 warm-ups, and 21
-samples of 50 launches. Counter collection is separate for ordinary and
-selected layouts, with three profiler processes per layout, five warm-ups,
-and 20 measured dispatches. Packing, analysis, autotuning, compilation, and
-search are outside timed regions; their elapsed times remain in `report.json`.
-Unsupported traces and failed portability gates are recorded as exclusions
-rather than silently replaced.
+`RELAY_SEARCH_TUOLUMNE_QUEUE` and `RELAY_SEARCH_MATRIX_PARTITION` default to
+`pbatch`. `RELAY_SEARCH_TIME_CAPTURE`, `_SEARCH`, `_VALIDATE`, and `_MEASURE`
+accept integral `h` or `m` durations. `RELAY_SEARCH_CASES` and
+`RELAY_FINAL_TAU_NAMES` remain available. Prefer the combined command to three
+separate submissions so capture and graph jobs are not duplicated concurrently.
+The single-experiment wrappers use this same staged workflow.
 
-Per-configuration outputs are:
+The timing protocol uses three fresh processes, GPU graph replay with 50
+captured dispatches, 10 warm-up rounds, and 21 samples. Each process includes an
+ordinary-identity control. The reported speedup is the geometric mean of the
+three paired process-median ratios; its 95% interval uses independent processes,
+not the correlated samples within a process. Counter collection remains separate:
+three profiler launches per layout, five warm-ups and 20 retained dispatches.
+Packing, compilation, references, search, and graph capture are outside timing.
+Setup times and a conservative packing/allocation amortization bound are saved.
+
+The weight maps in `tau-profiles.json` are intentionally frozen. `expert` is
+analytical; the other two maps are **legacy pilot-weight ablations**, not new
+speedup/counter fits for this protocol. Reports carry that distinction. The
+speedup fitter now rejects profiler durations and requires unprofiled graph
+measurements with the same realization and source provenance. New calibration
+requires new independent pilot data; no evaluation timing feeds selection.
+
+Artifacts are stored as follows:
 
 ```text
-results/tau-profiles/<expert|l1_to_l2|speedup>/
-  experiment-<4|5|6>/<platform>/<operator>--<config>/
-  selection.json
-  report.json
-  raw-data.csv
-  timings/process-<n>.json
-  profiles/<baseline|selected>/launch-<n>/
-    counters.csv
-    profile.json
+results/search-v2/
+  shared/<platform>/
+    submission.json                  scheduler IDs and commands
+    preflight.json                   all cases, statuses, reserve inventory
+    <case>/capture.json              seed, input probes, GPU/runtime/plugin hashes
+    <case>/capture.pkl.gz            CPU metadata and exact integer index inputs
+    <case>/graph.json                graph hash and construction statistics
+    <case>/graph.pkl.gz              shared graph for every search
+  tau-profiles/<tau>/experiment-<4|5|6>/<platform>/<case>/
+    proposed-selection.json          analytical choice before compiler admission
+    selection.json                  deployed choice, rejected proposal, codegen
+    report.json                     scores, setup costs, validation, timing/counters
+    codegen/                        ordinary and proposed IR/assembly/binaries
+    timings/process-<n>.json         paired samples and identity controls
+    profiles/<layout>/launch-<n>/    raw and parsed counters
+  plots/tau-profiles/<tau>/experiment-<n>/<platform>/
 ```
 
-Every completed job also writes a PDF under the matching
-`plots/tau-profiles/<tau>/experiment-<n>/<platform>/` tree. After the jobs finish, aggregate the
-per-case raw rows and build the suite PDF with:
+Internal pickle caches are trusted, locally generated artifacts; do not substitute
+untrusted files. Resume checks bind capture, graph, source, plugin, tau, selection,
+and measurement settings. Keep sources and plugins unchanged while a suite runs.
+Changing them requires a new capture. Allocation reports distinguish true shapes
+from power-of-two envelopes. Native pitches and base alignment must have a
+proved equivalent region partition at every modeled scale; unproved operands
+remain fixed. FP8 cases use the unscaled tutorial matmul, not a
+scaled-mm implementation.
+
+A broad cross-platform claim requires **twelve common operator families**. The
+pinned checkout's proposed Mamba reserves require optional `mamba_ssm`, and
+jagged layer norm has no direct JIT kernel; the preflight inventory reports these
+limitations. Cases are never silently replaced. Device-specific diagnostics are
+still collected when coverage is below the target. After both platforms finish,
+refresh either summary and optionally enforce the breadth requirement:
 
 ```bash
-triton/.venv/bin/python triton/experiments/analyze-search.py \
-  --experiment 4 --platform tuolumne --tau-name expert
-
-triton/.venv-matrix/bin/python triton/experiments/analyze-search.py \
-  --experiment 4 --platform matrix --tau-name expert
+.venv/bin/python triton/experiments/summarize-search-suite.py \
+  --suite-root triton/experiments/results/search-v2 --platform tuolumne
+.venv/bin/python triton/experiments/preflight-search.py \
+  --suite-root triton/experiments/results/search-v2 --platform tuolumne \
+  --require-broad-panel
 ```
 
-Repeat with `--experiment 5` and `6` and all three tau names. The suite CSV is written to the
-experiment result directory and `summary.pdf` to its plot directory. Run this
-after both platforms finish: the summary includes only configurations marked
-complete on both machines and records the counterpart status for every row.
-Runtime speedup and the primary L1-to-L2 demand reduction are the principal
-figures; the report retains every parsed native counter and derived reduction.
+The CSV and coverage JSON include every declared configuration. PDFs show all
+completed cases on the device plus a complete status inventory; common-panel
+statistics are recorded separately. One-sided regressions cannot disappear from
+the device plot merely because the other platform failed.
 
 ## Appendix hardware-profile sensitivity (Experiment 10)
 

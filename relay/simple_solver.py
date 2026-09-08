@@ -654,6 +654,8 @@ def _outer_canonical_paths(
     by_dimension: Mapping[int, Sequence[str]],
     raw_order: Sequence[str],
     stats: SearchStats,
+    *,
+    scalar_weights: Mapping[str, float] | None = None,
 ) -> list[_OuterCanonicalCandidate]:
     remaining = tuple(
         bits - exponent
@@ -713,7 +715,11 @@ def _outer_canonical_paths(
                     stats.paths_considered += 1
         layer = {}
         for state, candidates in pending.items():
-            retained = _pareto(
+            retained = [min(candidates, key=lambda candidate: (
+                sum(scalar_weights.get(name, 0.0) * value
+                    for name, value in candidate.raw_scores.items()),
+                candidate.raw_scores.get("runs", 0), candidate.word,
+            ))] if scalar_weights is not None else _pareto(
                 candidates,
                 lambda candidate: _raw_key(
                     candidate.raw_scores, raw_order
@@ -745,6 +751,16 @@ def _outer_canonical_paths(
     ]
     grouped: list[_OuterCanonicalCandidate] = []
     for first_mode in {candidate.first_mode for candidate in result}:
+        if scalar_weights is not None:
+            grouped.append(min(
+                (candidate for candidate in result if candidate.first_mode == first_mode),
+                key=lambda candidate: (
+                    sum(scalar_weights.get(name, 0.0) * value
+                        for name, value in candidate.raw_scores.items()),
+                    candidate.raw_scores.get("runs", 0), candidate.word,
+                ),
+            ))
+            continue
         grouped.extend(
             _pareto(
                 [
@@ -768,6 +784,9 @@ def _linear_inner_candidates(
     by_dimension: Mapping[int, Sequence[str]],
     raw_order: Sequence[str],
     stats: SearchStats,
+    *,
+    scalar_weights: Mapping[str, float] | None = None,
+    required_rows: tuple[int, ...] = (),
 ) -> list[_LinearInnerCandidate]:
     width = sum(tile_exponents)
     if width == 0:
@@ -775,10 +794,16 @@ def _linear_inner_candidates(
             _LinearInnerCandidate((), (), None, {"runs": 0.0, "xors": 0.0})
         ]
     candidates: list[_LinearInnerCandidate] = []
+    quotient_cache = {}
     for columns in permutations(range(1, 1 << width), width):
         if len(rref_basis(columns)) != width:
             continue
         rows = invert_matrix_from_columns(columns, width)
+        protected = sum(required_rows)
+        if tuple(rows[:len(required_rows)]) != required_rows or any(
+            row & protected for row in rows[len(required_rows):]
+        ):
+            continue
         scores: dict[str, float] = {}
         for dimension, names in by_dimension.items():
             if dimension > width:
@@ -790,9 +815,10 @@ def _linear_inner_candidates(
                 for vector in columns[:dimension]
             )
             for name in names:
-                scores[name] = _quotient_pattern_score(
-                    patterns[name], basis
-                )
+                key = (name, basis)
+                if key not in quotient_cache:
+                    quotient_cache[key] = _quotient_pattern_score(patterns[name], basis)
+                scores[name] = quotient_cache[key]
         scores["runs"] = float(
             linear_codegen_runs(rows, tile_exponents)
         )
@@ -818,6 +844,17 @@ def _linear_inner_candidates(
         stats.paths_considered += 1
     retained: list[_LinearInnerCandidate] = []
     for merge_mode in {candidate.merge_mode for candidate in candidates}:
+        if scalar_weights is not None:
+            retained.append(min(
+                (candidate for candidate in candidates if candidate.merge_mode == merge_mode),
+                key=lambda candidate: (
+                    sum(scalar_weights.get(name, 0.0) * value
+                        for name, value in candidate.raw_scores.items()),
+                    candidate.raw_scores.get("runs", 0),
+                    candidate.raw_scores.get("xors", 0), candidate.a_rows,
+                ),
+            ))
+            continue
         retained.extend(
             _pareto(
                 [
