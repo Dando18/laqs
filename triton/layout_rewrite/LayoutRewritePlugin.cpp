@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <numeric>
 #include <optional>
@@ -160,59 +161,161 @@ unsigned modeBits(int64_t extent) {
   return bits;
 }
 
+bool isOneHot(uint64_t value) { return value && !(value & (value - 1)); }
+
+unsigned oneHotBit(uint64_t value) {
+  unsigned bit = 0;
+  while (value > 1) {
+    value >>= 1;
+    ++bit;
+  }
+  return bit;
+}
+
+uint64_t bitMask(unsigned start, unsigned width) {
+  return ((uint64_t{1} << width) - 1) << start;
+}
+
+std::optional<std::vector<uint64_t>>
+rowsForDensePowerOfTwoOffset(const LayoutSpec &spec) {
+  std::vector<unsigned> elementShifts(spec.shape.size());
+  uint64_t expectedStride = 1;
+  for (unsigned reverse = 0; reverse < spec.shape.size(); ++reverse) {
+    unsigned dimension = spec.shape.size() - reverse - 1;
+    uint64_t extent = static_cast<uint64_t>(spec.shape[dimension]);
+    if (!isOneHot(extent) ||
+        static_cast<uint64_t>(spec.strides[dimension]) != expectedStride)
+      return std::nullopt;
+    elementShifts[dimension] = oneHotBit(expectedStride);
+    if (expectedStride > std::numeric_limits<uint64_t>::max() / extent)
+      return std::nullopt;
+    expectedStride *= extent;
+  }
+
+  std::vector<unsigned> logicalShifts(spec.shape.size());
+  unsigned logicalShift = 0;
+  for (unsigned dimension = 0; dimension < spec.shape.size(); ++dimension) {
+    logicalShifts[dimension] = logicalShift;
+    logicalShift += modeBits(spec.shape[dimension]);
+  }
+  if (logicalShift != spec.rows.size())
+    llvm::report_fatal_error("LAQS row count does not match shape envelope");
+
+  std::vector<uint64_t> rows(spec.rows.size(), 0);
+  for (unsigned physicalBit = 0; physicalBit < spec.rows.size();
+       ++physicalBit) {
+    uint64_t sourceRow = spec.rows[physicalBit];
+    for (unsigned dimension = 0; dimension < spec.shape.size(); ++dimension) {
+      unsigned width = modeBits(spec.shape[dimension]);
+      for (unsigned bit = 0; bit < width; ++bit) {
+        if (sourceRow & (uint64_t{1} << (logicalShifts[dimension] + bit)))
+          rows[physicalBit] |= uint64_t{1} << (elementShifts[dimension] + bit);
+      }
+    }
+  }
+  return rows;
+}
+
+Value moveBits(OpBuilder &builder, Location location, Value logical,
+               unsigned sourceStart, unsigned physicalStart, unsigned width) {
+  Type type = logical.getType();
+  Value result = arith::AndIOp::create(
+      builder, location, logical,
+      constantLike(builder, location, type, bitMask(sourceStart, width)));
+  if (physicalStart > sourceStart) {
+    result = arith::ShLIOp::create(
+        builder, location, result,
+        constantLike(builder, location, type, physicalStart - sourceStart));
+  } else if (sourceStart > physicalStart) {
+    result = arith::ShRUIOp::create(
+        builder, location, result,
+        constantLike(builder, location, type, sourceStart - physicalStart));
+  }
+  return result;
+}
+
 Value physicalOffset(OpBuilder &builder, Location location, Value elementOffset,
                      const LayoutSpec &spec) {
   Type type = elementOffset.getType();
-  Value remaining = elementOffset;
-  Value logical = constantLike(builder, location, type, 0);
-
-  std::vector<unsigned> dimensions(spec.shape.size());
-  std::iota(dimensions.begin(), dimensions.end(), 0);
-  std::stable_sort(dimensions.begin(), dimensions.end(),
-                   [&](unsigned a, unsigned b) {
-                     return spec.strides[a] > spec.strides[b];
-                   });
-  std::vector<unsigned> shifts(spec.shape.size());
-  unsigned shift = 0;
-  for (unsigned dimension = 0; dimension < spec.shape.size(); ++dimension) {
-    shifts[dimension] = shift;
-    shift += modeBits(spec.shape[dimension]);
-  }
-  if (shift != spec.rows.size())
-    llvm::report_fatal_error("LAQS row count does not match shape envelope");
-
-  for (unsigned dimension : dimensions) {
-    Value stride =
-        constantLike(builder, location, type, spec.strides[dimension]);
-    Value coordinate =
-        arith::DivUIOp::create(builder, location, remaining, stride);
-    remaining = arith::RemUIOp::create(builder, location, remaining, stride);
-    if (shifts[dimension]) {
-      Value amount = constantLike(builder, location, type, shifts[dimension]);
-      coordinate = arith::ShLIOp::create(builder, location, coordinate, amount);
+  Value logical = elementOffset;
+  std::vector<uint64_t> rows = spec.rows;
+  if (auto remapped = rowsForDensePowerOfTwoOffset(spec)) {
+    rows = std::move(*remapped);
+  } else {
+    Value remaining = elementOffset;
+    logical = constantLike(builder, location, type, 0);
+    std::vector<unsigned> dimensions(spec.shape.size());
+    std::iota(dimensions.begin(), dimensions.end(), 0);
+    std::stable_sort(dimensions.begin(), dimensions.end(),
+                     [&](unsigned a, unsigned b) {
+                       return spec.strides[a] > spec.strides[b];
+                     });
+    std::vector<unsigned> shifts(spec.shape.size());
+    unsigned shift = 0;
+    for (unsigned dimension = 0; dimension < spec.shape.size(); ++dimension) {
+      shifts[dimension] = shift;
+      shift += modeBits(spec.shape[dimension]);
     }
-    logical = arith::OrIOp::create(builder, location, logical, coordinate);
+    if (shift != spec.rows.size())
+      llvm::report_fatal_error("LAQS row count does not match shape envelope");
+
+    for (unsigned dimension : dimensions) {
+      Value stride =
+          constantLike(builder, location, type, spec.strides[dimension]);
+      Value coordinate =
+          arith::DivUIOp::create(builder, location, remaining, stride);
+      remaining = arith::RemUIOp::create(builder, location, remaining, stride);
+      if (shifts[dimension]) {
+        Value amount = constantLike(builder, location, type, shifts[dimension]);
+        coordinate =
+            arith::ShLIOp::create(builder, location, coordinate, amount);
+      }
+      logical = arith::OrIOp::create(builder, location, logical, coordinate);
+    }
   }
 
   Value physical = constantLike(builder, location, type, 0);
-  for (unsigned physicalBit = 0; physicalBit < spec.rows.size();
-       ++physicalBit) {
-    Value parity = arith::AndIOp::create(
-        builder, location, logical,
-        constantLike(builder, location, type, spec.rows[physicalBit]));
-    for (unsigned fold : {32u, 16u, 8u, 4u, 2u, 1u}) {
-      Value shifted =
-          arith::ShRUIOp::create(builder, location, parity,
-                                 constantLike(builder, location, type, fold));
-      parity = arith::XOrIOp::create(builder, location, parity, shifted);
+  for (unsigned physicalBit = 0; physicalBit < rows.size();) {
+    uint64_t row = rows[physicalBit];
+    if (!row)
+      llvm::report_fatal_error("LAQS address matrix contains a zero row");
+    if (!isOneHot(row)) {
+      ++physicalBit;
+      continue;
     }
-    parity = arith::AndIOp::create(builder, location, parity,
-                                   constantLike(builder, location, type, 1));
-    if (physicalBit) {
-      parity = arith::ShLIOp::create(
-          builder, location, parity,
-          constantLike(builder, location, type, physicalBit));
+    unsigned sourceStart = oneHotBit(row);
+    unsigned width = 1;
+    while (physicalBit + width < rows.size() &&
+           isOneHot(rows[physicalBit + width]) &&
+           oneHotBit(rows[physicalBit + width]) == sourceStart + width) {
+      ++width;
     }
+    Value run =
+        moveBits(builder, location, logical, sourceStart, physicalBit, width);
+    physical = arith::OrIOp::create(builder, location, physical, run);
+    physicalBit += width;
+  }
+
+  for (unsigned physicalBit = 0; physicalBit < rows.size(); ++physicalBit) {
+    uint64_t row = rows[physicalBit];
+    if (isOneHot(row))
+      continue;
+    Value parity;
+    bool first = true;
+    for (unsigned sourceBit = 0; sourceBit < rows.size(); ++sourceBit) {
+      if (!(row & (uint64_t{1} << sourceBit)))
+        continue;
+      Value term =
+          moveBits(builder, location, logical, sourceBit, physicalBit, 1);
+      if (first) {
+        parity = term;
+        first = false;
+      } else {
+        parity = arith::XOrIOp::create(builder, location, parity, term);
+      }
+    }
+    if (first)
+      llvm::report_fatal_error("LAQS address matrix contains a zero row");
     physical = arith::OrIOp::create(builder, location, physical, parity);
   }
   return physical;

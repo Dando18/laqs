@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Fit device tau profiles from pilot-kernel counters and rescore reports."""
+"""Fit the named device tau profiles from the pilot-kernel corpus."""
 
 from __future__ import annotations
 
 import argparse
 from collections import defaultdict
 import json
+import math
 from pathlib import Path
 import statistics
 import sys
@@ -18,22 +19,15 @@ TRITON_ROOT = EXPERIMENT_ROOT.parent
 REPOSITORY = TRITON_ROOT.parent
 sys.path[:0] = (str(TRITON_ROOT), str(REPOSITORY), str(EXPERIMENT_ROOT))
 
-from analyze import analyze_report, analyze_suite, spearman
+from analyze import spearman
 from layout_panels import BYTE_SCALES, TAU_PROFILES
 from stage1_counter_sweep import write_json
+from tau_profiles import TAU_NAMES
 
 
 TUNING_COUNTERS = {
-    "tuolumne": (
-        "l1_cache_line_accesses",
-        "l1_to_l2_read_requests",
-        "second_level_read_requests",
-    ),
-    "matrix": (
-        "first_level_memory_accesses",
-        "tex_source_l2_read_requests",
-        "l1_to_l2_read_traffic",
-    ),
+    "tuolumne": ("l1_to_l2_read_requests",),
+    "matrix": ("tex_source_l2_read_requests",),
 }
 
 TUNING_COUNTER_ALIASES = {
@@ -44,6 +38,26 @@ TUNING_COUNTER_ALIASES = {
         "l2_read_work": "l1_to_l2_read_traffic",
         "l1_miss_demand_to_l2": "tex_source_l2_read_requests",
     },
+}
+
+EXPERT_TAU = {
+    "matrix": {
+        "issue.g32.stream.load.32B": 0.50,
+        "issue.g32.stream.load.128B": 0.20,
+        "simd_window.t16.stream.load.128B": 0.20,
+        "workgroup_step.stream.load.128B": 0.10,
+    },
+    "tuolumne": {
+        "issue.g64.stream.load.64B": 0.50,
+        "issue.g64.stream.load.128B": 0.20,
+        "simd_window.t16.stream.load.128B": 0.20,
+        "workgroup_step.stream.load.128B": 0.10,
+    },
+}
+
+FINE_COMPONENT = {
+    "matrix": "issue.g32.stream.load.32B",
+    "tuolumne": "issue.g64.stream.load.64B",
 }
 
 ANALYSIS_COUNTERS = {
@@ -97,7 +111,7 @@ def _observations(results_root: Path, platform: str) -> list[dict[str, object]]:
     for path in _reports(results_root, platform):
         report = json.loads(path.read_text(encoding="utf-8"))
         for candidate in report["candidates"]:
-            if "counters" not in candidate:
+            if not candidate.get("complete") or "counters" not in candidate:
                 continue
             grouped[(report["case"], candidate["mapping_id"])].append(candidate)
 
@@ -378,7 +392,9 @@ def _refine_rank_weights(observations, features, targets, initial):
     )
 
 
-def _fit_platform(results_root: Path, platform: str) -> dict[str, object]:
+def _fit_l1_to_l2_profile(
+    results_root: Path, platform: str
+) -> dict[str, object]:
     observations = _observations(results_root, platform)
     if not observations:
         raise FileNotFoundError(f"no scored counter observations for {platform}")
@@ -433,7 +449,9 @@ def _fit_platform(results_root: Path, platform: str) -> dict[str, object]:
         counter_correlations[counter] = correlations.get(best)
 
     return {
-        "profile_id": f"pilot-automatic-{platform}-tau-v1",
+        "profile_id": f"pilot-{platform}-l1-to-l2-tau-v2",
+        "name": "l1_to_l2",
+        "fine_component": FINE_COMPONENT[platform],
         "active_tau": tau,
         "counter_components": counter_components,
         "fit": {
@@ -441,7 +459,10 @@ def _fit_platform(results_root: Path, platform: str) -> dict[str, object]:
                 "nonnegative_ridge_coordinate_descent_then_"
                 "deterministic_spearman_refinement"
             ),
-            "target": "mean within-kernel rank of informative L1/L2 counters",
+            "target": (
+                "within-kernel rank of the native L1-miss demand request "
+                "counter"
+            ),
             "tuning_counters": list(counters),
             "excluded_tuning_counter_aliases": TUNING_COUNTER_ALIASES[platform],
             "pilot_kernels": sorted({item["case"] for item in observations}),
@@ -458,6 +479,335 @@ def _fit_platform(results_root: Path, platform: str) -> dict[str, object]:
             },
             "training_macro_spearman": aggregate_rho,
             "counter_component_macro_spearman": counter_correlations,
+        },
+    }
+
+
+def _speedup_groups(results_root: Path, platform: str):
+    """Build deduplicated measured-layout groups for the speedup objective."""
+
+    grouped = defaultdict(list)
+    baseline_ids = {}
+    baseline_measurements = defaultdict(list)
+    for path in _reports(results_root, platform):
+        report = json.loads(path.read_text(encoding="utf-8"))
+        experiment = int(report["final_experiment"])
+        case = str(report["case"])
+        if experiment == 1:
+            anchors = [
+                candidate
+                for candidate in report["candidates"]
+                if candidate.get("sampling_origin") == "row_major_anchor"
+            ]
+            if anchors:
+                observed = str(anchors[0]["mapping_id"])
+                previous = baseline_ids.setdefault(case, observed)
+                if previous != observed:
+                    raise ValueError(f"row-major mapping changed for {case}")
+        for candidate in report["candidates"]:
+            steady = candidate.get("counters", {}).get("steady_state", {})
+            duration = steady.get("duration_ns")
+            if not candidate.get("complete") or duration is None:
+                continue
+            components = {
+                component["name"]: float(component["excess_footprint"])
+                for component in candidate["score"]["components"]
+            }
+            grouped[(experiment, case, str(candidate["mapping_id"]))].append(
+                {
+                    "features": components,
+                    "duration_ns": float(duration),
+                    "address_expression_runs": int(
+                        candidate.get("address_expression_runs", 1 << 30)
+                    ),
+                    "xor_count": int(candidate.get("xor_count", 1 << 30)),
+                }
+            )
+
+    for (experiment, case, mapping_id), records in grouped.items():
+        if experiment == 1 and mapping_id == baseline_ids.get(case):
+            baseline_measurements[case].extend(
+                record["duration_ns"] for record in records
+            )
+
+    records_by_group = defaultdict(list)
+    common = None
+    for (experiment, case, mapping_id), records in grouped.items():
+        names = set(records[0]["features"])
+        if any(set(record["features"]) != names for record in records[1:]):
+            raise ValueError(
+                f"component schema changed for E{experiment}/{case}/{mapping_id}"
+            )
+        features = {
+            name: statistics.median(
+                record["features"][name] for record in records
+            )
+            for name in names
+        }
+        common = names if common is None else common & names
+        records_by_group[(experiment, case)].append(
+            {
+                "mapping_id": mapping_id,
+                "features": features,
+                "duration_ns": statistics.median(
+                    record["duration_ns"] for record in records
+                ),
+                "address_expression_runs": min(
+                    record["address_expression_runs"] for record in records
+                ),
+                "xor_count": min(record["xor_count"] for record in records),
+            }
+        )
+
+    if not common:
+        raise ValueError(f"no common speedup components for {platform}")
+    names = tuple(sorted(common))
+    result = []
+    for (experiment, case), records in sorted(records_by_group.items()):
+        if len(records) < 2:
+            continue
+        baseline_id = baseline_ids.get(case)
+        local_baseline = next(
+            (
+                record["duration_ns"]
+                for record in records
+                if record["mapping_id"] == baseline_id
+            ),
+            None,
+        )
+        if local_baseline is None:
+            values = baseline_measurements.get(case, ())
+            if not values:
+                raise ValueError(f"no row-major timing for {platform}/{case}")
+            local_baseline = statistics.median(values)
+        result.append(
+            {
+                "experiment": experiment,
+                "case": case,
+                "baseline_mapping_id": baseline_id,
+                "baseline_duration_ns": float(local_baseline),
+                "mapping_ids": tuple(record["mapping_id"] for record in records),
+                "features": np.asarray(
+                    [
+                        [record["features"][name] for name in names]
+                        for record in records
+                    ],
+                    dtype=float,
+                ),
+                "duration_ns": np.asarray(
+                    [record["duration_ns"] for record in records], dtype=float
+                ),
+                "complexity": tuple(
+                    (
+                        record["address_expression_runs"],
+                        record["xor_count"],
+                        record["mapping_id"],
+                    )
+                    for record in records
+                ),
+            }
+        )
+    return names, result
+
+
+def _speedup_objective(names, groups, tau):
+    indices = [names.index(name) for name in tau]
+    weights = np.asarray([tau[name] for name in tau], dtype=float)
+    speedups = []
+    selections = []
+    for group in groups:
+        scores = group["features"][:, indices] @ weights
+        minimum = float(np.min(scores))
+        tied = np.flatnonzero(
+            np.isclose(scores, minimum, rtol=1e-12, atol=1e-12)
+        )
+        selected = min(
+            map(int, tied),
+            key=lambda index: (
+                group["mapping_ids"][index]
+                != group["baseline_mapping_id"],
+                *group["complexity"][index],
+            ),
+        )
+        speedup = float(
+            group["baseline_duration_ns"] / group["duration_ns"][selected]
+        )
+        speedups.append(speedup)
+        selections.append(
+            {
+                "experiment": group["experiment"],
+                "case": group["case"],
+                "mapping_id": group["mapping_ids"][selected],
+                "measured_speedup": speedup,
+            }
+        )
+    geometric_mean = math.exp(
+        statistics.mean(math.log(value) for value in speedups)
+    )
+    return {
+        "geometric_mean_speedup": geometric_mean,
+        "regression_count": sum(value < 1.0 - 1e-12 for value in speedups),
+        "median_speedup": statistics.median(speedups),
+        "minimum_speedup": min(speedups),
+        "selections": selections,
+    }
+
+
+def _speedup_key(record, active_count):
+    return (
+        record["geometric_mean_speedup"],
+        -record["regression_count"],
+        record["median_speedup"],
+        record["minimum_speedup"],
+        -active_count,
+    )
+
+
+def _normalized_tau(tau):
+    positive = {
+        str(name): float(value)
+        for name, value in tau.items()
+        if float(value) > 1e-12
+    }
+    total = sum(positive.values())
+    if not total:
+        raise ValueError("tau candidate has no positive weights")
+    return {name: value / total for name, value in positive.items()}
+
+
+def _fit_speedup_profile(
+    results_root: Path,
+    platform: str,
+    counter_components,
+    seeds,
+) -> dict[str, object]:
+    names, groups = _speedup_groups(results_root, platform)
+
+    def evaluate(tau):
+        normalized = _normalized_tau(tau)
+        return _speedup_objective(names, groups, normalized), normalized
+
+    one_hot = []
+    for name in names:
+        objective, tau = evaluate({name: 1.0})
+        one_hot.append((objective, tau))
+    one_hot.sort(
+        key=lambda item: _speedup_key(item[0], len(item[1])), reverse=True
+    )
+    screened = tuple(next(iter(tau)) for _, tau in one_hot[:16])
+    candidates = list(one_hot[:16])
+    for seed in seeds:
+        if set(seed) <= set(names):
+            candidates.append(evaluate(seed))
+
+    steps = np.linspace(0.0, 1.0, 41)
+    for first_index, first in enumerate(screened):
+        for second in screened[first_index + 1 :]:
+            for first_weight in steps[1:-1]:
+                candidates.append(
+                    evaluate(
+                        {
+                            first: float(first_weight),
+                            second: float(1.0 - first_weight),
+                        }
+                    )
+                )
+    best = max(
+        candidates,
+        key=lambda item: _speedup_key(item[0], len(item[1])),
+    )
+    completed_iterations = 0
+    for _ in range(8):
+        refinements = [best]
+        for name in screened:
+            for retained_weight in steps[1:-1]:
+                candidate = {
+                    component: float(retained_weight) * weight
+                    for component, weight in best[1].items()
+                }
+                candidate[name] = candidate.get(name, 0.0) + float(
+                    1.0 - retained_weight
+                )
+                refinements.append(evaluate(candidate))
+        refined = max(
+            refinements,
+            key=lambda item: _speedup_key(item[0], len(item[1])),
+        )
+        if (
+            refined[0]["geometric_mean_speedup"]
+            <= best[0]["geometric_mean_speedup"] + 1e-12
+        ):
+            break
+        best = refined
+        completed_iterations += 1
+
+    objective, tau = best
+    return {
+        "profile_id": f"pilot-{platform}-speedup-tau-v2",
+        "name": "speedup",
+        "fine_component": FINE_COMPONENT[platform],
+        "active_tau": tau,
+        "counter_components": dict(counter_components),
+        "fit": {
+            "method": (
+                "one_hot_screen_then_pair_grid_and_greedy_mixture_search"
+            ),
+            "target": (
+                "geometric mean measured speedup of the lowest-J_area layout "
+                "in each deduplicated pilot kernel/grammar panel"
+            ),
+            "selection_rule": (
+                "minimize J_area, prefer ordinary row-major on exact ties, "
+                "then address-expression complexity"
+            ),
+            "evaluation_leakage_policy": (
+                "pilot kernels only; TritonBench and real kernels excluded"
+            ),
+            "pilot_kernels": sorted({group["case"] for group in groups}),
+            "pilot_kernel_grammar_groups": len(groups),
+            "candidate_feature_count": len(names),
+            "screened_feature_count": len(screened),
+            "selected_feature_count": len(tau),
+            "pair_grid_intervals": 40,
+            "greedy_iteration_limit": 8,
+            "completed_greedy_iterations": completed_iterations,
+            "training_geometric_mean_speedup": objective[
+                "geometric_mean_speedup"
+            ],
+            "training_median_speedup": objective["median_speedup"],
+            "training_minimum_speedup": objective["minimum_speedup"],
+            "training_regression_count": objective["regression_count"],
+            "training_selections": objective["selections"],
+            "scope": (
+                "empirical support of Experiments 1--3; the exact search in "
+                "Experiments 4--6 minimizes the same J_area but can reach "
+                "unprofiled layouts"
+            ),
+        },
+    }
+
+
+def _expert_profile(platform: str, counter_components) -> dict[str, object]:
+    tau = _normalized_tau(EXPERT_TAU[platform])
+    return {
+        "profile_id": f"expert-{platform}-hierarchy-tau-v2",
+        "name": "expert",
+        "fine_component": FINE_COMPONENT[platform],
+        "active_tau": tau,
+        "counter_components": dict(counter_components),
+        "fit": {
+            "method": "hardware_informed_hand_authored",
+            "target": (
+                "hierarchy-faithful coalescing and short-range reuse heuristic"
+            ),
+            "uses_measured_counters_or_runtime": False,
+            "rationale": (
+                "H100 combines 32-thread/32-byte sector issue locality with "
+                "128-byte line-scale issue and short temporal/workgroup reuse"
+                if platform == "matrix"
+                else "MI300A combines 64-lane/64-byte vector-L1 issue locality "
+                "with 128-byte line-scale issue and short temporal/workgroup reuse"
+            ),
         },
     }
 
@@ -520,6 +870,8 @@ def _apply_profile(report: dict[str, object], profile: dict[str, object]) -> Non
     panel["score_profile"].update(
         {
             "profile_id": profile["profile_id"],
+            "tau_name": profile["name"],
+            "fine_component": profile["fine_component"],
             "active_tau": tau,
             "counter_components": profile["counter_components"],
             "tuning": profile["fit"],
@@ -533,58 +885,43 @@ def parse_arguments(argv=None):
     parser.add_argument(
         "--results-root", type=Path, default=EXPERIMENT_ROOT / "results"
     )
-    parser.add_argument("--plots-root", type=Path, default=EXPERIMENT_ROOT / "plots")
     parser.add_argument("--output", type=Path, default=TAU_PROFILES)
     return parser.parse_args(argv)
 
 
 def main() -> None:
     args = parse_arguments()
-    profiles = {
-        platform: _fit_platform(args.results_root, platform)
-        for platform in ("tuolumne", "matrix")
-    }
+    platforms = {}
+    for platform in ("tuolumne", "matrix"):
+        expert = _expert_profile(platform, {})
+        l1_to_l2 = _fit_l1_to_l2_profile(args.results_root, platform)
+        expert["counter_components"] = dict(l1_to_l2["counter_components"])
+        speedup = _fit_speedup_profile(
+            args.results_root,
+            platform,
+            l1_to_l2["counter_components"],
+            (expert["active_tau"], l1_to_l2["active_tau"]),
+        )
+        profiles = {
+            "expert": expert,
+            "l1_to_l2": l1_to_l2,
+            "speedup": speedup,
+        }
+        if tuple(profiles) != TAU_NAMES:
+            raise AssertionError("tau profile order changed")
+        platforms[platform] = {
+            "default_profile": "expert",
+            "profiles": profiles,
+        }
     document = {
-        "schema": "relay.triton.pilot_tau_profile",
-        "version": 1,
+        "schema": "relay.triton.tau_profiles",
+        "version": 2,
         "graph_construction": "automatic_post_coalescing_manifest_universal_v1",
         "byte_scales": list(BYTE_SCALES),
-        "platforms": profiles,
+        "profile_order": list(TAU_NAMES),
+        "platforms": platforms,
     }
     write_json(args.output, document)
-
-    for platform, profile in profiles.items():
-        for path in _reports(args.results_root, platform):
-            report = json.loads(path.read_text(encoding="utf-8"))
-            _apply_profile(report, profile)
-            write_json(path, report)
-            panel_path = path.parent / "profiles" / "panel.json"
-            if panel_path.is_file():
-                panel_record = json.loads(
-                    panel_path.read_text(encoding="utf-8")
-                )
-                panel_record["configuration"] = report["configuration"]
-                panel_record["panel"] = report["panel"]
-                write_json(panel_path, panel_record)
-            experiment = int(report["final_experiment"])
-            plot = (
-                args.plots_root
-                / f"experiment-{experiment}"
-                / platform
-                / f"stratified-{report['panel']['stratification']['mode']}"
-                / f"{report['case']}.pdf"
-            )
-            analyze_report(path, plot)
-        for experiment in (1, 2, 3):
-            for stratification in ("all", "issue", "temporal"):
-                analyze_suite(
-                    args.results_root,
-                    args.plots_root,
-                    experiment=experiment,
-                    platform=platform,
-                    stratification=stratification,
-                    regenerate_reports=False,
-                )
     print(json.dumps(document, indent=2, sort_keys=True))
 
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-import json
 from math import comb
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -19,17 +18,12 @@ from relay import (
 )
 from relay.search import search_canonical
 
-def load_tau_profile(platform: str, path: Path) -> HardwareProfile:
-    document = json.loads(path.read_text(encoding="utf-8"))
-    entry = document["platforms"][platform]
-    tau = {str(name): float(value) for name, value in entry["active_tau"].items()}
-    return HardwareProfile(
-        profile_id=str(entry["profile_id"]),
-        device={"platform": platform},
-        byte_scales=tuple(map(int, document["byte_scales"])),
-        fine_component=next(iter(tau)),
-        tau=tau,
-    )
+def load_tau_profile(
+    platform: str, path: Path, name: str | None = None
+) -> HardwareProfile:
+    from tau_profiles import load_hardware_profile
+
+    return load_hardware_profile(platform, path, name)
 
 
 def _score_dict(score) -> dict[str, Any]:

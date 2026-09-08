@@ -10,11 +10,29 @@ EXPERIMENTS = ROOT / "triton" / "experiments"
 sys.path.insert(0, str(EXPERIMENTS))
 
 from tritonbench_cases import CASES, OPERATORS
-from search_algorithms import _word_count, natural_tile_exponents
+from search_algorithms import _word_count, load_tau_profile, natural_tile_exponents
 from relay import Access, MatrixSpec, MemoryEvent
 
 
 class TritonBenchSearchExperimentTests(unittest.TestCase):
+    def test_all_six_named_tau_profiles_load(self):
+        path = EXPERIMENTS / "tau-profiles.json"
+        profiles = {
+            (platform, name): load_tau_profile(platform, path, name)
+            for platform in ("tuolumne", "matrix")
+            for name in ("expert", "l1_to_l2", "speedup")
+        }
+
+        self.assertEqual(len(profiles), 6)
+        self.assertTrue(all(profile.tau for profile in profiles.values()))
+        self.assertEqual(
+            profiles[("matrix", "expert")].device["tau_name"], "expert"
+        )
+        self.assertEqual(
+            profiles[("tuolumne", "l1_to_l2")].fine_component,
+            "issue.g64.stream.load.64B",
+        )
+
     def test_broad_portable_panel_has_declared_breadth(self):
         self.assertEqual(len(CASES), 29)
         self.assertEqual(len(OPERATORS), 15)

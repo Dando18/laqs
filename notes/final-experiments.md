@@ -112,14 +112,29 @@ $$
 q_b(E;A)=\left|\left\{\left\lfloor \operatorname{byteaddr}_A(x)/b\right\rfloor:x\in E\right\}\right|.
 $$
 
-For every scope-scale component $(s,b)$, we sum this count over edges using their dynamic multiplicities to obtain $Q_{s,b}(A)$. We retain the complete component vector. On the pilot tuning set, counter-correlation experiments record the component that best matches each counter and fit nonnegative device-specific tau values to relevant L1/L2 work. Derived fields backed by the same native hardware counter contribute only once to the tuning target. A nonnegative ridge fit initializes a deterministic refinement that selects tau by training-set macro Spearman. The resulting MI300A and H100 profiles are frozen before they are used to select layouts for TritonBench or real kernels. The reports include both the counter-matched component and the aggregate selection score. Layout selection uses the hardware profile's fixed weighted excess score
+For every scope-scale component $(s,b)$, we sum this count over edges using their dynamic multiplicities to obtain $Q_{s,b}(A)$. We retain the complete component vector. The reports include both the counter-matched component and the aggregate selection score. Layout selection uses the hardware profile's fixed weighted excess score
 
 $$
 J_{\mathrm{area}}(A)=\sum_{s,b}\tau_{s,b}\,
 \frac{b\left(Q_{s,b}(A)-LB_{s,b}\right)}{B_K},
 $$
 
-where $LB_{s,b}$ is the capacity-only packing lower bound and $B_K$ is the kernel's dynamic useful-byte exposure. All component scores, the fine quotient score, and the peak normalized excess are retained for analysis. Pilot counters are used only to tune the hardware profile; counters and runtimes from evaluation kernels are outcomes and are not used to choose their layouts. Exact score ties prefer the baseline layout; remaining ties are broken deterministically by address-code complexity and then the layout descriptor.
+where $LB_{s,b}$ is the capacity-only packing lower bound and $B_K$ is the kernel's dynamic useful-byte exposure. All component scores, the fine quotient score, and the peak normalized excess are retained for analysis. Only pilot counters and pilot runtimes are used to tune hardware profiles; counters and runtimes from evaluation kernels are outcomes and are not used to choose their layouts. Exact score ties prefer the baseline layout; remaining ties are broken deterministically by address-code complexity and then the layout descriptor.
+
+#### Final device tau profiles
+
+Experiments 1--6 are evaluated under three separately frozen tau profiles per device. The `expert` profile is hand-authored first and uses no measured counter or timing data. It gives half the weight to native issue coalescing, then represents line-scale issue locality, short SIMD-window reuse, and workgroup-to-workgroup reuse. The `l1_to_l2` profile fits nonnegative weights on the pilot kernels to maximize macro Spearman correlation between $J_{\mathrm{area}}$ and the native L1-miss demand sent to L2: `lts__t_requests_srcunit_tex_op_read.sum` on H100 and `TCP_TCC_READ_REQ` on MI300A. Aliases and the H100 TEX-sector counter remain diagnostics and do not enter this objective. The `speedup` profile maximizes the geometric mean measured speedup of the layout selected by minimizing $J_{\mathrm{area}}$ in every deduplicated Experiment 1--3 pilot kernel/grammar panel, with ordinary row-major preferred on exact score ties. This is a discrete selection objective, not a fit to runtime ranks. The recorded panels are the finite measured support for the same $J_{\mathrm{area}}$ objective and grammars searched exactly in Experiments 4--6; TritonBench and real kernels are never used for tuning.
+
+| Device / profile | Nonzero $\tau_{s,b}$ weights |
+| --- | --- |
+| H100 `expert` | `issue.g32.stream.load.32B`: 0.50; `issue.g32.stream.load.128B`: 0.20; `simd_window.t16.stream.load.128B`: 0.20; `workgroup_step.stream.load.128B`: 0.10 |
+| H100 `l1_to_l2` | `issue.g32.stream.load.128B`: 0.365625; `workgroup_step.array.load.128B`: 0.625; `workgroup_window.t16.array.load.256B`: 0.009375 |
+| H100 `speedup` | `lane_window.t16.stream.load.32B`: 0.975; `lane_window.t4.stream.load.32B`: 0.025 |
+| MI300A `expert` | `issue.g64.stream.load.64B`: 0.50; `issue.g64.stream.load.128B`: 0.20; `simd_window.t16.stream.load.128B`: 0.20; `workgroup_step.stream.load.128B`: 0.10 |
+| MI300A `l1_to_l2` | `simd_window.t16.array.load.128B`: 0.96; `phase.simd.array.load.128B`: 0.04 |
+| MI300A `speedup` | `lane_window.t16.stream.load.64B`: 1.00 |
+
+The correlation fit uses a nonnegative ridge initialization followed by deterministic Spearman refinement. Its training macro Spearman is 0.694 on H100 and 0.730 on MI300A. The speedup fit screens single components, evaluates a 40-interval pair grid, and greedily mixes screened components; its measured pilot-panel geometric-mean speedup is 1.103 on H100 and 1.045 on MI300A, with no selected panel layout below its measured row-major control. Experiments 1--3 reuse their recorded counter runs and emit a complete report/CSV/plot tree for every tau. Experiments 4--6 rerun exact selection, timing, and profiling independently for every tau. Each output records the tau name and complete active weight map.
 
 In these experiments we optimize J_area; we do not use the Pareto frontier. We are mainly focused on (1) correlating quotient score with memory counters, (2) providing >1 speedups in a non-neglible number of cases, and (3) not hurting performance in most if not all cases. We are not concerned with oracle regret anymore -- this was placing too much weight on locality being a strong predictor of performance, which it is not.
 

@@ -8,6 +8,8 @@ import csv
 import json
 from pathlib import Path
 
+from tau_profiles import TAU_NAMES
+
 
 ROOT = Path(__file__).resolve().parent
 
@@ -18,12 +20,15 @@ def arguments():
     parser.add_argument("--platform", choices=("tuolumne", "matrix"), required=True)
     parser.add_argument("--results-root", type=Path, default=ROOT / "results")
     parser.add_argument("--plots-root", type=Path, default=ROOT / "plots")
+    parser.add_argument("--tau-name", choices=TAU_NAMES, required=True)
     return parser.parse_args()
 
 
 def main():
     args = arguments()
-    suite = args.results_root / f"experiment-{args.experiment}" / args.platform
+    results_root = args.results_root / "tau-profiles" / args.tau_name
+    plots_root = args.plots_root / "tau-profiles" / args.tau_name
+    suite = results_root / f"experiment-{args.experiment}" / args.platform
     reports = [
         json.loads(path.read_text(encoding="utf-8"))
         for path in sorted(suite.glob("*--*/report.json"))
@@ -35,7 +40,7 @@ def main():
     for report in reports:
         case_id = f"{report['operator']}--{report['config']}"
         counterpart_path = (
-            args.results_root
+            results_root
             / f"experiment-{args.experiment}"
             / other_platform
             / case_id
@@ -58,6 +63,7 @@ def main():
             "config": report["config"],
             "description": report["description"],
             "status": report["status"],
+            "tau_name": args.tau_name,
             "counterpart_status": (
                 "missing" if counterpart is None else counterpart.get("status")
             ),
@@ -105,7 +111,7 @@ def main():
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_pdf import PdfPages
 
-        pdf_path = args.plots_root / f"experiment-{args.experiment}" / args.platform / "summary.pdf"
+        pdf_path = plots_root / f"experiment-{args.experiment}" / args.platform / "summary.pdf"
         pdf_path.parent.mkdir(parents=True, exist_ok=True)
         labels = [f"{row['operator']}\n{row['config']}" for row in complete]
         with PdfPages(pdf_path) as pdf:
@@ -117,7 +123,10 @@ def main():
             axis.set_ylim(bottom=0)
             axis.set_xticks(range(len(labels)), labels, rotation=55, ha="right")
             axis.set_ylabel("Speedup over ordinary Triton")
-            axis.set_title(f"Experiment {args.experiment} {args.platform}: selected-layout runtime")
+            axis.set_title(
+                f"Experiment {args.experiment} {args.platform} ({args.tau_name} tau): "
+                "selected-layout runtime"
+            )
             figure.tight_layout()
             pdf.savefig(figure, bbox_inches="tight")
             plt.close(figure)
@@ -136,7 +145,8 @@ def main():
                     rotation=55, ha="right")
                 axis.set_ylabel("Reduction from ordinary Triton (%)")
                 axis.set_title(
-                    f"Experiment {args.experiment} {args.platform}: L1-miss demand to L2"
+                    f"Experiment {args.experiment} {args.platform} "
+                    f"({args.tau_name} tau): L1-miss demand to L2"
                 )
                 figure.tight_layout()
                 pdf.savefig(figure, bbox_inches="tight")

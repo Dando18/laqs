@@ -37,11 +37,26 @@ relay_search_cases=(
 if [[ -n "${RELAY_SEARCH_CASES:-}" ]]; then
     read -r -a relay_search_cases <<< "${RELAY_SEARCH_CASES}"
 fi
-relay_search_results="${RELAY_FINAL_RESULTS_ROOT:-${PWD}/triton/experiments/results}"
-relay_search_plots="${RELAY_FINAL_PLOTS_ROOT:-${PWD}/triton/experiments/plots}"
+relay_search_results_base="${RELAY_FINAL_RESULTS_ROOT:-${PWD}/triton/experiments/results}"
+relay_search_plots_base="${RELAY_FINAL_PLOTS_ROOT:-${PWD}/triton/experiments/plots}"
 relay_search_profiles="${RELAY_SEARCH_PROFILE_LAUNCHES:-3}"
+read -r -a relay_search_tau_names <<< \
+    "${RELAY_FINAL_TAU_NAMES:-expert l1_to_l2 speedup}"
 
-for relay_search_case in "${relay_search_cases[@]}"; do
+for relay_search_tau_name in "${relay_search_tau_names[@]}"; do
+    case "${relay_search_tau_name}" in
+        expert|l1_to_l2|speedup) ;;
+        *)
+            echo "error: invalid tau name ${relay_search_tau_name}" >&2
+            exit 2
+            ;;
+    esac
+done
+
+for relay_search_tau_name in "${relay_search_tau_names[@]}"; do
+  relay_search_results="${relay_search_results_base}/tau-profiles/${relay_search_tau_name}"
+  relay_search_plots="${relay_search_plots_base}/tau-profiles/${relay_search_tau_name}"
+  for relay_search_case in "${relay_search_cases[@]}"; do
     relay_search_operator="${relay_search_case%%--*}"
     relay_search_config="${relay_search_case#*--}"
     relay_search_log_dir="${relay_search_results}/experiment-${relay_search_experiment}/${relay_search_platform}/logs"
@@ -53,7 +68,7 @@ for relay_search_case in "${relay_search_cases[@]}"; do
             5) relay_search_time="${RELAY_SEARCH_TUOLUMNE_TIME_E5:-1h}" ;;
             6) relay_search_time="${RELAY_SEARCH_TUOLUMNE_TIME_E6:-90m}" ;;
         esac
-        relay_search_name="relay-e${relay_search_experiment}-${relay_search_case}-mi300a"
+        relay_search_name="relay-e${relay_search_experiment}-${relay_search_case}-mi300a-${relay_search_tau_name}"
         flux submit -N 1 -n 1 -g 1 -q "${relay_search_queue}" -t "${relay_search_time}" \
             --cwd="${PWD}" --job-name="${relay_search_name}" \
             --output="${relay_search_log_dir}/${relay_search_name}.out" \
@@ -61,6 +76,7 @@ for relay_search_case in "${relay_search_cases[@]}"; do
             triton/experiments/run-search-tuolumne-job.bash \
             --experiment "${relay_search_experiment}" --platform tuolumne \
             --operator "${relay_search_operator}" --config "${relay_search_config}" \
+            --tau-name "${relay_search_tau_name}" \
             --profile-launches "${relay_search_profiles}" \
             --results-root "${relay_search_results}" --plots-root "${relay_search_plots}" "$@"
     elif [[ "${relay_search_platform}" == "matrix" ]]; then
@@ -70,17 +86,19 @@ for relay_search_case in "${relay_search_cases[@]}"; do
             5) relay_search_time="${RELAY_SEARCH_MATRIX_TIME_E5:-00:45:00}" ;;
             6) relay_search_time="${RELAY_SEARCH_MATRIX_TIME_E6:-01:00:00}" ;;
         esac
-        relay_search_name="relay-e${relay_search_experiment}-${relay_search_case}-h100"
+        relay_search_name="relay-e${relay_search_experiment}-${relay_search_case}-h100-${relay_search_tau_name}"
         sbatch --nodes=1 --ntasks=1 --gpus=1 --partition="${relay_search_partition}" \
             --time="${relay_search_time}" --chdir="${PWD}" --job-name="${relay_search_name}" \
             --output="${relay_search_log_dir}/%x-%j.log" \
             triton/experiments/run-search-matrix-job.bash \
             --experiment "${relay_search_experiment}" --platform matrix \
             --operator "${relay_search_operator}" --config "${relay_search_config}" \
+            --tau-name "${relay_search_tau_name}" \
             --profile-launches "${relay_search_profiles}" \
             --results-root "${relay_search_results}" --plots-root "${relay_search_plots}" "$@"
     else
         echo "error: platform must be tuolumne or matrix" >&2
         exit 2
     fi
+  done
 done

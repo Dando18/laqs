@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import replace
 from importlib import metadata
 import json
@@ -288,17 +289,18 @@ def time_layout_pair(
             else tuple(reversed(labels))
         )
         for label in order:
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
-            start.record()
-            if label == "selected" and layouts:
-                with rewrite_layouts(layouts):
-                    for _ in range(iterations):
-                        launches[label].run()
-            else:
+            context = (
+                rewrite_layouts(layouts)
+                if label == "selected" and layouts
+                else nullcontext()
+            )
+            with context:
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+                start.record()
                 for _ in range(iterations):
                     launches[label].run()
-            end.record()
+                end.record()
             end.synchronize()
             values[label].append(float(start.elapsed_time(end)) / iterations)
 

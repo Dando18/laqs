@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import csv
 from importlib import metadata
 import json
@@ -28,6 +29,7 @@ sys.path[:0] = (
 )
 
 from tritonbench_cases import OPERATORS, selected_cases
+from tau_profiles import TAU_NAMES
 
 
 def positive(value: str) -> int:
@@ -60,6 +62,12 @@ def parse_arguments(argv=None):
     parser.add_argument("--results-root", type=Path, default=EXPERIMENT_ROOT / "results")
     parser.add_argument("--plots-root", type=Path, default=EXPERIMENT_ROOT / "plots")
     parser.add_argument("--tau-profile", type=Path, default=EXPERIMENT_ROOT / "tau-profiles.json")
+    parser.add_argument(
+        "--tau-name",
+        choices=TAU_NAMES,
+        default="expert",
+        help="named device tau profile used by J_area layout selection",
+    )
     parser.add_argument("--rocprof", type=Path, default=Path(shutil.which("rocprof") or "/opt/rocm-7.0.2/bin/rocprof"))
     parser.add_argument("--ncu", type=Path, default=Path(shutil.which("ncu") or "ncu"))
     return parser.parse_args(argv)
@@ -173,22 +181,30 @@ def timing_worker(args) -> None:
     launches = {"baseline": baseline, "selected": selected}
     labels = ("baseline", "selected")
     for sample in range(args.timing_samples):
-        order = labels if (sample + args.timing_process_index) % 2 == 0 else tuple(reversed(labels))
+        order = (
+            labels
+            if (sample + args.timing_process_index) % 2 == 0
+            else tuple(reversed(labels))
+        )
         for label in order:
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
-            start.record()
-            if label == "selected":
-                from layout_runtime import rewrite_layouts
-                with rewrite_layouts(layouts):
-                    for _ in range(args.timing_iterations):
-                        launches[label].run()
-            else:
+            from layout_runtime import rewrite_layouts
+
+            context = (
+                rewrite_layouts(layouts)
+                if label == "selected"
+                else nullcontext()
+            )
+            with context:
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+                start.record()
                 for _ in range(args.timing_iterations):
                     launches[label].run()
-            end.record()
+                end.record()
             end.synchronize()
-            samples[label].append(float(start.elapsed_time(end)) / args.timing_iterations)
+            samples[label].append(
+                float(start.elapsed_time(end)) / args.timing_iterations
+            )
     result = {
         "schema": "relay.tritonbench.timing.v1",
         "process_index": args.timing_process_index,
@@ -384,6 +400,7 @@ def _write_raw_csv(path: Path, report):
     row = {
         "experiment": report["experiment"], "platform": report["platform"],
         "operator": report["operator"], "config": report["config"],
+        "tau_name": report.get("tau_name"),
         "status": report["status"],
     }
     if report["status"] == "complete":
@@ -460,13 +477,27 @@ def orchestrate(args) -> None:
     report_path = case_root / "report.json"
     selection_path = case_root / "selection.json"
     plot_path = (args.plots_root / f"experiment-{args.experiment}" / args.platform / f"{case.case_id}.pdf").resolve()
+    profile = load_tau_profile(args.platform, args.tau_profile, args.tau_name)
     if report_path.exists() and not args.rerun:
         existing = json.loads(report_path.read_text(encoding="utf-8"))
         if existing.get("status") in {"complete", "excluded"}:
+            if existing.get("tau_name") != args.tau_name:
+                raise RuntimeError(
+                    f"{report_path} belongs to tau {existing.get('tau_name')!r}, "
+                    f"not {args.tau_name!r}; use a tau-specific results root"
+                )
+            existing_profile = existing.get("hardware_profile", {})
+            if existing_profile and (
+                existing_profile.get("profile_id") != profile.profile_id
+                or existing_profile.get("tau") != dict(profile.tau)
+            ):
+                raise RuntimeError(
+                    f"{report_path} used an older {args.tau_name!r} profile; "
+                    "pass --rerun after confirming the replacement"
+                )
             print(f"Reusing {existing['status']} result: {report_path}")
             return
 
-    profile = load_tau_profile(args.platform, args.tau_profile)
     spec = case.factory()
     analysis_start = perf_counter()
     analysis = analyze_launch(
@@ -485,7 +516,9 @@ def orchestrate(args) -> None:
         report = {
             "schema": "relay.tritonbench.search.v1", "experiment": args.experiment,
             "platform": args.platform, "operator": case.operator, "config": case.config,
-            "description": case.description, "status": "excluded",
+            "description": case.description, "tau_name": args.tau_name,
+            "status": "excluded",
+            "hardware_profile": profile.to_dict(),
             "exclusion": {"category": analysis.unsupported.category,
                           "message": analysis.unsupported.message,
                           "site": analysis.unsupported.site},
@@ -532,7 +565,9 @@ def orchestrate(args) -> None:
             "operator": case.operator,
             "config": case.config,
             "description": case.description,
+            "tau_name": args.tau_name,
             "status": "excluded",
+            "hardware_profile": profile.to_dict(),
             "exclusion": {
                 "category": "search_or_realization",
                 "message": f"{type(error).__name__}: {error}",
@@ -564,7 +599,8 @@ def orchestrate(args) -> None:
         "schema": "relay.tritonbench.search.v1", "experiment": args.experiment,
         "platform": args.platform, "operator": case.operator, "config": case.config,
         "description": case.description, "status": "complete",
-        "analysis_seconds": analysis_seconds, "hardware_profile": profile.to_dict(),
+        "analysis_seconds": analysis_seconds, "tau_name": args.tau_name,
+        "hardware_profile": profile.to_dict(),
         "frozen_triton_config": selection["selected_config"], "search": search,
         "validation": validation, "timing": _timing_summary(timing_records),
         "counters": counters, "counter_reductions_percent": _counter_reductions(counters),

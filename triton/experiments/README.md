@@ -49,18 +49,16 @@ The aggregate is exactly
 J_area = sum_component tau * bytes * (Q - packing_bound) / useful_byte_exposure
 ```
 
-The MI300A and H100 `tau` profiles live in `tau-profiles.json`. They are fit
-only on the seven pilot kernels, using the mean within-kernel rank of relevant
-L1 and L2 work counters. A nonnegative ridge fit over the automatic component
-features initializes a deterministic pair-grid and greedy refinement that
-selects tau by training-set macro Spearman. TritonBench and real kernels are
-not part of this tuning set. Derived aliases of the same native counter
-contribute only once to the tuning target; on H100, `l2_read_work` remains in
-analysis output but aliases
-the same native counter as `l1_to_l2_read_traffic` and is excluded from the
-fit. Reports record the selected components, weights, fitting method, tuning
-counters, excluded aliases, and training correlation. The native fine
-components are `issue.g64.stream.load.64B` on MI300A and
+The three named MI300A and H100 `tau` profiles live in `tau-profiles.json`:
+`expert`, `l1_to_l2`, and `speedup`. The hand-authored expert profile uses
+native issue/transaction geometry and short temporal scopes without looking at
+measurements. The counter profile maximizes pilot-kernel macro Spearman between
+`J_area` and L1-miss demand requests sent to L2 (`TCP_TCC_READ_REQ` on MI300A,
+TEX-source L2 requests on H100). The speedup profile maximizes geometric-mean
+pilot speedup after selecting the minimum-`J_area` measured layout within each
+Experiment 1--3 kernel/grammar panel. TritonBench and real kernels are excluded
+from every fit. Reports retain all diagnostic counters and components. The
+native fine components are `issue.g64.stream.load.64B` on MI300A and
 `issue.g32.stream.load.32B` on H100.
 
 This is the automatic construction introduced by commit
@@ -206,7 +204,12 @@ The selected persistent layouts are realized by
 `libLAQSTritonLayoutRewrite.so`. This is a separate post-coalescing compiler
 pass: it neither replaces nor changes `libLAQSTritonAccessManifest.so`, so
 building it does not change the frontend or commands used by queued
-Experiments 1--3. Build just this new target once on each platform:
+Experiments 1--3. Canonical matrix rows are recognized as one-hot bit runs and
+lowered to masks, shifts, and ORs without XORs. Dense power-of-two tensors are
+rewritten directly from their flat element offsets. For `G_OC`, only genuinely
+multi-source inner rows emit XORs; one-hot inner rows and the canonical outer
+layout use the same bit-run lowering. Build just this new target once on each
+platform:
 
 ```bash
 # On Tuolumne
@@ -230,8 +233,9 @@ triton/experiments/submit-experiment-5-matrix.bash
 triton/experiments/submit-experiment-6-matrix.bash
 ```
 
-Each submission launches 29 jobs, allowing all configurations and grammars to
-run concurrently. Defaults are intentionally queue-friendly: Experiments 4
+Each submission launches 87 jobs: 29 configurations under each of `expert`,
+`l1_to_l2`, and `speedup`. Set `RELAY_FINAL_TAU_NAMES` to retry only selected
+profiles. Defaults are intentionally queue-friendly: Experiments 4
 and 5 request 1 hour on Tuolumne and 45 minutes on Matrix; Experiment 6
 requests 90 minutes and 1 hour, respectively. Override them only if observed
 runtimes warrant it:
@@ -242,6 +246,7 @@ RELAY_SEARCH_MATRIX_TIME_E4=01:00:00
 RELAY_SEARCH_MATRIX_TIME_E6=01:30:00
 RELAY_SEARCH_TUOLUMNE_QUEUE=pbatch
 RELAY_SEARCH_MATRIX_PARTITION=pbatch
+RELAY_FINAL_TAU_NAMES="l1_to_l2 speedup"
 ```
 
 Use `RELAY_SEARCH_CASES` for a smoke test or targeted retry. Extra arguments
@@ -265,7 +270,8 @@ rather than silently replaced.
 Per-configuration outputs are:
 
 ```text
-results/experiment-<4|5|6>/<platform>/<operator>--<config>/
+results/tau-profiles/<expert|l1_to_l2|speedup>/
+  experiment-<4|5|6>/<platform>/<operator>--<config>/
   selection.json
   report.json
   raw-data.csv
@@ -275,19 +281,19 @@ results/experiment-<4|5|6>/<platform>/<operator>--<config>/
     profile.json
 ```
 
-Every completed job also writes a PDF under
-`plots/experiment-<n>/<platform>/`. After the jobs finish, aggregate the
+Every completed job also writes a PDF under the matching
+`plots/tau-profiles/<tau>/experiment-<n>/<platform>/` tree. After the jobs finish, aggregate the
 per-case raw rows and build the suite PDF with:
 
 ```bash
 triton/.venv/bin/python triton/experiments/analyze-search.py \
-  --experiment 4 --platform tuolumne
+  --experiment 4 --platform tuolumne --tau-name expert
 
 triton/.venv-matrix/bin/python triton/experiments/analyze-search.py \
-  --experiment 4 --platform matrix
+  --experiment 4 --platform matrix --tau-name expert
 ```
 
-Repeat with `--experiment 5` and `6`. The suite CSV is written to the
+Repeat with `--experiment 5` and `6` and all three tau names. The suite CSV is written to the
 experiment result directory and `summary.pdf` to its plot directory. Run this
 after both platforms finish: the summary includes only configurations marked
 complete on both machines and records the counterpart status for every row.
@@ -308,9 +314,7 @@ launch with 10 warm-ups and 11 alternating samples of 50 launches.
 The default search space is Experiment 5's natural-tile canonical DP. This
 keeps the appendix focused while covering all 29 TritonBench configurations.
 Set `RELAY_SENSITIVITY_SEARCH_EXPERIMENTS="4 5 6"` to study all three search
-spaces. Matrix's fitted profile currently has one positive tau entry, so
-multiplying it cannot change the analytical ranking; the recorded trials make
-that invariance explicit rather than manufacturing inactive weights.
+spaces. The appendix currently uses each platform's default `expert` profile.
 
 Experiment 10 needs the layout-rewrite plugin described above. Submit from the
 repository root:
@@ -455,15 +459,29 @@ embedding exception with `RELAY_FINAL_EMBEDDING_RESCORE_TIME`. A single case
 and stratification can be regenerated with `rescore-tuolumne-job.bash` or
 `rescore-matrix-job.bash`, passing `--case` and `--counter-source`.
 
-After both platforms are present, fit both device profiles and rewrite all
-reports, CSV analysis, and PDFs with the fitted `tau` values:
+After both platforms are present, regenerate the six named profiles. This only
+reads the recorded pilot counters and durations; it does not launch a GPU or
+rewrite the source corpus:
 
 ```bash
 .venv/bin/python triton/experiments/tune_tau.py
 ```
 
-Running the rescore commands again later reuses the same recorded counters and
-automatically applies the checked-in `tau-profiles.json`; rerunning
-`tune_tau.py` does not launch a GPU. `results-old` remains the historical
-uniform-sampling corpus and is intentionally not compatible with the new
-stratified panels.
+Then materialize the ordinary report/CSV/PDF workflow for each tau while
+reusing the recorded counters:
+
+```bash
+# Tuolumne
+.venv/bin/python triton/experiments/rescore-tau-profiles.py \
+  --platform tuolumne --skip-existing
+
+# Matrix
+triton/.venv-matrix/bin/python triton/experiments/rescore-tau-profiles.py \
+  --platform matrix --skip-existing
+```
+
+The outputs are isolated under `results/tau-profiles/<tau>/experiment-<n>/`
+and the matching plot tree. Compact rescored reports retain every score and
+steady-state counter while pointing back to the original report for large raw
+profiler records. `results-old` remains the historical uniform-sampling corpus
+and is intentionally not compatible with the new stratified panels.

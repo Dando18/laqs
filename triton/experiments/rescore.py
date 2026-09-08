@@ -57,8 +57,11 @@ def _counter_report(
 def _expected_profile(platform: str) -> str:
     if not TAU_PROFILES.is_file():
         return f"automatic-bootstrap-{platform}-v1"
-    document = json.loads(TAU_PROFILES.read_text(encoding="utf-8"))
-    return str(document["platforms"][platform]["profile_id"])
+    from tau_profiles import load_tau_document, tau_profile_record
+
+    document = load_tau_document(TAU_PROFILES)
+    _, profile = tau_profile_record(document, platform)
+    return str(profile["profile_id"])
 
 
 def _outputs_current(args) -> bool:

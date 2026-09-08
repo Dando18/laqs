@@ -8,124 +8,532 @@
   "graph_construction": "automatic_post_coalescing_manifest_universal_v1",
   "platforms": {
     "matrix": {
-      "active_tau": {
-        "issue.g32.stream.load.32B": 1.0
-      },
-      "counter_components": {
-        "first_level_memory_accesses": "issue.g32.stream.load.32B",
-        "global_load_requests": "issue.g32.stream.load.32B",
-        "hbm_read_bytes": "lane_window.t4.stream.load.256B",
-        "l1_to_l2_read_traffic": "lane_window.t16.stream.load.32B",
-        "l2_read_misses": "simd_window.t16.array.load.64B",
-        "l2_read_work": "lane_window.t16.stream.load.32B",
-        "sectors_per_request": "issue.g32.stream.load.32B"
-      },
-      "fit": {
-        "candidate_feature_count": 96,
-        "counter_component_macro_spearman": {
-          "first_level_memory_accesses": 1.0,
-          "global_load_requests": null,
-          "hbm_read_bytes": 0.5172101730320191,
-          "l1_to_l2_read_traffic": 0.32512939778999,
-          "l2_read_misses": 0.5177787702771358,
-          "l2_read_work": 0.32512939778999,
-          "sectors_per_request": 1.0
+      "default_profile": "expert",
+      "profiles": {
+        "expert": {
+          "active_tau": {
+            "issue.g32.stream.load.128B": 0.2,
+            "issue.g32.stream.load.32B": 0.5,
+            "simd_window.t16.stream.load.128B": 0.2,
+            "workgroup_step.stream.load.128B": 0.1
+          },
+          "counter_components": {
+            "first_level_memory_accesses": "issue.g32.stream.load.32B",
+            "global_load_requests": "issue.g32.stream.load.128B",
+            "hbm_read_bytes": "lane_window.t4.stream.load.256B",
+            "l1_miss_demand_to_l2": "issue.g32.stream.load.128B",
+            "l1_to_l2_read_traffic": "lane_window.t16.stream.load.32B",
+            "l2_read_misses": "simd_window.t16.array.load.64B",
+            "l2_read_work": "lane_window.t16.stream.load.32B",
+            "sectors_per_request": "issue.g32.stream.load.32B",
+            "tex_source_l2_read_requests": "issue.g32.stream.load.128B"
+          },
+          "fine_component": "issue.g32.stream.load.32B",
+          "fit": {
+            "method": "hardware_informed_hand_authored",
+            "rationale": "H100 combines 32-thread/32-byte sector issue locality with 128-byte line-scale issue and short temporal/workgroup reuse",
+            "target": "hierarchy-faithful coalescing and short-range reuse heuristic",
+            "uses_measured_counters_or_runtime": false
+          },
+          "name": "expert",
+          "profile_id": "expert-matrix-hierarchy-tau-v2"
         },
-        "deduplicated_mapping_count": 1900,
-        "excluded_tuning_counter_aliases": {
-          "l2_read_work": "l1_to_l2_read_traffic"
+        "l1_to_l2": {
+          "active_tau": {
+            "issue.g32.stream.load.128B": 0.36562500000000003,
+            "workgroup_step.array.load.128B": 0.625,
+            "workgroup_window.t16.array.load.256B": 0.009374999999999967
+          },
+          "counter_components": {
+            "first_level_memory_accesses": "issue.g32.stream.load.32B",
+            "global_load_requests": "issue.g32.stream.load.128B",
+            "hbm_read_bytes": "lane_window.t4.stream.load.256B",
+            "l1_miss_demand_to_l2": "issue.g32.stream.load.128B",
+            "l1_to_l2_read_traffic": "lane_window.t16.stream.load.32B",
+            "l2_read_misses": "simd_window.t16.array.load.64B",
+            "l2_read_work": "lane_window.t16.stream.load.32B",
+            "sectors_per_request": "issue.g32.stream.load.32B",
+            "tex_source_l2_read_requests": "issue.g32.stream.load.128B"
+          },
+          "fine_component": "issue.g32.stream.load.32B",
+          "fit": {
+            "candidate_feature_count": 96,
+            "counter_component_macro_spearman": {
+              "first_level_memory_accesses": 1.0,
+              "global_load_requests": null,
+              "hbm_read_bytes": 0.4328532526980195,
+              "l1_miss_demand_to_l2": 0.6872696644991735,
+              "l1_to_l2_read_traffic": 0.3607111177680449,
+              "l2_read_misses": 0.44591858594778755,
+              "l2_read_work": 0.3607111177680449,
+              "sectors_per_request": 1.0,
+              "tex_source_l2_read_requests": 0.6872696644991735
+            },
+            "deduplicated_mapping_count": 3019,
+            "excluded_tuning_counter_aliases": {
+              "l1_miss_demand_to_l2": "tex_source_l2_read_requests",
+              "l2_read_work": "l1_to_l2_read_traffic"
+            },
+            "method": "nonnegative_ridge_coordinate_descent_then_deterministic_spearman_refinement",
+            "pilot_kernels": [
+              "bias_relu",
+              "embedding_bag",
+              "gemv",
+              "gesummv",
+              "mvt",
+              "softmax_bias",
+              "stencil5"
+            ],
+            "rank_refinement": {
+              "completed_greedy_iterations": 1,
+              "greedy_iteration_limit": 8,
+              "pair_grid_intervals": 40,
+              "selection_metric": "training_macro_spearman"
+            },
+            "regression_macro_spearman": 0.6914798672286084,
+            "screened_feature_count": 16,
+            "selected_feature_count": 3,
+            "target": "within-kernel rank of the native L1-miss demand request counter",
+            "training_macro_spearman": 0.6935204139324831,
+            "tuning_counters": [
+              "tex_source_l2_read_requests"
+            ]
+          },
+          "name": "l1_to_l2",
+          "profile_id": "pilot-matrix-l1-to-l2-tau-v2"
         },
-        "method": "nonnegative_ridge_coordinate_descent_then_deterministic_spearman_refinement",
-        "pilot_kernels": [
-          "bias_relu",
-          "embedding_bag",
-          "gemv",
-          "gesummv",
-          "mvt",
-          "softmax_bias",
-          "stencil5"
-        ],
-        "rank_refinement": {
-          "completed_greedy_iterations": 0,
-          "greedy_iteration_limit": 8,
-          "pair_grid_intervals": 40,
-          "selection_metric": "training_macro_spearman"
-        },
-        "regression_macro_spearman": 0.5680503977605472,
-        "screened_feature_count": 16,
-        "selected_feature_count": 1,
-        "target": "mean within-kernel rank of informative L1/L2 counters",
-        "training_macro_spearman": 0.5974613682231654,
-        "tuning_counters": [
-          "first_level_memory_accesses",
-          "l1_to_l2_read_traffic"
-        ]
-      },
-      "profile_id": "pilot-automatic-matrix-tau-v1"
+        "speedup": {
+          "active_tau": {
+            "lane_window.t16.stream.load.32B": 0.975,
+            "lane_window.t4.stream.load.32B": 0.025
+          },
+          "counter_components": {
+            "first_level_memory_accesses": "issue.g32.stream.load.32B",
+            "global_load_requests": "issue.g32.stream.load.128B",
+            "hbm_read_bytes": "lane_window.t4.stream.load.256B",
+            "l1_miss_demand_to_l2": "issue.g32.stream.load.128B",
+            "l1_to_l2_read_traffic": "lane_window.t16.stream.load.32B",
+            "l2_read_misses": "simd_window.t16.array.load.64B",
+            "l2_read_work": "lane_window.t16.stream.load.32B",
+            "sectors_per_request": "issue.g32.stream.load.32B",
+            "tex_source_l2_read_requests": "issue.g32.stream.load.128B"
+          },
+          "fine_component": "issue.g32.stream.load.32B",
+          "fit": {
+            "candidate_feature_count": 96,
+            "completed_greedy_iterations": 0,
+            "evaluation_leakage_policy": "pilot kernels only; TritonBench and real kernels excluded",
+            "greedy_iteration_limit": 8,
+            "method": "one_hot_screen_then_pair_grid_and_greedy_mixture_search",
+            "pair_grid_intervals": 40,
+            "pilot_kernel_grammar_groups": 19,
+            "pilot_kernels": [
+              "bias_relu",
+              "embedding_bag",
+              "gemv",
+              "gesummv",
+              "mvt",
+              "softmax_bias",
+              "stencil5"
+            ],
+            "scope": "empirical support of Experiments 1--3; the exact search in Experiments 4--6 minimizes the same J_area but can reach unprofiled layouts",
+            "screened_feature_count": 16,
+            "selected_feature_count": 2,
+            "selection_rule": "minimize J_area, prefer ordinary row-major on exact ties, then address-expression complexity",
+            "target": "geometric mean measured speedup of the lowest-J_area layout in each deduplicated pilot kernel/grammar panel",
+            "training_geometric_mean_speedup": 1.1029989324179712,
+            "training_median_speedup": 1.0,
+            "training_minimum_speedup": 1.0,
+            "training_regression_count": 0,
+            "training_selections": [
+              {
+                "case": "embedding_bag",
+                "experiment": 1,
+                "mapping_id": "mapping_3ad6353aa87a",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "gemv",
+                "experiment": 1,
+                "mapping_id": "mapping_8210c86e3cee",
+                "measured_speedup": 1.159453815261044
+              },
+              {
+                "case": "gesummv",
+                "experiment": 1,
+                "mapping_id": "mapping_8210c86e3cee",
+                "measured_speedup": 1.16798360469088
+              },
+              {
+                "case": "mvt",
+                "experiment": 1,
+                "mapping_id": "mapping_51d967b38d72",
+                "measured_speedup": 1.4148145563657932
+              },
+              {
+                "case": "softmax_bias",
+                "experiment": 1,
+                "mapping_id": "mapping_0fadc8968e5d",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "stencil5",
+                "experiment": 1,
+                "mapping_id": "mapping_0442430c2716",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "embedding_bag",
+                "experiment": 2,
+                "mapping_id": "mapping_3ad6353aa87a",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "gemv",
+                "experiment": 2,
+                "mapping_id": "mapping_0ac2dcc7b3fb",
+                "measured_speedup": 1.0829432241027488
+              },
+              {
+                "case": "gesummv",
+                "experiment": 2,
+                "mapping_id": "mapping_0ac2dcc7b3fb",
+                "measured_speedup": 1.117229361794816
+              },
+              {
+                "case": "mvt",
+                "experiment": 2,
+                "mapping_id": "mapping_816234ea7ce9",
+                "measured_speedup": 1.5203227734608489
+              },
+              {
+                "case": "softmax_bias",
+                "experiment": 2,
+                "mapping_id": "mapping_0fadc8968e5d",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "stencil5",
+                "experiment": 2,
+                "mapping_id": "mapping_0442430c2716",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "bias_relu",
+                "experiment": 3,
+                "mapping_id": "mapping_0899bb1953bc",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "embedding_bag",
+                "experiment": 3,
+                "mapping_id": "mapping_3ad6353aa87a",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "gemv",
+                "experiment": 3,
+                "mapping_id": "mapping_0ac2dcc7b3fb",
+                "measured_speedup": 1.0774467068728728
+              },
+              {
+                "case": "gesummv",
+                "experiment": 3,
+                "mapping_id": "mapping_0ac2dcc7b3fb",
+                "measured_speedup": 1.120744657606083
+              },
+              {
+                "case": "mvt",
+                "experiment": 3,
+                "mapping_id": "mapping_816234ea7ce9",
+                "measured_speedup": 1.513389527077428
+              },
+              {
+                "case": "softmax_bias",
+                "experiment": 3,
+                "mapping_id": "mapping_0fadc8968e5d",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "stencil5",
+                "experiment": 3,
+                "mapping_id": "mapping_0442430c2716",
+                "measured_speedup": 1.0
+              }
+            ]
+          },
+          "name": "speedup",
+          "profile_id": "pilot-matrix-speedup-tau-v2"
+        }
+      }
     },
     "tuolumne": {
-      "active_tau": {
-        "issue.g16.stream.load.128B": 0.12672425390625,
-        "issue.g32.stream.load.128B": 0.024374999999999914,
-        "simd_window.t16.array.load.128B": 0.6142092578125,
-        "simd_window.t4.stream.load.128B": 0.23469148828125014
-      },
-      "counter_components": {
-        "first_level_read_events": "issue.g8.stream.load.32B",
-        "hbm_read_bytes": "lane_window.t4.array.load.128B",
-        "l1_cache_line_accesses": "issue.g16.stream.load.128B",
-        "l1_to_l2_read_requests": "simd_window.t4.array.load.128B",
-        "l1_to_l2_total_requests": "simd_window.t4.array.load.128B",
-        "l2_hits": "simd_window.t4.array.load.128B",
-        "l2_misses": "simd_window.t16.array.load.64B",
-        "l2_tag_requests": "simd_window.t4.array.load.128B",
-        "second_level_read_requests": "simd_window.t4.array.load.128B"
-      },
-      "fit": {
-        "candidate_feature_count": 96,
-        "counter_component_macro_spearman": {
-          "first_level_read_events": 0.5017310711912634,
-          "hbm_read_bytes": 0.4991148971856429,
-          "l1_cache_line_accesses": 0.7985679829726045,
-          "l1_to_l2_read_requests": 0.7090338577996018,
-          "l1_to_l2_total_requests": 0.7090338577996018,
-          "l2_hits": 0.8839280386223474,
-          "l2_misses": 0.41084831275971456,
-          "l2_tag_requests": 0.8830510346536629,
-          "second_level_read_requests": 0.8853941147597819
+      "default_profile": "expert",
+      "profiles": {
+        "expert": {
+          "active_tau": {
+            "issue.g64.stream.load.128B": 0.2,
+            "issue.g64.stream.load.64B": 0.5,
+            "simd_window.t16.stream.load.128B": 0.2,
+            "workgroup_step.stream.load.128B": 0.1
+          },
+          "counter_components": {
+            "first_level_read_events": "issue.g8.stream.load.32B",
+            "hbm_read_bytes": "simd_window.t16.array.load.32B",
+            "l1_cache_line_accesses": "issue.g16.stream.load.128B",
+            "l1_miss_demand_to_l2": "simd_window.t4.array.load.128B",
+            "l1_to_l2_read_requests": "simd_window.t4.array.load.128B",
+            "l1_to_l2_total_requests": "simd_window.t4.array.load.128B",
+            "l2_hits": "simd_window.t4.array.load.128B",
+            "l2_misses": "simd_window.t16.array.load.32B",
+            "l2_tag_requests": "simd_window.t4.array.load.128B",
+            "second_level_read_requests": "simd_window.t4.array.load.128B"
+          },
+          "fine_component": "issue.g64.stream.load.64B",
+          "fit": {
+            "method": "hardware_informed_hand_authored",
+            "rationale": "MI300A combines 64-lane/64-byte vector-L1 issue locality with 128-byte line-scale issue and short temporal/workgroup reuse",
+            "target": "hierarchy-faithful coalescing and short-range reuse heuristic",
+            "uses_measured_counters_or_runtime": false
+          },
+          "name": "expert",
+          "profile_id": "expert-tuolumne-hierarchy-tau-v2"
         },
-        "deduplicated_mapping_count": 1900,
-        "excluded_tuning_counter_aliases": {},
-        "method": "nonnegative_ridge_coordinate_descent_then_deterministic_spearman_refinement",
-        "pilot_kernels": [
-          "bias_relu",
-          "embedding_bag",
-          "gemv",
-          "gesummv",
-          "mvt",
-          "softmax_bias",
-          "stencil5"
-        ],
-        "rank_refinement": {
-          "completed_greedy_iterations": 5,
-          "greedy_iteration_limit": 8,
-          "pair_grid_intervals": 40,
-          "selection_metric": "training_macro_spearman"
+        "l1_to_l2": {
+          "active_tau": {
+            "phase.simd.array.load.128B": 0.04000000000000001,
+            "simd_window.t16.array.load.128B": 0.96
+          },
+          "counter_components": {
+            "first_level_read_events": "issue.g8.stream.load.32B",
+            "hbm_read_bytes": "simd_window.t16.array.load.32B",
+            "l1_cache_line_accesses": "issue.g16.stream.load.128B",
+            "l1_miss_demand_to_l2": "simd_window.t4.array.load.128B",
+            "l1_to_l2_read_requests": "simd_window.t4.array.load.128B",
+            "l1_to_l2_total_requests": "simd_window.t4.array.load.128B",
+            "l2_hits": "simd_window.t4.array.load.128B",
+            "l2_misses": "simd_window.t16.array.load.32B",
+            "l2_tag_requests": "simd_window.t4.array.load.128B",
+            "second_level_read_requests": "simd_window.t4.array.load.128B"
+          },
+          "fine_component": "issue.g64.stream.load.64B",
+          "fit": {
+            "candidate_feature_count": 96,
+            "counter_component_macro_spearman": {
+              "first_level_read_events": 0.5286999800628703,
+              "hbm_read_bytes": 0.40901031292955864,
+              "l1_cache_line_accesses": 0.7907763078443116,
+              "l1_miss_demand_to_l2": 0.7078351983342621,
+              "l1_to_l2_read_requests": 0.7078351983342621,
+              "l1_to_l2_total_requests": 0.7078351983342621,
+              "l2_hits": 0.86239084688798,
+              "l2_misses": 0.38363643409144615,
+              "l2_tag_requests": 0.8623861110443829,
+              "second_level_read_requests": 0.8617452588143893
+            },
+            "deduplicated_mapping_count": 2882,
+            "excluded_tuning_counter_aliases": {
+              "l1_miss_demand_to_l2": "l1_to_l2_read_requests"
+            },
+            "method": "nonnegative_ridge_coordinate_descent_then_deterministic_spearman_refinement",
+            "pilot_kernels": [
+              "bias_relu",
+              "embedding_bag",
+              "gemv",
+              "gesummv",
+              "mvt",
+              "softmax_bias",
+              "stencil5"
+            ],
+            "rank_refinement": {
+              "completed_greedy_iterations": 1,
+              "greedy_iteration_limit": 8,
+              "pair_grid_intervals": 40,
+              "selection_metric": "training_macro_spearman"
+            },
+            "regression_macro_spearman": 0.7081445096981478,
+            "screened_feature_count": 16,
+            "selected_feature_count": 2,
+            "target": "within-kernel rank of the native L1-miss demand request counter",
+            "training_macro_spearman": 0.7298309469467112,
+            "tuning_counters": [
+              "l1_to_l2_read_requests"
+            ]
+          },
+          "name": "l1_to_l2",
+          "profile_id": "pilot-tuolumne-l1-to-l2-tau-v2"
         },
-        "regression_macro_spearman": 0.8758565661502637,
-        "screened_feature_count": 16,
-        "selected_feature_count": 4,
-        "target": "mean within-kernel rank of informative L1/L2 counters",
-        "training_macro_spearman": 0.8924665860356895,
-        "tuning_counters": [
-          "l1_cache_line_accesses",
-          "l1_to_l2_read_requests",
-          "second_level_read_requests"
-        ]
-      },
-      "profile_id": "pilot-automatic-tuolumne-tau-v1"
+        "speedup": {
+          "active_tau": {
+            "lane_window.t16.stream.load.64B": 1.0
+          },
+          "counter_components": {
+            "first_level_read_events": "issue.g8.stream.load.32B",
+            "hbm_read_bytes": "simd_window.t16.array.load.32B",
+            "l1_cache_line_accesses": "issue.g16.stream.load.128B",
+            "l1_miss_demand_to_l2": "simd_window.t4.array.load.128B",
+            "l1_to_l2_read_requests": "simd_window.t4.array.load.128B",
+            "l1_to_l2_total_requests": "simd_window.t4.array.load.128B",
+            "l2_hits": "simd_window.t4.array.load.128B",
+            "l2_misses": "simd_window.t16.array.load.32B",
+            "l2_tag_requests": "simd_window.t4.array.load.128B",
+            "second_level_read_requests": "simd_window.t4.array.load.128B"
+          },
+          "fine_component": "issue.g64.stream.load.64B",
+          "fit": {
+            "candidate_feature_count": 96,
+            "completed_greedy_iterations": 0,
+            "evaluation_leakage_policy": "pilot kernels only; TritonBench and real kernels excluded",
+            "greedy_iteration_limit": 8,
+            "method": "one_hot_screen_then_pair_grid_and_greedy_mixture_search",
+            "pair_grid_intervals": 40,
+            "pilot_kernel_grammar_groups": 19,
+            "pilot_kernels": [
+              "bias_relu",
+              "embedding_bag",
+              "gemv",
+              "gesummv",
+              "mvt",
+              "softmax_bias",
+              "stencil5"
+            ],
+            "scope": "empirical support of Experiments 1--3; the exact search in Experiments 4--6 minimizes the same J_area but can reach unprofiled layouts",
+            "screened_feature_count": 16,
+            "selected_feature_count": 1,
+            "selection_rule": "minimize J_area, prefer ordinary row-major on exact ties, then address-expression complexity",
+            "target": "geometric mean measured speedup of the lowest-J_area layout in each deduplicated pilot kernel/grammar panel",
+            "training_geometric_mean_speedup": 1.0448291433056818,
+            "training_median_speedup": 1.0,
+            "training_minimum_speedup": 1.0,
+            "training_regression_count": 0,
+            "training_selections": [
+              {
+                "case": "embedding_bag",
+                "experiment": 1,
+                "mapping_id": "mapping_3ad6353aa87a",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "gemv",
+                "experiment": 1,
+                "mapping_id": "mapping_bb8fa8378c16",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "gesummv",
+                "experiment": 1,
+                "mapping_id": "mapping_bb8fa8378c16",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "mvt",
+                "experiment": 1,
+                "mapping_id": "mapping_dcdb02e32fb4",
+                "measured_speedup": 1.2643374994142496
+              },
+              {
+                "case": "softmax_bias",
+                "experiment": 1,
+                "mapping_id": "mapping_0fadc8968e5d",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "stencil5",
+                "experiment": 1,
+                "mapping_id": "mapping_0442430c2716",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "embedding_bag",
+                "experiment": 2,
+                "mapping_id": "mapping_3ad6353aa87a",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "gemv",
+                "experiment": 2,
+                "mapping_id": "mapping_75fd9ff700e7",
+                "measured_speedup": 1.0179725697594149
+              },
+              {
+                "case": "gesummv",
+                "experiment": 2,
+                "mapping_id": "mapping_75fd9ff700e7",
+                "measured_speedup": 1.0202684161421196
+              },
+              {
+                "case": "mvt",
+                "experiment": 2,
+                "mapping_id": "mapping_816234ea7ce9",
+                "measured_speedup": 1.3002664696725852
+              },
+              {
+                "case": "softmax_bias",
+                "experiment": 2,
+                "mapping_id": "mapping_0fadc8968e5d",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "stencil5",
+                "experiment": 2,
+                "mapping_id": "mapping_0442430c2716",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "bias_relu",
+                "experiment": 3,
+                "mapping_id": "mapping_0899bb1953bc",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "embedding_bag",
+                "experiment": 3,
+                "mapping_id": "mapping_3ad6353aa87a",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "gemv",
+                "experiment": 3,
+                "mapping_id": "mapping_75fd9ff700e7",
+                "measured_speedup": 1.01716014616266
+              },
+              {
+                "case": "gesummv",
+                "experiment": 3,
+                "mapping_id": "mapping_75fd9ff700e7",
+                "measured_speedup": 1.018672916262719
+              },
+              {
+                "case": "mvt",
+                "experiment": 3,
+                "mapping_id": "mapping_816234ea7ce9",
+                "measured_speedup": 1.300439890440648
+              },
+              {
+                "case": "softmax_bias",
+                "experiment": 3,
+                "mapping_id": "mapping_0fadc8968e5d",
+                "measured_speedup": 1.0
+              },
+              {
+                "case": "stencil5",
+                "experiment": 3,
+                "mapping_id": "mapping_0442430c2716",
+                "measured_speedup": 1.0
+              }
+            ]
+          },
+          "name": "speedup",
+          "profile_id": "pilot-tuolumne-speedup-tau-v2"
+        }
+      }
     }
   },
-  "schema": "relay.triton.pilot_tau_profile",
-  "version": 1
+  "profile_order": [
+    "expert",
+    "l1_to_l2",
+    "speedup"
+  ],
+  "schema": "relay.triton.tau_profiles",
+  "version": 2
 }

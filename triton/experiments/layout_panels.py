@@ -33,7 +33,7 @@ class CounterScoreProfile:
 
 
 def counter_score_profile(
-    platform: str, component_names: set[str]
+    platform: str, component_names: set[str], tau_name: str | None = None
 ) -> CounterScoreProfile:
     """Return the tuned automatic-graph profile for one platform."""
 
@@ -86,22 +86,18 @@ def counter_score_profile(
     active = {fine: 1.0}
     profile_id = f"automatic-bootstrap-{platform}-v1"
     if TAU_PROFILES.is_file():
-        document = json.loads(TAU_PROFILES.read_text(encoding="utf-8"))
+        from tau_profiles import load_tau_document, tau_profile_record
+
+        document = load_tau_document(TAU_PROFILES)
         if tuple(document["byte_scales"]) != BYTE_SCALES:
             raise ValueError("tau profile byte scales do not match experiment scales")
-        record = document["platforms"][platform]
+        _, record = tau_profile_record(document, platform, tau_name)
         configured = {
             str(name): float(value)
             for name, value in record["active_tau"].items()
-            if float(value) != 0.0
+            if float(value) != 0.0 and str(name) in component_names
         }
-        unknown = sorted(set(configured) - component_names)
-        if unknown:
-            raise ValueError(
-                "tau profile references components absent from this graph: "
-                + ", ".join(unknown)
-            )
-        active = configured
+        active = configured or {fine: 1.0}
         profile_id = str(record["profile_id"])
         counters.update(
             {
