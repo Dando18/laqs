@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 import hashlib
 from math import prod
@@ -16,6 +17,9 @@ import triton.language as tl
 
 
 from layout_contract import RuntimeLayout
+
+
+launch_guard = ContextVar('laqs_launch_guard', default=None)
 
 
 def _plugin_path() -> Path:
@@ -153,6 +157,8 @@ class FrozenLaunch:
         return FrozenLaunch(self.jit, self.grid, list(self.values), dict(self.options))
 
     def run(self):
+        if guard := launch_guard.get():
+            guard(self)
         return self.jit.run(*self.values, grid=self.grid, warmup=False, **self.options)
 
 

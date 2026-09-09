@@ -8,7 +8,8 @@ fi
 
 relay_search_venv_real="$(readlink -f triton/.venv)"
 relay_search_build="${RELAY_TRITON_BUILD_DIR:-$(dirname "${relay_search_venv_real}")/triton-lang-build}"
-cmake --build "${relay_search_build}" --target LAQSTritonPacketLayout -j "${RELAY_TRITON_MAX_JOBS:-8}"
+.venv/bin/python triton/packet_layout/apply-compiler-patch.py --build-dir "${relay_search_build}"
+cmake --build "${relay_search_build}" --target triton LAQSTritonPacketLayout -j "${RELAY_TRITON_MAX_JOBS:-8}"
 
 relay_search_library="${PWD}/triton/triton-lang/python/triton/plugins/libLAQSTritonPacketLayout.so"
 test -f "${relay_search_library}"

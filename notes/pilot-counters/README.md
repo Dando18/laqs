@@ -2,9 +2,10 @@ Paper assets in `pilot-counters.tex`:
 
 - Figure: Experiment 1, H100, whole-tensor canonical layouts, all-scope
   stratification; native issue Q_32B versus L1 global-load sectors.
-- Table: Experiment 2, H100 and MI300A, canonical inner-tile layouts,
+- Table: Experiments 1 (G_C) and 3 (GL(p,2)), H100 and MI300A,
   all-scope stratification; J_area with each device's l1_to_l2 tau profile
-  versus L1-to-L2 read requests. Includes the median across six kernels.
+  versus L1-to-L2 read requests. Shows only the median across six kernels for each layout family and device.
+  Uses the recorded pre-packet pilot results.
 
 Bias+ReLU is excluded from both assets.
 
@@ -23,10 +24,10 @@ pdflatex -interaction=nonstopmode -halt-on-error pilot-counters.tex
 
 The generator reuses the existing quotient plot's font selection and the
 Stage-1 average-rank Spearman implementation. `source-data.json` records the
-18 source report paths and SHA-256 hashes, observations, table tau maps, and
+30 source report paths and SHA-256 hashes, observations, table tau maps, and
 full-precision correlations, separately for the figure and table.
-`l2-correlations.csv` records all 12 per-kernel table values and their
-experiment, stratification, tau, predictor, and counter fields. These values
-were checked against the complete pilot L2 correlation report in
-`../pilot-l2-correlations/per-kernel.csv`. Inputs are read only; no GPU
-profiling or score fitting is performed.
+`l2-correlations.csv` records the four aggregate table values and their
+experiment, stratification, tau, predictor, and counter fields. The 24
+underlying per-kernel correlations are retained in `source-data.json`.
+Medians are checked against `../pilot-l2-correlations/medians.csv`.
+Inputs are read only; no GPU profiling or score fitting is performed.

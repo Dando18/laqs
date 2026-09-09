@@ -21,14 +21,39 @@ def plugin_path():
 
 
 @contextmanager
-def structured_layouts(layouts, *, inspect=False):
+def structured_layouts(layouts, *, inspect=False, mode='repaired', launch=None):
+    """Compile a frozen launch; scalar/grid bindings are proof assumptions.
+
+    A caller supplying ``launch`` must run that launch unchanged in this scope.
+    Different scalar arguments or grids require a new scope/compilation key.
+    Without bindings, recurrence proofs use only facts present in the IR.
+    """
     from triton import knobs
     from triton._C.libtriton import passes
+    from layout_runtime import launch_guard
     path = plugin_path()
     if path not in _LOADED:
         passes.plugin.extend_with(str(path))
         _LOADED.add(path)
-    arguments = (["inspect"] if inspect else []) + [layout.pass_argument() for layout in layouts]
+    if mode not in ('legacy', 'transparent', 'repaired'):
+        raise ValueError(f'unknown packet address mode: {mode}')
+    bindings = {} if launch is None else {
+        name: int(value) for name, value in zip(launch.jit.arg_names, launch.values)
+        if isinstance(value, (int, bool)) and -(1 << 31) <= value < (1 << 31)}
+    if launch is not None:
+        bindings.update({f'$grid{i}': int(n) for i, n in enumerate(launch.grid)})
+    expected_grid = tuple(launch.grid) if launch is not None else ()
+    expected_jit = launch.jit if launch is not None else None
+    def guard(actual):
+        if launch is None:
+            return
+        if actual.jit is not expected_jit or tuple(actual.grid) != expected_grid:
+            raise ValueError('launch does not match the packet recurrence proof')
+        values = dict(zip(actual.jit.arg_names, actual.values))
+        if any(values[name] != value for name, value in bindings.items() if not name.startswith('$')):
+            raise ValueError('scalar arguments changed since the packet recurrence proof')
+    arguments = (["inspect"] if inspect else []) + [mode] + [
+        f'bind:{name}:{value}' for name, value in sorted(bindings.items())] + [layout.pass_argument() for layout in layouts]
     signature = hashlib.sha256(path.read_bytes() + json.dumps(arguments).encode()).hexdigest()
 
     def hook(pm=None):
@@ -46,7 +71,11 @@ def structured_layouts(layouts, *, inspect=False):
     hook.collect_metadata = collect
     with knobs.runtime.scope():
         knobs.runtime.post_coalesce_hook = hook
-        yield
+        token = launch_guard.set(guard)
+        try:
+            yield
+        finally:
+            launch_guard.reset(token)
 
 
 def statistics(kernel, directory, label):
@@ -59,6 +88,10 @@ def statistics(kernel, directory, label):
                                    if not k.startswith('HFMA2')}
     record['communication'] = {k: v for k, v in record['opcode_counts'].items()
                                if re.search(r'shfl|ds_bpermute|ds_swizzle', k, re.I)}
+    record['opaque_identity_calls'] = len(re.findall(
+        r'\basm(?:\s+\w+)*\s+""\s*,\s*"=[rv],0"', kernel.asm.get('llir', '')))
+    recurrence = re.search(r'laqs.physical_recurrences = (\d+)', kernel.asm.get('ttgir', ''))
+    record['physical_recurrences'] = int(recurrence[1]) if recurrence else 0
     return record
 
 

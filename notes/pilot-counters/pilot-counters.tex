@@ -39,28 +39,26 @@ all kernel loads; offsets therefore need not vanish.}
 \end{figure}
 
 \clearpage
-The L2 comparison uses Experiment~2's canonical inner-tile layouts, stratified
-across all score components, with row-major outer tiles. We correlate
-$J_{\mathrm{area}}$ under the device-specific \texttt{l1\_to\_l2} tau profile
-with read requests sent from L1 to L2.
+The L2 comparison summarizes the recorded pre-packet pilot results for
+$G_C$ (Experiment~1) and $GL(p,2)$ (Experiment~3), using the median
+correlation across six kernels.
 
 \begin{table}[htbp]
 \centering
 \input{l2-correlations.tex}
-\caption{Spearman correlations between $J_{\mathrm{area}}$ and L1-to-L2 read
-requests on H100 and MI300A, using the \texttt{l1\_to\_l2} tau profile and
-Experiment~2's all-scope-stratified canonical inner-tile layout panels.
-Each per-kernel correlation uses 100 distinct mappings and average ranks
-for ties. H100 counts TEX-source L2 read requests with
-\texttt{\detokenize{lts__t_requests_srcunit_tex_op_read.sum}};
-MI300A counts TCP-to-TCC read requests with
-\texttt{TCP\_TCC\_READ\_REQ\_sum}.
+\caption{Median per-kernel Spearman correlations between $J_{\mathrm{area}}$
+and L1-to-L2 read requests, using each device's \texttt{l1\_to\_l2} tau profile
+and all-scope stratification. $G_C$ denotes Experiment~1's whole-tensor
+canonical layouts; $GL(p,2)$ denotes Experiment~3's invertible binary
+inner-tile layouts with row-major outer tiles.
+Each cell is the median of six per-kernel correlations (bias+ReLU excluded),
+each computed across 100 distinct mappings with average ranks for ties.
+H100 uses \texttt{\detokenize{lts__t_requests_srcunit_tex_op_read.sum}};
+MI300A uses \texttt{TCP\_TCC\_READ\_REQ\_sum}.
 Each counter observation is the median of three independent profiler-launch
 medians, each over 20 steady-state dispatches with warm caches.
-The final row is the median of the six per-kernel correlations, not a pooled
-correlation or a median across launches. Bias+ReLU is excluded.
-The device-specific tau weights were fitted using pilot counters; these are
-pilot-panel correlations.}
+These are recorded pre-packet pilot results; device-specific tau weights
+were fitted using pilot counters.}
 \label{tab:pilot-l2}
 \end{table}
 

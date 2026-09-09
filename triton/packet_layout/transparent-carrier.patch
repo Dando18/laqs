@@ -1,0 +1,57 @@
+diff --git a/lib/Conversion/TritonGPUToLLVM/ElementwiseOpToLLVM.cpp b/lib/Conversion/TritonGPUToLLVM/ElementwiseOpToLLVM.cpp
+index b0f1f92bf..306921d58 100644
+--- a/lib/Conversion/TritonGPUToLLVM/ElementwiseOpToLLVM.cpp
++++ b/lib/Conversion/TritonGPUToLLVM/ElementwiseOpToLLVM.cpp
+@@ -11,6 +11,22 @@ using namespace mlir::triton::gpu;
+ 
+ namespace {
+ 
++struct AddIOpConversion
++    : public ElementwiseOpConversionBase<arith::AddIOp, AddIOpConversion> {
++  using Base = ElementwiseOpConversionBase<arith::AddIOp, AddIOpConversion>;
++  using Base::Base;
++  SmallVector<LLVM::AddOp> createDestOps(arith::AddIOp op, OpAdaptor adaptor,
++      ConversionPatternRewriter &rewriter, Type elemTy,
++      MultipleOperandsRange operands, Location loc) const {
++    // Overflow flags are properties, so copying the attribute dictionary loses
++    // the bounds needed to widen a proved physical-address induction variable.
++    auto flags = LLVM::IntegerOverflowFlags::none;
++    if (op.hasNoSignedWrap()) flags = flags | LLVM::IntegerOverflowFlags::nsw;
++    if (op.hasNoUnsignedWrap()) flags = flags | LLVM::IntegerOverflowFlags::nuw;
++    return {LLVM::AddOp::create(rewriter, loc, elemTy, operands[0][0], operands[0][1], flags)};
++  }
++};
++
+ struct AddPtrOpConversion : public ConvertOpToLLVMPattern<AddPtrOp> {
+   using ConvertOpToLLVMPattern<AddPtrOp>::ConvertOpToLLVMPattern;
+ 
+@@ -310,6 +326,20 @@ struct ElementwiseInlineAsmOpConversion
+   LogicalResult
+   matchAndRewrite(ElementwiseInlineAsmOp op, OpAdaptor adaptor,
+                   ConversionPatternRewriter &rewriter) const override {
++    // LAQS uses this identity only to carry proven AxisInfo facts through
++    // memory lowering. Preserve the SSA identity for LLVM optimization.
++    if (op->hasAttr("laqs.packet_identity")) {
++      if (!isa<UnitAttr>(op->getAttr("laqs.packet_identity")) ||
++          op.getNumOperands() != 1 || op.getNumResults() != 1 ||
++          op.getOperand(0).getType() != op->getResult(0).getType() ||
++          !getElementTypeOrSelf(op->getResult(0)).isInteger(32) ||
++          !op.getAsmString().empty() || !op.getPure() ||
++          op.getPackedElement() != 1 ||
++          (op.getConstraints() != "=r,0" && op.getConstraints() != "=v,0"))
++        return op.emitError("invalid LAQS packet identity carrier");
++      rewriter.replaceOp(op, adaptor.getOperands());
++      return success();
++    }
+     Location loc = op->getLoc();
+     auto b = TritonLLVMOpBuilder(loc, rewriter);
+ 
+@@ -673,7 +703,7 @@ void mlir::triton::populateElementwiseOpToLLVMPatterns(
+       typeConverter, axisInfoAnalysis, benefit);
+ 
+   POPULATE_BINARY_OP(arith::SubIOp, LLVM::SubOp) // -
+-  POPULATE_BINARY_OP(arith::AddIOp, LLVM::AddOp) // +
++  patterns.add<AddIOpConversion>(typeConverter, axisInfoAnalysis, benefit);
+   POPULATE_BINARY_OP(arith::MulIOp, LLVM::MulOp) // *
+   POPULATE_BINARY_OP(arith::DivSIOp, LLVM::SDivOp)
+   POPULATE_BINARY_OP(arith::DivUIOp, LLVM::UDivOp)

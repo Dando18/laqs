@@ -108,6 +108,16 @@ class PacketSearchTests(unittest.TestCase):
         split_candidate = next(c for c in split_only['candidates'] if 'split' in c['families'])
         self.assertEqual(split_candidate['score'], selected['score'])
         self.assertEqual(split_candidate['runtime_layouts'], selected['runtime_layouts'])
+        from relay import row_major_layout
+        ordinary = layout_matrix_rows(matrix, row_major_layout(matrix))
+        def key(candidate):
+            rows = layout_matrix_rows(matrix, candidate)
+            score = score_layouts({'A': matrix}, (component,), {'A': candidate}, hardware_profile=profile)
+            return (score.hardware_area, rows != ordinary, sum(a != b for a, b in zip(rows, ordinary)),
+                    len(address_fields(matrix, candidate)), rows)
+        expected = min(split_templates(matrix, 1), key=key)
+        self.assertEqual(split_candidate['runtime_layouts'][0]['rows'],
+                         list(layout_matrix_rows(matrix, expected)))
 
 
 class PacketMeasuredSelectionTests(unittest.TestCase):

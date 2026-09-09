@@ -1,15 +1,43 @@
 #include "AddressSupport.h"
+#include "RecurrenceSupport.h"
 #include "llvm/Support/JSON.h"
 
 namespace mlir::triton::laqs_packet {
 namespace {
+
+Value physicalOffset(OpBuilder &builder, Value logical, const LayoutSpec &spec, unsigned packetBits = 0);
 
 // Recover integer SSA offsets, preserving the original integer arithmetic.
 // The admitted permutation reads fewer than 31 low bits. Modulo-2^32 offset
 // state therefore preserves every used bit, including through integer carries.
 class OffsetBuilder {
 public:
-  explicit OffsetBuilder(MLIRContext *context) : builder(context) {}
+  OffsetBuilder(MLIRContext *context, const ScalarBindings &bindings, bool recurrent)
+      : builder(context), ranges(bindings), recurrent(recurrent) {}
+
+  Value physical(Value pointer, const LayoutSpec &spec, unsigned packetBits) {
+    if (auto it = physicals.find(pointer); it != physicals.end()) return it->second;
+    if (auto op = pointer.getDefiningOp(); op && preservesPointerProvenance(op->getName().getStringRef()) &&
+        !isa<BitcastOp>(op)) {
+      if (auto it = physicals.find(op->getOperand(0)); it != physicals.end()) {
+        OpBuilder::InsertionGuard guard(builder);
+        builder.setInsertionPointAfter(op);
+        OperationState state(op->getLoc(), op->getName());
+        state.addOperands(it->second);
+        state.addTypes(offsetType(builder, pointer.getType()));
+        state.addAttributes(op->getAttrs());
+        for (auto name : {"tt.contiguity", "tt.divisibility", "tt.constancy"}) state.attributes.erase(name);
+        return builder.create(state)->getResult(0);
+      }
+    }
+    Value logical = get(pointer);
+    if (!logical) return {};
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointAfterValue(logical);
+    return physicalOffset(builder, logical, spec, packetBits);
+  }
+
+  unsigned recurrenceCount() const { return recurrence_count; }
 
   Value get(Value value) {
     if (auto it = offsets.find(value); it != offsets.end())
@@ -77,6 +105,7 @@ public:
   LogicalResult extendLoop(scf::ForOp loop,
                            const std::map<unsigned, LayoutSpec> &specs) {
     SmallVector<unsigned> slots;
+    SmallVector<int64_t> increments;
     SmallVector<Value> initial(loop.getInitArgs());
     for (auto [slot, value] : llvm::enumerate(loop.getInitArgs())) {
       llvm::SetVector<unsigned> bases;
@@ -86,10 +115,59 @@ public:
       Value offset = get(value);
       if (!offset)
         return loop.emitError("packet layout cannot recover loop initial offset");
+      if (recurrent) {
+        auto update = loop.getBody()->getTerminator()->getOperand(slot).getDefiningOp<AddPtrOp>();
+        auto lower = ranges.constant(loop.getLowerBound()), upper = ranges.constant(loop.getUpperBound());
+        auto loopStep = ranges.constant(loop.getStep());
+        if (!update || update.getPtr() != loop.getRegionIterArg(slot) ||
+            !lower || !upper || !loopStep || *loopStep <= 0 ||
+            !loop.getResult(slot).use_empty() ||
+            !llvm::all_of(update->getUsers(), [&](Operation *user) { return user == loop.getBody()->getTerminator(); }))
+          return loop.emitError("unsupported physical pointer recurrence: require a bounded constant update and no escaping final pointer");
+        auto stride = ranges.constant(update.getOffset());
+        int64_t trips = *upper <= *lower ? 0 : (*upper - *lower + *loopStep - 1) / *loopStep;
+        auto delta = stride ? physicalIncrement(*rowsForDensePowerOfTwoOffset(specs.at(bases.front())),
+                                                *stride, trips, offset, ranges) : std::nullopt;
+        if (!delta) return loop.emitError("physical pointer recurrence proof failed: unsupported stride or coordinate carry");
+        OpBuilder::InsertionGuard guard(builder);
+        builder.setInsertionPoint(loop);
+        offset = physicalOffset(builder, offset, specs.at(bases.front()));
+        increments.push_back(*delta);
+      }
       slots.push_back(slot);
       initial.push_back(offset);
     }
-    if (slots.empty())
+    SmallVector<Value> affinePointers;
+    if (recurrent) {
+      auto lower = ranges.constant(loop.getLowerBound()), upper = ranges.constant(loop.getUpperBound());
+      auto loopStep = ranges.constant(loop.getStep());
+      if (lower && upper && loopStep && *loopStep > 0) {
+        int64_t trips = *upper <= *lower ? 0 : (*upper - *lower + *loopStep - 1) / *loopStep;
+        LoopAffineInitial affine(builder, loop, ranges);
+        loop.walk([&](LoadOp load) {
+          if (load->getParentOfType<scf::ForOp>() != loop) return;
+          Value pointer = load.getPtr();
+          if (llvm::is_contained(affinePointers, pointer)) return;
+          llvm::SetVector<unsigned> bases;
+          collectBaseArguments(pointer, bases);
+          if (bases.size() != 1 || !specs.count(bases.front())) return;
+          Value logical = get(pointer);
+          if (!logical) return;
+          auto start = affine.get(logical);
+          if (!start || !start->coefficient || start->coefficient > INT32_MAX / *loopStep) return;
+          const auto &spec = specs.at(bases.front());
+          auto delta = physicalIncrement(*rowsForDensePowerOfTwoOffset(spec),
+              start->coefficient * *loopStep, trips, start->value, ranges);
+          if (!delta) return;
+          OpBuilder::InsertionGuard guard(builder);
+          builder.setInsertionPoint(loop);
+          initial.push_back(physicalOffset(builder, start->value, spec));
+          increments.push_back(*delta);
+          affinePointers.push_back(pointer);
+        });
+      }
+    }
+    if (slots.empty() && affinePointers.empty())
       return success();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPoint(loop);
@@ -104,23 +182,45 @@ public:
     loop.getInductionVar().replaceAllUsesWith(replacement.getInductionVar());
     for (unsigned i = 0; i < originalCount; ++i)
       loop.getRegionIterArg(i).replaceAllUsesWith(replacement.getRegionIterArg(i));
-    for (auto [i, slot] : llvm::enumerate(slots))
-      offsets[replacement.getRegionIterArg(slot)] = replacement.getRegionIterArg(originalCount + i);
+    for (auto [i, slot] : llvm::enumerate(slots)) {
+      auto &map = recurrent ? physicals : offsets;
+      map[replacement.getRegionIterArg(slot)] = replacement.getRegionIterArg(originalCount + i);
+    }
+    for (auto [i, pointer] : llvm::enumerate(affinePointers))
+      physicals[pointer] = replacement.getRegionIterArg(originalCount + slots.size() + i);
     auto yield = cast<scf::YieldOp>(loop.getBody()->getTerminator());
     SmallVector<Value> yielded(yield.getOperands());
     while (&loop.getBody()->front() != yield.getOperation())
       loop.getBody()->front().moveBefore(body, body->end());
     builder.setInsertionPointToEnd(body);
-    for (unsigned slot : slots) {
-      Value offset = get(yielded[slot]);
+    for (auto [i, slot] : llvm::enumerate(slots)) {
+      Value offset;
+      if (recurrent) {
+        Value previous = replacement.getRegionIterArg(originalCount + i);
+        offset = arith::AddIOp::create(builder, loop.getLoc(), previous,
+            constantLike(builder, loop.getLoc(), previous.getType(), increments[i]),
+            arith::IntegerOverflowFlags::nsw | arith::IntegerOverflowFlags::nuw);
+        // Every used offset is in the <31-bit envelope. Even the unused
+        // final update adds at most 2^29, so this i32 induction cannot wrap.
+        ++recurrence_count;
+      } else offset = get(yielded[slot]);
       if (!offset)
         return replacement.emitError("packet layout cannot recover loop yielded offset");
       yielded.push_back(offset);
     }
+    for (unsigned i = slots.size(); i < increments.size(); ++i) {
+      Value previous = replacement.getRegionIterArg(originalCount + i);
+      yielded.push_back(arith::AddIOp::create(builder, loop.getLoc(), previous,
+          constantLike(builder, loop.getLoc(), previous.getType(), increments[i]),
+          arith::IntegerOverflowFlags::nsw | arith::IntegerOverflowFlags::nuw));
+      ++recurrence_count;
+    }
     builder.setInsertionPointToEnd(body);
     scf::YieldOp::create(builder, loop.getLoc(), yielded);
-    for (auto [i, slot] : llvm::enumerate(slots))
-      offsets[replacement.getResult(slot)] = replacement.getResult(originalCount + i);
+    for (auto [i, slot] : llvm::enumerate(slots)) {
+      auto &map = recurrent ? physicals : offsets;
+      map[replacement.getResult(slot)] = replacement.getResult(originalCount + i);
+    }
     for (unsigned i = 0; i < originalCount; ++i)
       loop.getResult(i).replaceAllUsesWith(replacement.getResult(i));
     loop.erase();
@@ -145,6 +245,10 @@ private:
   }
   OpBuilder builder;
   llvm::DenseMap<Value, Value> offsets;
+  llvm::DenseMap<Value, Value> physicals;
+  LaunchRanges ranges;
+  bool recurrent;
+  unsigned recurrence_count = 0;
 };
 
 std::optional<uint64_t> constant(Value value) {
@@ -272,6 +376,10 @@ private:
   OpBuilder &b;
 };
 
+Value physicalOffset(OpBuilder &builder, Value logical, const LayoutSpec &spec, unsigned packetBits) {
+  return PacketAddressBuilder(builder).build(logical, *rowsForDensePowerOfTwoOffset(spec), packetBits);
+}
+
 struct SiteContract {
   unsigned argument, packet, alignment, maskAlignment;
   SmallVector<int64_t> contiguity, divisibility, constancy;
@@ -281,7 +389,9 @@ class PacketLayoutPass : public PassWrapper<PacketLayoutPass, OperationPass<Modu
 public:
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(PacketLayoutPass)
   PacketLayoutPass() = default;
-  explicit PacketLayoutPass(std::vector<LayoutSpec> specs, bool inspect = false) : specs(std::move(specs)), inspect(inspect) {}
+  explicit PacketLayoutPass(std::vector<LayoutSpec> specs, bool inspect = false,
+      std::string mode = "repaired", ScalarBindings bindings = {})
+      : specs(std::move(specs)), inspect(inspect), mode(std::move(mode)), bindings(std::move(bindings)) {}
   StringRef getArgument() const override { return "laqs-packet-layout"; }
   StringRef getDescription() const override { return "materialize canonical packet bases from integer SSA offsets"; }
 
@@ -373,7 +483,7 @@ public:
       emitContracts(contracts);
       return;
     }
-    OffsetBuilder offsets(&getContext());
+    OffsetBuilder offsets(&getContext(), bindings, mode == "repaired");
     SmallVector<scf::ForOp> loops;
     getOperation().walk<WalkOrder::PreOrder>([&](scf::ForOp loop) { loops.push_back(loop); });
     for (auto loop : loops)
@@ -387,14 +497,13 @@ public:
       if (found == contracts.end()) continue;
       const auto &contract = found->second;
       const auto &spec = byArgument.at(contract.argument);
-      Value logical = offsets.get(load.getPtr());
-      if (!logical) {
+      Value physical = offsets.physical(load.getPtr(), spec, modeBits(contract.packet));
+      if (!physical) {
         load.emitError("unsupported structured pointer provenance (no pointer-integer fallback)");
         return signalPassFailure();
       }
       OpBuilder b(load);
       Location loc = load.getLoc();
-      Value physical = PacketAddressBuilder(b).build(logical, *rowsForDensePowerOfTwoOffset(spec), modeBits(contract.packet));
       if (!contract.contiguity.empty()) {
         // Arithmetic reassociation and buffer conversion discard attributes on
         // addi/addptr. A pure tied-register identity carries these proven facts
@@ -406,6 +515,7 @@ public:
         }
         auto carrier = ElementwiseInlineAsmOp::create(b, loc, TypeRange{physical.getType()},
             "", target.getValue().starts_with("hip:") ? "=v,0" : "=r,0", true, 1, ValueRange{physical});
+        if (mode != "legacy") carrier->setAttr("laqs.packet_identity", b.getUnitAttr());
         physical = carrier->getResult(0);
         SmallVector<int64_t> divisibility(contract.divisibility);
         Type element = load.getType();
@@ -437,6 +547,7 @@ public:
       return signalPassFailure();
     }
     emitContracts(contracts);
+    getOperation()->setAttr("laqs.physical_recurrences", IntegerAttr::get(IntegerType::get(&getContext(), 32), offsets.recurrenceCount()));
     ModuleAxisInfoAnalysis verified(getOperation());
     for (auto [op, contract] : contracts) {
       auto load = cast<LoadOp>(op);
@@ -472,6 +583,8 @@ private:
   }
   std::vector<LayoutSpec> specs;
   bool inspect = false;
+  std::string mode = "repaired";
+  ScalarBindings bindings;
 };
 } // namespace
 } // namespace mlir::triton::laqs_packet
@@ -479,11 +592,21 @@ private:
 static void addPacketLayoutPass(mlir::PassManager *manager, const std::vector<std::string> &arguments) {
   std::vector<mlir::triton::laqs_packet::LayoutSpec> specs;
   bool inspect = false;
+  std::string mode = "repaired";
+  mlir::triton::laqs_packet::ScalarBindings bindings;
   for (const auto &argument : arguments) {
     if (argument == "inspect") inspect = true;
+    else if (argument == "legacy" || argument == "transparent" || argument == "repaired") mode = argument;
+    else if (llvm::StringRef(argument).starts_with("bind:")) {
+      auto fields = mlir::triton::laqs_packet::splitFields(argument, ':');
+      int64_t value;
+      if (fields.size() != 3 || fields[2].getAsInteger(10, value) ||
+          !bindings.emplace(fields[1].str(), value).second)
+        llvm::report_fatal_error("invalid frozen scalar binding");
+    }
     else specs.push_back(mlir::triton::laqs_packet::parseSpec(argument));
   }
-  manager->addPass(std::make_unique<mlir::triton::laqs_packet::PacketLayoutPass>(std::move(specs), inspect));
+  manager->addPass(std::make_unique<mlir::triton::laqs_packet::PacketLayoutPass>(std::move(specs), inspect, mode, bindings));
 }
 static void registerPacketLayoutPass() {
   mlir::registerPass([]() -> std::unique_ptr<mlir::Pass> {

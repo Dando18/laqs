@@ -8,8 +8,156 @@ selection separate from a bounded measured choice.
 This is a new protocol under `results/packet-v1`. It does not redefine the old
 Experiments 4–6 or overwrite their reports. The new plugin is
 `libLAQSTritonPacketLayout.so`; the generic rewrite remains available for
-same-layout diagnostics. The sources and binaries used by the queued v2 jobs
-are unchanged.
+same-layout diagnostics. Compiler or source changes require a fresh result root.
+
+## Evaluate the address-generation repair in resumable debug jobs
+
+Start with the saved **Matrix asymmetric GEMM**. This freezes its original
+launch, inputs, objective and large layout, reuses its completed CPU graph,
+and compares six variants:
+
+| Variant | Storage | Lowering |
+| --- | --- | --- |
+| ordinary | ordinary | native |
+| current | saved large LAQS map | legacy packet implementation |
+| repaired | exactly the same large map | transparent carrier and proved physical recurrence |
+| smaller | smaller equal-J map | repaired |
+| identity_legacy | ordinary, through the rewrite | legacy; same input/output addresses as ordinary |
+| identity_repaired | ordinary, through the rewrite | repaired; same input/output addresses as ordinary |
+
+Build once on Matrix, from the repository root. The build script applies the
+checked-in compiler patch to the source used by that platform's CMake build
+and rebuilds **libtriton and the packet plugin**. Rebuilding only the plugin is
+insufficient.
+
+```bash
+triton/packet_layout/build-matrix.bash
+srun -N1 -n1 -c8 -G1 -p pdebug -t 00:30:00 \
+  triton/packet_layout/run-debug-matrix.bash --minutes 25 \
+  --root triton/experiments/results/packet-affine-debug \
+  --address-reference triton/experiments/results/packet-debug-split \
+  --cases gemm--asymmetric --profile-addresses
+```
+
+**Repeat the exact allocation command to resume.** Completed stages, timing
+processes, and individual counter variants are retained. Use `--retry-failed`
+after fixing a failed stage's environment. The default eight CPU workers are
+ample for this panel: the old graph is reused and only layout selection is
+repeated. There is no new tracing or graph construction. The old results are
+read without alteration. A different launch, input, grid, scalar argument,
+kernel source or objective makes the comparison fail explicitly.
+
+`--profile-addresses` appends a separate, resumable Nsight Compute stage after
+unprofiled timing. The Matrix wrappers load `nsight-compute/2025.3.0` after
+CUDA and check `ncu --version` before starting. CUDA's bundled `ncu` launcher
+alone may point to a missing Nsight installation. Set `RELAY_NCU_MODULE` to
+override the profiler module. GPU counter access must also be permitted.
+If profiling fails, the completed timing results remain available; repeat the
+same command with `--retry-failed` after correcting the environment.
+To collect timing alone, omit that flag **on the first run**, then keep the
+same settings when resuming. Profiling can subsequently be run directly in an
+allocation with `job-matrix.bash --stage profile`, the same root/reference/case,
+and `--grammar split --selection analytical --resume`.
+
+Profiling records one dispatch after repeated same-candidate warmups, with
+application replay, `--cache-control none` and `--clock-control none`. Warmup
+therefore runs again for every counter pass. This targets the repeated warm
+kernel regime used for timing; it is not a cold-cache or producer–consumer
+measurement. See the [Nsight Compute profiling guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html)
+for the replay/cache distinction. Counter durations never enter speedups.
+The profiled cubin must match the graph-captured timing cubin by hash.
+
+The counter panel contains absolute L1TEX global-load sectors, requests and
+wavefronts, TEX-source L2 read requests/sectors, L2 read misses and DRAM read
+bytes. These are whole-kernel counts. The historical `counter_components`
+association between a 128-byte issue footprint and `global_load_requests`
+is a heuristic association, **not equality with the L1TEX request counter**.
+Coarser quotient counts remain locality/service proxies, not cache-miss
+predictions. This experiment preserves the existing tau weights.
+
+Results are under
+`triton/experiments/results/packet-affine-debug/matrix/gemm--asymmetric/expert/`:
+`analysis.md`, `report.json`, the actual graph-captured binaries under
+`evaluate/process-*-codegen/`, and optional absolute counts in `profile.json`
+with raw CSVs under `profile/`. Rejected variants are listed explicitly; a
+partial comparison cannot be presented as a successful repair.
+
+On Tuolumne, `sum--small` has the completed reference search needed for this
+quick comparison. Its loop rebuilds addresses from an integer induction
+variable. The recurrence pass now handles this form as well as loop-carried
+pointers. The changed repaired variants should report one physical recurrence
+and no permutation shifts inside the reduction loop:
+
+```bash
+triton/packet_layout/build-tuolumne.bash
+flux run -N1 -n1 -c8 -g1 -q pdebug -t 30m \
+  triton/packet_layout/run-debug-tuolumne.bash --minutes 25 \
+  --root triton/experiments/results/packet-affine-debug \
+  --address-reference triton/experiments/results/packet-debug-split \
+  --cases sum--small
+```
+
+Use a **fresh root** for this revision; completed `packet-address-debug`
+checkpoints describe the previous compiler and timing protocol. The old
+`packet-debug-split` reference stays unchanged.
+
+The six-variant comparison now times every variant at three shared input
+placements in each process. Prepared bytes are copied into the same input
+buffers outside timing, followed by same-candidate warmup. All candidates use
+the same output buffers except the independent-output identity control.
+Placement order and variant order rotate. `evaluate/process-*.json` records
+each placement's timings, addresses, and device identity; `analysis.md` exposes
+placement and process speedups. Placements are repeated measures, not extra
+independent processes. These are warm steady-state measurements.
+
+Separate tuning also freezes a practical selection among ordinary, repaired,
+and smaller. It retains ordinary unless the existing confidence/control rule
+establishes a gain. This selection is evaluated in fresh processes and reported
+separately from the unchanged analytical ablation choice. Neither the objective
+nor the smaller-representative tie-break changes.
+
+For an hour, use `-t 01:00:00` / `-t 60m` and `--minutes 55` if the debug queue
+allows it. On Matrix, try `pdebug` first; the same short allocation with
+`-p pbatch` is an alternative when both debug nodes are occupied. Within an
+existing allocation, invoke the runner via `srun` or `flux run` with one task,
+eight cores and one GPU and a work budget fitting the remaining time.
+
+To collect all 29 cases using the repaired implementation, omit
+`--address-reference`, `--cases` and `--profile-addresses`, and use a new
+`--root triton/experiments/results/packet-debug-repaired`. This broader run
+performs exact CPU search and resumes across debug allocations as below.
+
+## Isolate Matrix copy-service work in a short debug job
+
+This A-only diagnostic compares the ordinary, large, and smaller GEMM source
+maps with the saved 128-thread ownership, 16-byte packets and shared-memory
+swizzle. It compares asynchronous copies against synchronous global-load /
+shared-store copies. Address increments are constant in both versions. The
+matrix pipeline and B traffic are deliberately omitted to isolate copy service.
+
+```bash
+srun -n1 -G1 -c8 -p pdebug -t 00:30:00 \
+  triton/packet_layout/run-copy-probe-matrix.bash --minutes 25 \
+  --root triton/experiments/results/copy-service-debug/matrix
+```
+
+The wrapper loads CUDA and the working Nsight Compute module. The probe builds
+itself; it does not require rebuilding Triton. It validates copied values and
+checks final SASS for exactly two 128-bit global copies per loop body. Each of
+the six variants has independent timing and counter checkpoints. Repeat the
+same command to resume or retry an interrupted stage; source/tool changes
+require a fresh root. For an existing allocation, invoke the script directly
+with a budget shorter than the remaining allocation time.
+
+Inspect `analysis.md`, `report.json`, raw `.csv` counters and `codegen.sass` in
+the probe root. A warp-union model predicts 4,194,304 load sectors for each
+variant. Inflation in the large async variant alone would implicate the async
+service path; inflation in both copy forms suggests a broader source-service
+issue. Failure to reproduce the GEMM inflation points back to its surrounding
+pipeline or cache behavior. Four-lane footprint counts are included as a
+diagnostic hypothesis; the probe does not install a new tau weight or claim a
+universal hardware grouping. Single-process probe timings are diagnostics,
+not full-kernel speedup evidence.
 
 ## Run the declared panel
 
@@ -228,9 +376,11 @@ packet width, and allocation extents, with at most six deposit fields. Both
 families minimize the same LAQS objective; no timing data enters that search.
 
 Supported refinements are deduplicated by `A^-1 U_d` at every declared byte
-scale and the packet depth. The representative is chosen for address-template
-simplicity within that equivalence class, rather than choosing an arbitrary
-unrealizable flag first. Ordinary storage wins score ties. Families yielding
+scale and the packet depth. Representatives prefer ordinary storage, then
+fewer moved address bits, then fewer address fields and a deterministic row
+order. This ordering also applies to equal-J candidates within and across
+families. Moved bits are a tie-break heuristic, not a runtime cost model.
+Ordinary storage wins score ties. Families yielding
 the same physical mapping share one candidate.
 
 The search returns at most three distinct physical candidates: ordinary, the
@@ -249,11 +399,21 @@ compiler family, not an approximation to those access paths.
 
 `OffsetBuilder` recovers base-relative integer SSA through `tt.addptr`, shape
 operations, same-width pointer bitcasts, selects, and supported loop-carried
-pointers. Loops receive parallel integer offset state. Unsupported provenance
-fails compilation; there is no pointer-to-integer reconstruction fallback.
-The address envelope has fewer than 31 bits, so 32-bit modular offset state
-preserves every bit used by the permutation even when intermediate additions
-wrap. Original index arithmetic retains its original integer semantics.
+pointers. In the default repaired lowering, a selected loop pointer must have
+a bounded, constant positive power-of-two stride. Every source bit that can
+carry during the frozen loop must map into a contiguous increasing physical
+field. The initial transformed offset is computed before the loop and the
+loop carries physical offset state with a constant increment. Its proved
+no-overflow bounds survive LLVM lowering, allowing pointer strength reduction.
+No per-element pointer state is introduced beyond the native tensor state.
+
+Loop bounds and strides come from the IR or frozen scalar/grid bindings, which
+are included in the compilation key and checked by `FrozenLaunch.run`.
+Unsupported carries, unknown bounds, nonconstant updates or escaping final
+pointers reject that candidate; the workflow retains ordinary storage. This
+initial restriction can exclude useful layouts. It does not retry additional
+templates or synthesize periodic address state machines. Original integer
+addition is never treated as GF(2) addition without a carry proof.
 
 `PacketAddressBuilder` deposits disjoint coordinate fields, retaining the
 ordinary low packet field. Shape operations preserve broadcasts. Integer sums
@@ -270,10 +430,14 @@ metadata.
 
 A pure, tied-register identity carries the proved integer-offset facts through
 arithmetic reassociation and AMD pointer-to-buffer conversion, which otherwise
-discard attributes on arithmetic/addptr operations. It uses an empty inline
-assembly body and emits no address arithmetic or memory operation. This is the
-initial proof carrier using Triton's existing IR; an opaque late LLVM rewrite
-would miss the earlier vectorization and pipelining decisions.
+discard attributes on arithmetic/addptr operations. The tagged
+`laqs.packet_identity` carrier remains through those analyses, then lowers to
+its operand during TritonGPU-to-LLVM conversion. The lowering checks its exact
+single-input, single-output, pure i32 tied-register identity form. Untagged
+assembly is unaffected, and malformed tags fail compilation. No opaque proof
+assembly reaches LLVM optimization in the repaired path. Diagnostic modes
+`legacy` and `transparent` retain the old recurrence implementation, with the
+old or repaired carrier respectively; ordinary experiments use `repaired`.
 
 Deployment validation checks numerical outputs, final memory and matrix
 primitive forms, packet-site records, spills, shared-memory growth, and

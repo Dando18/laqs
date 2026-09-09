@@ -17,10 +17,14 @@ from experiment_support import digest
 from packet_workflow import identity, runtime_identity, write_json
 from tritonbench_cases import CASE_BY_ID
 
-STAGES = ('capture', 'search', 'validate', 'tune', 'evaluate')
+STAGES = ('capture', 'search', 'validate', 'tune', 'evaluate', 'profile')
 OUTPUTS = {'capture': ('capture.json',), 'search': ('search.json', 'graph-ready.json'),
            'validate': ('validated.json',), 'tune': ('choice.json',),
-           'evaluate': ('evaluation.json', 'report.json', 'analysis.md')}
+           'evaluate': ('evaluation.json', 'report.json', 'analysis.md'), 'profile': ('profile.json',)}
+
+
+def stages(args):
+    return STAGES if args.profile_addresses else STAGES[:-1]
 
 
 def case_order(case):
@@ -40,6 +44,10 @@ def parser():
     result.add_argument('--cpu-workers', type=int, default=8)
     result.add_argument('--grammar', choices=['split', 'split-chunks'], default='split')
     result.add_argument('--selection', choices=['analytical', 'measured'], default='analytical')
+    result.add_argument('--address-reference', type=Path,
+                        help='reuse a prior packet root for the six-variant address comparison')
+    result.add_argument('--profile-addresses', action='store_true',
+                        help='append separate Nsight Compute counters (Matrix address comparison only)')
     result.add_argument('--tau-name', choices=['expert', 'l1_to_l2', 'speedup'], default='expert')
     result.add_argument('--tau-profile', type=Path, default=ROOT / 'triton/experiments/tau-profiles.json')
     for name, default in [('processes', 3), ('samples', 21), ('iterations', 50), ('warmup', 10),
@@ -53,6 +61,10 @@ def parser():
 
 def common_arguments(args):
     result = ['--platform', args.platform, '--root', str(args.root), '--resume']
+    if args.address_reference:
+        result += ['--address-reference', str(args.address_reference.resolve())]
+    if args.profile_addresses:
+        result += ['--profile-addresses']
     for name in ('grammar', 'selection', 'tau-name', 'tau-profile', 'processes', 'samples',
                  'iterations', 'warmup', 'minimum-gain', 'max-trace-contexts', 'max-events'):
         result += ['--' + name, str(getattr(args, name.replace('-', '_')))]
@@ -175,7 +187,7 @@ def collect(args, directory, config_hash, budget):
         case_dir = directory / case / args.tau_name
         case_dir.mkdir(parents=True, exist_ok=True)
         record['attempts'] += 1
-        for stage in STAGES:
+        for stage in stages(args):
             if stage_complete(case_dir, stage, config_hash):
                 continue
             if budget.expired():
@@ -195,7 +207,7 @@ def collect(args, directory, config_hash, budget):
                 break
             commit_stage(case_dir, stage, config_hash)
         else:
-            record.update(status='complete', stage='evaluate', reason='')
+            record.update(status='complete', stage=stages(args)[-1], reason='')
             print(f'{case}: complete', flush=True)
         save_summary(args, state, directory)
     save_summary(args, state, directory)
@@ -209,6 +221,10 @@ def collect(args, directory, config_hash, budget):
 def main(argv=None):
     arg_parser = parser()
     args = arg_parser.parse_args(argv)
+    if args.profile_addresses and (args.platform != 'matrix' or not args.address_reference):
+        arg_parser.error('--profile-addresses requires Matrix and --address-reference')
+    if args.address_reference and (args.grammar != 'split' or args.selection != 'analytical'):
+        arg_parser.error('the frozen address comparison requires split grammar and analytical selection')
     if min(args.minutes, args.cpu_workers, args.processes, args.samples, args.iterations,
            args.warmup, args.max_trace_contexts, args.max_events) <= 0:
         arg_parser.error('budgets, worker counts and measurement counts must be positive')
@@ -220,7 +236,7 @@ def main(argv=None):
         print(f'{len(args.cases)} cases; {len({CASE_BY_ID[c].operator for c in args.cases})} operators; '
               f'{args.minutes:g} minutes; {args.cpu_workers} CPU workers')
         for case in args.cases:
-            for stage in STAGES:
+            for stage in stages(args):
                 print(shlex.join(command(args, case, stage)))
         return 0
     if len(os.sched_getaffinity(0)) < args.cpu_workers:
@@ -240,6 +256,14 @@ def main(argv=None):
         config = {'schema': 'laqs.packet.debug.v1', 'arguments': common_arguments(args),
                   'cases': args.cases, 'source': identity(), 'tau_sha256': file_hash(args.tau_profile),
                   'runtime': runtime_identity()}
+        if args.address_reference:
+            from address_experiment import reference
+            from types import SimpleNamespace
+            config['references'] = {}
+            for case in args.cases:
+                old_dir, _, _ = reference(SimpleNamespace(**{**vars(args), 'case': case}))
+                config['references'][case] = {name: file_hash(old_dir / name)
+                                             for name in ('capture.json', 'search.json')}
         manifest = directory / 'debug-suite.json'
         if manifest.exists():
             if json.loads(manifest.read_text()) != config:

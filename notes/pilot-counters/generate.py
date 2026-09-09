@@ -119,50 +119,60 @@ def plot(observations):
 
 
 def collect_table():
-    """Read Experiment 2's all-scope panels under the l1_to_l2 tau profile."""
+    """Read Experiments 1 and 3's recorded all-scope panels under the l1_to_l2 tau profile."""
     observations, sources = [], []
-    for platform, metric in METRICS.items():
-        for kernel in KERNELS:
-            path = ROOT / f'triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/{platform}/stratified-all/{kernel}/report.json'
-            raw = path.read_bytes()
-            report = json.loads(raw)
-            assert report['complete'] and report['correct'], path
-            assert report['final_experiment'] == 2
-            assert report['panel']['stratification']['mode'] == 'all'
-            sources.append({'path': str(path.relative_to(ROOT)),
-                            'sha256': hashlib.sha256(raw).hexdigest(),
-                            'active_tau': report['panel']['score_profile']['active_tau']})
-            for candidate in report['candidates']:
-                assert candidate['complete']
-                summary = candidate['counters']['steady_state']
-                assert summary['profile_launch_count'] == 3
-                assert summary['dispatches_per_launch'] == [20, 20, 20]
-                observations.append({'platform': platform, 'kernel': kernel,
-                                     'candidate_id': candidate['candidate_id'],
-                                     'j_area': candidate['j_area'],
-                                     'counter': metric, 'read_requests': summary[metric]})
+    for experiment in (1, 3):
+        for platform, metric in METRICS.items():
+            for kernel in KERNELS:
+                path = ROOT / f'triton/experiments/results/tau-profiles/l1_to_l2/experiment-{experiment}/{platform}/stratified-all/{kernel}/report.json'
+                raw = path.read_bytes()
+                report = json.loads(raw)
+                assert report['complete'] and report['correct'], path
+                assert report['final_experiment'] == experiment
+                assert report['panel']['stratification']['mode'] == 'all'
+                sources.append({'path': str(path.relative_to(ROOT)),
+                                'sha256': hashlib.sha256(raw).hexdigest(),
+                                'active_tau': report['panel']['score_profile']['active_tau']})
+                for candidate in report['candidates']:
+                    assert candidate['complete']
+                    summary = candidate['counters']['steady_state']
+                    assert summary['profile_launch_count'] == 3
+                    assert summary['dispatches_per_launch'] == [20, 20, 20]
+                    observations.append({'experiment': experiment, 'platform': platform, 'kernel': kernel,
+                                         'candidate_id': candidate['candidate_id'],
+                                         'j_area': candidate['j_area'],
+                                         'counter': metric, 'read_requests': summary[metric]})
     return observations, sources
 
 
 def table(observations):
-    rows, lines = [], []
-    for kernel, label in KERNELS.items():
+    rows, aggregates, lines = [], [], []
+    for experiment, grammar in ((1, r'$G_C$'), (3, r'$GL(p,2)$')):
         values = []
         for platform, metric in METRICS.items():
-            panel = [r for r in observations if r['platform'] == platform and r['kernel'] == kernel]
-            rho = rank_correlation([r['j_area'] for r in panel], [r['read_requests'] for r in panel])
-            values.append('---' if rho is None else f'{rho:.3f}')
-            rows.append({'kernel': kernel, 'platform': platform, 'n': len(panel),
-                         'experiment': 2, 'stratification': 'all', 'tau': 'l1_to_l2',
-                         'predictor': 'J_area', 'counter': metric, 'spearman_rho': rho})
-        lines.append(label + ' & ' + ' & '.join(values) + r' \\')
-    medians = [statistics.median(r['spearman_rho'] for r in rows
-                                if r['platform'] == platform and r['spearman_rho'] is not None)
-               for platform in METRICS]
-    lines.extend([r'\midrule', 'Median & ' + ' & '.join(f'{value:.3f}' for value in medians) + r' \\'])
+            coefficients = []
+            for kernel in KERNELS:
+                panel = [r for r in observations if r['experiment'] == experiment
+                         and r['platform'] == platform and r['kernel'] == kernel]
+                rho = rank_correlation([r['j_area'] for r in panel],
+                                       [r['read_requests'] for r in panel])
+                assert rho is not None, (experiment, platform, kernel)
+                coefficients.append(rho)
+                rows.append({'kernel': kernel, 'platform': platform, 'n': len(panel),
+                             'experiment': experiment, 'stratification': 'all',
+                             'tau': 'l1_to_l2', 'predictor': 'J_area',
+                             'counter': metric, 'spearman_rho': rho})
+            median = statistics.median(coefficients)
+            values.append(f'{median:.3f}')
+            aggregates.append({'experiment': experiment, 'platform': platform,
+                               'stratification': 'all', 'tau': 'l1_to_l2',
+                               'predictor': 'J_area', 'counter': metric,
+                               'defined_kernels': len(coefficients),
+                               'median_spearman_rho': median})
+        lines.append(grammar + ' & ' + ' & '.join(values) + r' \\')
     tex = r'''\begin{tabular}{@{}lrr@{}}
 \toprule
-Kernel & H100 & MI300A \\
+Layout family & H100 & MI300A \\
 \midrule
 ''' + '\n'.join(lines) + r'''
 \bottomrule
@@ -170,10 +180,10 @@ Kernel & H100 & MI300A \\
 '''
     (OUTPUT / 'l2-correlations.tex').write_text(tex)
     with (OUTPUT / 'l2-correlations.csv').open('w') as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(aggregates[0]))
         writer.writeheader()
-        writer.writerows(rows)
-    return rows
+        writer.writerows(aggregates)
+    return {'per_kernel': rows, 'medians': aggregates}
 
 
 def main():
@@ -184,7 +194,7 @@ def main():
     (OUTPUT / 'source-data.json').write_text(json.dumps(
         {'figure': {'experiment': 1, 'stratification': 'all', 'sources': sources,
                     'observations': observations},
-         'table': {'experiment': 2, 'stratification': 'all', 'tau': 'l1_to_l2',
+         'table': {'experiments': [1, 3], 'stratification': 'all', 'tau': 'l1_to_l2',
                    'sources': table_sources, 'observations': table_observations,
                    'correlations': correlations}}, indent=2) + '\n')
     print(f'Generated figure and table from {len(sources) + len(table_sources)} complete reports in {OUTPUT}')

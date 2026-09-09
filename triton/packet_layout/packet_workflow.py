@@ -30,7 +30,7 @@ def write_json(path, data):
 
 def identity():
     sources = dict(source_identity()['sources'])
-    for suffix in ('*.py', '*.cpp', '*.h', 'CMakeLists.txt'):
+    for suffix in ('*.py', '*.cpp', '*.h', '*.patch', 'CMakeLists.txt'):
         for path in HERE.rglob(suffix):
             sources[str(path.relative_to(ROOT))] = hashlib.sha256(path.read_bytes()).hexdigest()
     return {'protocol': 'laqs.packet.v1', 'source_hash': digest(sources), 'sources': sources}
@@ -39,7 +39,7 @@ def identity():
 def args_parser(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage', choices=['capture', 'search', 'validate', 'tune', 'evaluate',
-                                         'diagnose', 'conventional', 'worker', 'report', 'all'], required=True)
+                                         'diagnose', 'conventional', 'worker', 'profile', 'report', 'all'], required=True)
     parser.add_argument('--platform', choices=['tuolumne', 'matrix'], required=True)
     parser.add_argument('--case', choices=tuple(CASES), required=True)
     parser.add_argument('--root', type=Path, default=ROOT / 'triton/experiments/results/packet-v1')
@@ -48,6 +48,11 @@ def args_parser(argv=None):
     parser.add_argument('--selection', choices=['analytical', 'measured'], default='measured')
     parser.add_argument('--grammar', choices=['split', 'split-chunks'], default='split-chunks')
     parser.add_argument('--resume', action='store_true', help='reuse exact CPU and timing checkpoints')
+    parser.add_argument('--address-reference', type=Path,
+                        help='old packet root for a frozen-layout address-generation comparison')
+    parser.add_argument('--profile-addresses', action='store_true',
+                        help='append a separate Nsight Compute counter stage to the address comparison')
+    parser.add_argument('--profile-candidate', help=argparse.SUPPRESS)
     parser.add_argument('--processes', type=int, default=3)
     parser.add_argument('--samples', type=int, default=21)
     parser.add_argument('--iterations', type=int, default=50)
@@ -58,12 +63,17 @@ def args_parser(argv=None):
     parser.add_argument('--cpu-workers', type=int, default=1,
                         help='CPU processes for tracing and graph construction; reserve this many cores')
     parser.add_argument('--rerun', action='store_true')
-    parser.add_argument('--phase', choices=['tune', 'evaluate', 'diagnose', 'conventional-tune', 'conventional-evaluate'], default='evaluate')
+    parser.add_argument('--phase', choices=['tune', 'evaluate', 'diagnose', 'profile', 'conventional-tune', 'conventional-evaluate'], default='evaluate')
     parser.add_argument('--process-index', type=int, default=0)
     parser.add_argument('--worker-output', type=Path)
     parser.add_argument('--diagnostic-selection', type=Path,
                         help='v2 proposed-selection.json for a same-map generic/structured diagnostic')
     args = parser.parse_args(argv)
+    if (args.profile_addresses or args.stage == 'profile' or args.phase == 'profile') and (
+            args.platform != 'matrix' or not args.address_reference):
+        parser.error('address counters require Matrix and --address-reference')
+    if args.address_reference and (args.grammar != 'split' or args.selection != 'analytical'):
+        parser.error('the frozen address comparison requires --grammar split --selection analytical')
     if min(args.processes, args.samples, args.iterations, args.warmup) <= 0:
         parser.error('timing counts must be positive')
     if args.cpu_workers < 1:
@@ -134,12 +144,21 @@ def capture(args):
     from packet_cases import reference
     path = args.directory / 'capture.json'
     if path.exists() and not args.rerun:
-        verify(args, gpu=True)
+        stamp = verify(args, gpu=True)
+        if args.address_reference:
+            from address_experiment import check_capture
+            check_capture(args, stamp)
         return
     started = perf_counter()
     spec = CASES[args.case].factory()
     pinned = None
-    if args.diagnostic_selection:
+    if args.address_reference:
+        from address_experiment import reference as address_reference
+        _, old_capture, _ = address_reference(args)
+        launch = freeze_launch(spec, old_capture['config'])
+        analysis = analyze_launch(launch.jit, launch.grid, *launch.values,
+                                  _laqs_options=AnalysisOptions(evaluate=False), **launch.options)
+    elif args.diagnostic_selection:
         pinned = json.loads(args.diagnostic_selection.read_text())
         if pinned['platform'] != args.platform or f"{pinned['operator']}--{pinned['config']}" != args.case:
             raise ValueError('diagnostic capture case/device mismatch')
@@ -151,7 +170,8 @@ def capture(args):
                                   _laqs_options=AnalysisOptions(evaluate=False), **spec.kwargs)
     if not analysis.supported:
         raise ValueError(f'{analysis.unsupported.category}: {analysis.unsupported.message}')
-    config = dict(pinned['selected_config'] if pinned else analysis.selected_config)
+    config = dict(old_capture['config'] if args.address_reference else
+                  pinned['selected_config'] if pinned else analysis.selected_config)
     for key in ['num_warps', 'num_stages', 'num_ctas', 'maxnreg', 'waves_per_eu', 'matrix_instr_nonkdim', 'kpack']:
         value = getattr(analysis.compiled_kernel.metadata, key, None)
         if value is not None:
@@ -181,6 +201,9 @@ def capture(args):
                      'config': config, 'output_arguments': outputs, 'inputs': inputs, 'seed': 0,
                      'kernel_name': unwrap_jit(spec.kernel).fn.__name__, 'validation': validation,
                      'capture_seconds': perf_counter() - started})
+    if args.address_reference:
+        from address_experiment import check_capture
+        check_capture(args, read(args, 'capture.json'))
 
 
 def search(args):
@@ -201,6 +224,25 @@ def search(args):
     completed('capture_load', perf_counter() - phase_started)
     profile = load_tau_profile(args.platform, args.tau_profile, args.tau_name)
     started = perf_counter()
+    def finish(result, graph_hash):
+        result.update(graph_hash=graph_hash, capture_hash=stamp['capture_hash'],
+            source_identity=stamp['source_identity'], hardware_profile=profile.to_dict(),
+            tau_sha256=hashlib.sha256(args.tau_profile.read_bytes()).hexdigest(),
+            elapsed_seconds=perf_counter() - started)
+        completed('total', result['elapsed_seconds'] + timings['capture_load'])
+        result['selection_hash'] = digest({k: v for k, v in result.items() if k != 'elapsed_seconds'})
+        write_json(args.directory / 'search.json', result)
+
+    if args.address_reference:
+        from address_experiment import selection, check_capture
+        check_capture(args, stamp)
+        analysis, result = selection(args, stamp, profile)
+        completed('reference_graph_and_selection', perf_counter() - started)
+        graph_hash = save_graph(args.directory / 'graph.pkl.gz', analysis)
+        write_json(args.directory / 'graph-ready.json', {'address_reference': result['address_reference'],
+                                                       'graph_hash': graph_hash})
+        finish(result, graph_hash)
+        return
     print(f'CPU trace and graph construction started (up to {args.cpu_workers} workers)', flush=True)
     cache_key = digest({'capture': stamp['capture_hash'], 'source': stamp['source_identity'],
                         'profile': profile.to_dict(), 'contexts': args.max_trace_contexts,
@@ -231,15 +273,7 @@ def search(args):
     result = select_candidates(analysis, profile,
                                families=('split',) if args.grammar == 'split' else ('split', 'chunks'))
     completed('selection', perf_counter() - phase_started)
-    result['graph_hash'] = graph_hash
-    result['capture_hash'] = stamp['capture_hash']
-    result['source_identity'] = stamp['source_identity']
-    result['hardware_profile'] = profile.to_dict()
-    result['tau_sha256'] = hashlib.sha256(args.tau_profile.read_bytes()).hexdigest()
-    result['elapsed_seconds'] = perf_counter() - started
-    completed('total', result['elapsed_seconds'] + timings['capture_load'])
-    result['selection_hash'] = digest({k: v for k, v in result.items() if k != 'elapsed_seconds'})
-    write_json(args.directory / 'search.json', result)
+    finish(result, graph_hash)
 
 
 def prepared(args, candidate, *, stamp=None, native=None):
@@ -247,10 +281,12 @@ def prepared(args, candidate, *, stamp=None, native=None):
     from packet_runtime import runtime_layouts
     stamp = stamp or verify(args, gpu=True)
     launch = native or freeze_launch(CASES[args.case].factory(), stamp['config'])
+    if candidate.get('same_pointer'):
+        return fresh_outputs(launch, stamp['output_arguments'])
     return fresh_outputs(replace_inputs(launch, runtime_layouts(candidate)), stamp['output_arguments'])
 
 
-def context(candidate, *, inspect=False):
+def context(candidate, *, inspect=False, launch=None):
     from packet_runtime import runtime_layouts, structured_layouts
     from layout_runtime import rewrite_layouts
     layouts = runtime_layouts(candidate)
@@ -258,7 +294,8 @@ def context(candidate, *, inspect=False):
         return lambda: rewrite_layouts(layouts)
     if not layouts:
         return nullcontext
-    return lambda: structured_layouts(layouts, inspect=inspect)
+    return lambda: structured_layouts(layouts, inspect=inspect,
+                                      mode=candidate.get('address_mode', 'repaired'), launch=launch)
 
 
 def outputs_correct(ordinary, selected, outputs):
@@ -311,10 +348,10 @@ def validate(args):
             selected = prepared(args, candidate, stamp=stamp, native=source)
             torch.cuda.synchronize()
             record['packing_and_allocation_seconds'] = perf_counter() - started
-            record['packing'] = packing_cost(source, runtime_layouts(candidate))
-            with structured_layouts(runtime_layouts(candidate), inspect=True):
+            record['packing'] = packing_cost(source, () if candidate.get('same_pointer') else runtime_layouts(candidate))
+            with structured_layouts(runtime_layouts(candidate), inspect=True, launch=native):
                 baseline_kernel = native.run()
-            with context(candidate)():
+            with context(candidate, launch=selected)():
                 selected_kernel = selected.run()
             torch.cuda.synchronize()
             reference(CASES[args.case].operator, native)
@@ -347,11 +384,14 @@ def accepted_candidates(args, search_record):
 
 
 def worker(args):
+    if args.phase == 'profile':
+        from address_experiment import profile_worker
+        return profile_worker(args)
     if args.phase.startswith('conventional-'):
         from conventional import worker as conventional_worker
         return conventional_worker(args)
     import torch
-    from packet_measure import graph_samples
+    from packet_measure import allocation_samples, graph_samples
     from packet_runtime import statistics
     from layout_runtime import freeze_launch
     from packet_cases import reference
@@ -363,7 +403,7 @@ def worker(args):
                       {**selected, 'id': 'generic', 'realization': 'generic'}]
     else:
         candidates = accepted_candidates(args, search_record)
-        if len(candidates) > 3:
+        if len(candidates) > (6 if args.address_reference else 3):
             raise ValueError('measured deployment exceeds three candidates')
     launches, contexts, codegen, packing, failures = {}, {}, {}, {}, {}
     source = freeze_launch(CASES[args.case].factory(), stamp['config'])
@@ -376,7 +416,7 @@ def worker(args):
             launch = prepared(args, candidate, stamp=stamp, native=source)
             torch.cuda.synchronize()
             packing[candidate['id']] = perf_counter() - started
-            with context(candidate)():
+            with context(candidate, launch=launch)():
                 kernel = launch.run()
             outputs_correct(source, launch, stamp['output_arguments'])
         except Exception as error:
@@ -385,13 +425,21 @@ def worker(args):
             failures[candidate['id']] = f'{type(error).__name__}: {error}'
             continue
         launches[candidate['id']] = launch
-        contexts[candidate['id']] = context(candidate)
-        codegen[candidate['id']] = statistics(kernel, args.directory / args.phase / f'process-{args.process_index}-codegen', candidate['id'])
-    timings = graph_samples(launches, contexts, stamp['output_arguments'], process_index=args.process_index,
-                           samples=args.samples, iterations=args.iterations, warmup=args.warmup)
+        contexts[candidate['id']] = context(candidate, launch=launch)
+    def captured(label, kernel):
+        codegen[label] = statistics(kernel, args.directory / args.phase / f'process-{args.process_index}-codegen', label)
+    measurement = dict(process_index=args.process_index, samples=args.samples,
+                       iterations=args.iterations, warmup=args.warmup, on_capture=captured)
+    if args.address_reference:
+        measured = allocation_samples(launches, contexts, [v['argument'] for v in stamp['inputs']],
+                                      stamp['output_arguments'], **measurement,
+                                      on_ready=lambda label, launch: outputs_correct(source, launch, stamp['output_arguments']))
+    else:
+        measured = {'timings': graph_samples(launches, contexts, stamp['output_arguments'],
+                    same_pointer_labels=[c['id'] for c in candidates if c.get('same_pointer')], **measurement)}
     write_json(args.worker_output, {'schema': 'laqs.packet.timing.v1', 'phase': args.phase,
                                    'selection_hash': search_record['selection_hash'],
-                                   'process_index': args.process_index, 'timings': timings,
+                                   'process_index': args.process_index, **measured,
                                    'codegen': codegen, 'failures': failures,
                                    'packing_and_allocation_seconds': packing})
 
@@ -422,6 +470,9 @@ def run_processes(args, phase):
                    '--warmup', str(args.warmup), '--process-index', str(index), '--worker-output', str(output)]
         if args.diagnostic_selection:
             command += ['--diagnostic-selection', str(args.diagnostic_selection.resolve())]
+        if args.address_reference:
+            command += ['--address-reference', str(args.address_reference.resolve()),
+                        '--grammar', 'split', '--selection', 'analytical']
         subprocess.run(command, cwd=ROOT, check=True)
         if binding is not None:
             write_json(checkpoint, {'binding': binding, 'sha256': hashlib.sha256(output.read_bytes()).hexdigest()})
@@ -445,6 +496,13 @@ def tune(args):
               'selection_hash': search_record['selection_hash'], 'minimum_gain': args.minimum_gain,
               'measurement': [args.processes, args.samples, args.iterations, args.warmup],
               'evaluation_policy': 'freeze choice before fresh independent evaluation processes'}
+    if args.address_reference:
+        tuning = run_processes(args, 'tune')
+        deployment = measured_choice({label: value for label, value in tuning.items()
+                                      if label in ('ordinary', 'repaired', 'smaller')},
+                                     minimum_gain=args.minimum_gain)
+        choice['deployment'] = {'selected': deployment, 'tuning': tuning,
+            'policy': 'ordinary unless a repaired layout clears the tuning confidence and control threshold; frozen before evaluation'}
     choice['choice_hash'] = digest(choice)
     write_json(args.directory / 'choice.json', choice)
 
@@ -474,6 +532,11 @@ def conventional(args):
     run(args)
 
 
+def profile(args):
+    from address_experiment import profile as collect_counters
+    collect_counters(args)
+
+
 def report(args):
     from packet_measure import conversion_result
     choice, evaluation, search_record = (read(args, name) for name in ('choice.json', 'evaluation.json', 'search.json'))
@@ -488,6 +551,9 @@ def report(args):
                'source_identity': identity(), 'choice': choice, 'evaluation': evaluation,
                'search': search_record, 'realization': validation,
                'conversion': conversion}
+    if args.address_reference:
+        from address_experiment import summarize
+        payload['address_comparison'] = summarize(payload)
     write_json(args.directory / 'report.json', payload)
     lines = [f'# Packet-layout result: {args.case} / {args.platform}', '',
              f"Analytical top-1: `{choice['analytical_top1']}`. {choice['method'].capitalize()} selection: `{selected}`.",
@@ -499,6 +565,24 @@ def report(args):
         speedup = f"{timing['speedup']:.5f}×" if timing else 'not evaluated'
         status = 'passed' if candidate['accepted'] else '; '.join(candidate['rejections'])
         lines.append(f"| {candidate['id']} | {status} | {candidate['score']['hardware_area']:.6g} | {speedup} |")
+    if args.address_reference:
+        comparison = payload['address_comparison']
+        lines += ['', f"Address comparison: **{comparison['status']}**.",
+                  f"Same large layout, current / repaired runtime: {comparison['same_layout_repair_speedup']}×.",
+                  f"Repaired large / smaller runtime: {comparison['smaller_vs_repaired_speedup']}×.",
+                  'Inspect the actual graph-captured binaries under evaluate/process-*-codegen/.',
+                  'Optional absolute counters are separate in profile.json; their duration is not a speedup measurement.']
+        deployment = choice['deployment']['selected']
+        lines += ['', f"Practical selection from separate tuning: `{deployment}`; held-out speedup "
+                      f"{evaluation['candidates'][deployment]['speedup']:.5f}×. The analytical selection above is unchanged.",
+                  'Each timing process compares all variants at three shared input placements; copies and warmup are outside timing.',
+                  '', '| Candidate | Speedup in each process | Speedup at each placement, grouped by process | Physical recurrences |',
+                  '| --- | --- | --- | ---: |']
+        codegen = read(args, 'evaluate/process-0.json')['codegen']
+        for label, value in evaluation['candidates'].items():
+            processes = ', '.join(f'{x:.4f}' for x in value['process_speedups'])
+            placements = '; '.join(', '.join(f'{x:.4f}' for x in group) for group in value['placement_speedups'])
+            lines.append(f"| {label} | {processes} | {placements} | {codegen[label]['physical_recurrences']} |")
     lines += ['', f"Measured packing/allocation: {record['packing']['median_ms']:.6g} ms. One use including conversion: {conversion['one_use_including_conversion_speedup']:.5f}×.",
               f"Estimated reuse count to amortize packing: {conversion['break_even_reuses'] or 'no positive estimate'}.",
               'See report.json for raw codegen, confidence intervals, controls, and per-array search evidence.']
@@ -514,6 +598,8 @@ def main():
         worker(args)
         return
     stages = ['capture', 'search', 'validate', 'tune', 'evaluate'] if args.stage == 'all' else [args.stage]
+    if args.stage == 'all' and args.profile_addresses:
+        stages.append('profile')
     if args.stage == 'all' and args.case.startswith('row_column--'):
         stages.append('conventional')
     with (args.directory / 'workflow.lock').open('a') as lock:

@@ -174,15 +174,17 @@ def select_candidates(analysis, profile, *, families=("split", "chunks")):
                 if not preserves_vector_bits(rows, ordinary, packet_bits):
                     continue
                 flag = partial_flag(rows, depths)
-                key = (rows != ordinary, len(address_fields(matrix, layout)), rows)
+                key = (rows != ordinary, sum(a != b for a, b in zip(rows, ordinary)),
+                       len(address_fields(matrix, layout)), rows)
                 previous = representatives.get(flag)
                 if previous is None or key < previous[0]:
                     representatives[flag] = key, layout
-            best, best_key = baseline[matrix.name], (baseline_score.hardware_area, False, 0, ordinary)
+            best, best_key = baseline[matrix.name], (baseline_score.hardware_area, False, 0, 0, ordinary)
             for _, candidate in representatives.values():
                 result = score({**baseline, matrix.name: candidate})
                 rows = layout_matrix_rows(matrix, candidate)
-                key = (result.hardware_area, rows != ordinary, len(address_fields(matrix, candidate)), rows)
+                key = (result.hardware_area, rows != ordinary, sum(a != b for a, b in zip(rows, ordinary)),
+                       len(address_fields(matrix, candidate)), rows)
                 if key < best_key:
                     best, best_key = candidate, key
             chosen[matrix.name] = best
@@ -194,6 +196,7 @@ def select_candidates(analysis, profile, *, families=("split", "chunks")):
 
     candidates = []
     signatures = {}
+    ranking = {}
     for label, layouts in [("ordinary", baseline), *family_choices.items()]:
         signature = tuple((name, layout_matrix_rows(m, layouts[name])) for name, m in matrices.items())
         if signature in signatures:
@@ -213,7 +216,11 @@ def select_candidates(analysis, profile, *, families=("split", "chunks")):
         signatures[signature] = len(candidates)
         candidates.append({"id": label, "families": [label], "runtime_layouts": runtime,
                            "score": _score_dict(result)})
-    best = min(candidates, key=lambda c: (c["score"]["hardware_area"], bool(c["runtime_layouts"]), c["id"]))
+        ranking[label] = (result.hardware_area, bool(runtime),
+            sum(a != b for name, rows in signature
+                for a, b in zip(rows, layout_matrix_rows(matrices[name], baseline[name]))),
+            sum(len(address_fields(matrices[name], layout)) for name, layout in layouts.items()), signature)
+    best = min(candidates, key=lambda c: ranking[c['id']])
     return {"schema": "laqs.packet.search.v1", "candidates": candidates,
             "analytical_top1": best["id"], "array_searches": records,
             "search_scope": ("exact enumeration of " + " and ".join(families)
