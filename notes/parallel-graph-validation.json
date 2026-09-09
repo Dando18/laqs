@@ -1,0 +1,120 @@
+{
+  "platform": "tuolumne",
+  "method": "Single CPU runs on tuolumne2151; saved captures and full graph-field equality checks; no GPU jobs.",
+  "row_column_small": {
+    "baseline_phase_seconds": {
+      "trace": 39.36359986802563,
+      "edge_families": 175.35044829407707
+    },
+    "four_workers": {
+      "workers": 4,
+      "timings": {
+        "trace": 21.485080792102963,
+        "edge_families": 113.86362231010571,
+        "components": 0.000548885203897953,
+        "total": 135.35642000101507
+      },
+      "matches": {
+        "allocations": true,
+        "matrices": true,
+        "events": true,
+        "sequences": true,
+        "edge_families": true,
+        "components": true
+      }
+    }
+  },
+  "fp8_gemm_small": {
+    "archived_analysis_seconds": 854.9553900019964,
+    "four_workers": {
+      "workers": 4,
+      "timings": {
+        "trace": 134.4554790391121,
+        "edge_families": 2.9980280271265656,
+        "components": 0.0005188251379877329,
+        "total": 137.4588262240868
+      },
+      "matches": {
+        "allocations": true,
+        "matrices": true,
+        "events": true,
+        "sequences": true,
+        "edge_families": true,
+        "components": true
+      }
+    }
+  },
+  "tests": [
+    {
+      "module": "parallel_graph",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 4 tests in 1.248s\n\nOK\n"
+    },
+    {
+      "module": "triton_automatic_frontend",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 34 tests in 0.052s\n\nOK\n"
+    },
+    {
+      "module": "access_scopes",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 13 tests in 0.028s\n\nOK\n"
+    },
+    {
+      "module": "triton_hypergraph",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 19 tests in 1.158s\n\nOK\n"
+    },
+    {
+      "module": "packet_layout_search",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 14 tests in 0.731s\n\nOK\n"
+    },
+    {
+      "module": "prepared_scoring",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 5 tests in 0.076s\n\nOK\n"
+    },
+    {
+      "module": "layouts",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 7 tests in 0.001s\n\nOK\n"
+    },
+    {
+      "module": "objectives",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n"
+    },
+    {
+      "module": "scoring",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 16 tests in 0.003s\n\nOK\n"
+    },
+    {
+      "module": "persistence",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nOK\n"
+    },
+    {
+      "module": "solver",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 7 tests in 0.011s\n\nOK\n"
+    },
+    {
+      "module": "gf2",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK\n"
+    },
+    {
+      "module": "tritonbench_search_experiments",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 19 tests in 2.081s\n\nOK\n"
+    },
+    {
+      "module": "triton_final_experiments",
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 3 tests in 0.074s\n\nOK\n"
+    }
+  ],
+  "targeted_tests_passed": 151
+}

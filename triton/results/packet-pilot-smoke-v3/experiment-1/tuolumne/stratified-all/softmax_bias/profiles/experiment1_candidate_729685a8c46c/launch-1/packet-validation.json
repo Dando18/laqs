@@ -1,0 +1,133 @@
+{
+  "accepted": true,
+  "candidate_execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [],
+      "warp": [
+        [
+          64
+        ],
+        [
+          128
+        ]
+      ]
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        1
+      ],
+      "threadsPerWarp": [
+        64
+      ],
+      "warpsPerCTA": [
+        4
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 64,
+      "register": 1,
+      "warp": 4
+    },
+    "output_shape": [
+      256
+    ]
+  },
+  "execution_layout_matches_reference": true,
+  "load_instruction_structure_matches_reference": true,
+  "load_instruction_structure_nonempty": true,
+  "no_candidate_spills": true,
+  "packet_sites": [
+    {
+      "argument": 1,
+      "mask_alignment": 1,
+      "native_alignment": 4,
+      "ownership": "tensor<256xf32, #ttg.blocked<{sizePerThread = [1], threadsPerWarp = [64], warpsPerCTA = [4], order = [0]}>>",
+      "site": 0,
+      "vector_elements": 1
+    }
+  ],
+  "reference_execution_layout": {
+    "bases": {
+      "block": [],
+      "lane": [
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          4
+        ],
+        [
+          8
+        ],
+        [
+          16
+        ],
+        [
+          32
+        ]
+      ],
+      "register": [],
+      "warp": [
+        [
+          64
+        ],
+        [
+          128
+        ]
+      ]
+    },
+    "blocked": {
+      "order": [
+        0
+      ],
+      "sizePerThread": [
+        1
+      ],
+      "threadsPerWarp": [
+        64
+      ],
+      "warpsPerCTA": [
+        4
+      ]
+    },
+    "input_sizes": {
+      "block": 1,
+      "lane": 64,
+      "register": 1,
+      "warp": 4
+    },
+    "output_shape": [
+      256
+    ]
+  },
+  "rejections": [],
+  "store_instruction_structure_matches_reference": true
+}

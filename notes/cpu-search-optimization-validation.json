@@ -1,0 +1,44 @@
+{
+  "case": "row_column--small",
+  "platform": "tuolumne",
+  "method": "Single CPU checks on tuolumne2151 using the archived fixed captures; phase measurements are exploratory, not controlled multi-run performance estimates. Compression compared identical serialized bytes.",
+  "row_column_before_seconds": {
+    "trace": 87.25684129004367,
+    "edge_families": 215.36461527016945,
+    "selection": 79.09231691388413
+  },
+  "row_column_after_seconds": {
+    "trace": 39.36359986802563,
+    "edge_families": 175.35044829407707,
+    "selection": 56.72231578594074
+  },
+  "row_column_graph_matches_archive": true,
+  "row_column_selection_matches_archive": true,
+  "compression": {
+    "1": {
+      "seconds": 0.9284073240123689,
+      "bytes": 30501038
+    },
+    "9": {
+      "seconds": 67.58494976698421,
+      "bytes": 26577987
+    }
+  },
+  "sum_archived_search_seconds": 154.4531303429976,
+  "sum_current_cpu_replay_seconds": {
+    "capture_load": 0.0007768371142446995,
+    "trace": 57.346443698043004,
+    "edge_families": 0.18380349990911782,
+    "components": 0.00038206297904253006,
+    "selection": 0.29375394084490836,
+    "total": 57.827176607912406
+  },
+  "sum_selection_matches_archive": true,
+  "sum_graph_replay_seconds": {
+    "graph_load": 0.005545299965888262,
+    "selection": 0.2718517859466374,
+    "total": 0.2774626570753753
+  },
+  "targeted_tests_passed": 147,
+  "full_discovery": "248 tests discovered; 18 errors due to experiments namespace imports, unavailable torch, and unavailable HIP backend; 10 skipped. Relevant modules passed in isolated processes."
+}

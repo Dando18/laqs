@@ -10,19 +10,21 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
-from functools import cached_property
+from functools import cached_property, lru_cache
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
+from time import perf_counter
 from types import MappingProxyType
-from typing import Any, Iterable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 
 from .access_scopes import build_edge_families, materialize_edge_families
 from .hardware import HardwareProfile
 from .model import Access, EventSequence, MatrixSpec, MemoryEvent
 from .triton import HardwareLocation, TritonLinearLayout
+from .parallel import ordered_parallel_map
 
 
 MANIFEST_SCHEMA = "laqs.triton.access_manifest"
@@ -41,6 +43,9 @@ class UnsupportedTritonAnalysis(RuntimeError):
         super().__init__(message)
         self.category = category
         self.site = site
+
+    def __reduce__(self):
+        return type(self), (self.category, str(self)), {'site': self.site}
 
 
 @dataclass(frozen=True)
@@ -202,6 +207,13 @@ class AccessManifest:
 
     @cached_property
     def context_dependent_expressions(self) -> frozenset[int]:
+        return self._dependent_expressions({'program_id', 'programid', 'iv', 'symbol', 'variable'})
+
+    @cached_property
+    def loop_dependent_expressions(self) -> frozenset[int]:
+        return self._dependent_expressions({'iv', 'symbol', 'variable'})
+
+    def _dependent_expressions(self, roots) -> frozenset[int]:
         expressions = self.expression_map
         memo: dict[int, bool] = {}
 
@@ -210,13 +222,7 @@ class AccessManifest:
                 return memo[expression_id]
             expression = expressions[expression_id]
             memo[expression_id] = True
-            dependent = _canonical_op(expression.op) in {
-                "program_id",
-                "programid",
-                "iv",
-                "symbol",
-                "variable",
-            } or any(depends(operand) for operand in expression.operands)
+            dependent = _canonical_op(expression.op) in roots or any(depends(operand) for operand in expression.operands)
             memo[expression_id] = dependent
             return dependent
 
@@ -575,12 +581,21 @@ def _broadcast(value: RuntimeValue, shape: tuple[int, ...]) -> TensorValue:
     padded = (1,) * (len(shape) - len(value.shape)) + value.shape
     if any(source not in (1, target) for source, target in zip(padded, shape)):
         raise UnsupportedTritonAnalysis("expression_shape", f"cannot broadcast {value.shape} to {shape}")
-    values = []
-    for coord in _coords(shape):
-        source_coord = tuple(0 if extent == 1 else component for component, extent in zip(coord, padded))
-        source_coord = source_coord[len(padded) - len(value.shape) :]
-        values.append(value.at(source_coord))
-    return TensorValue(shape, tuple(values))
+    indices = (_cached_broadcast_indices if math.prod(shape) <= 16384
+               else _broadcast_indices)(padded, shape)
+    return TensorValue(shape, tuple(value.values[index] for index in indices))
+
+
+def _broadcast_indices(source: tuple[int, ...], target: tuple[int, ...]) -> tuple[int, ...]:
+    indices = (0,)
+    for source_extent, target_extent in zip(source, target):
+        indices = tuple(base * source_extent + (i if source_extent != 1 else 0)
+                        for base in indices for i in range(target_extent))
+    return indices
+
+
+# Bound both the number and size of entries; tensor values are never cached.
+_cached_broadcast_indices = lru_cache(maxsize=32)(_broadcast_indices)
 
 
 def _elementwise(function: Any, *values: RuntimeValue) -> RuntimeValue:
@@ -788,12 +803,15 @@ class ExpressionEvaluator:
         *,
         max_tensor_elements: int = 1 << 18,
         shared_cache: dict[int, RuntimeValue] | None = None,
+        program_cache: dict[int, RuntimeValue] | None = None,
     ):
         self.expressions = manifest.expression_map
         self.context = context
         self.max_tensor_elements = max_tensor_elements
         self.context_dependent = manifest.context_dependent_expressions
         self.shared_cache = shared_cache
+        self.program_cache = program_cache
+        self.loop_dependent = manifest.loop_dependent_expressions
         self._active: set[int] = set()
         self._cache: dict[int, RuntimeValue] = {}
 
@@ -801,6 +819,10 @@ class ExpressionEvaluator:
         cached = self._cache.get(expression_id)
         if cached is not None:
             return cached
+        if self.program_cache is not None and expression_id not in self.loop_dependent:
+            cached = self.program_cache.get(expression_id)
+            if cached is not None:
+                return cached
         if (
             self.shared_cache is not None
             and expression_id not in self.context_dependent
@@ -824,6 +846,8 @@ class ExpressionEvaluator:
         if isinstance(result, TensorValue) and len(result.values) > self.max_tensor_elements:
             raise UnsupportedTritonAnalysis("expression_bound", f"expression {expression_id} materializes {len(result.values)} tensor elements; limit is {self.max_tensor_elements}")
         self._cache[expression_id] = result
+        if self.program_cache is not None and expression_id not in self.loop_dependent:
+            self.program_cache[expression_id] = result
         if (
             self.shared_cache is not None
             and expression_id not in self.context_dependent
@@ -1288,12 +1312,16 @@ class AllocationMetadata:
     dense_status: str
     eligible: bool
 
+    @cached_property
+    def _stride_order(self):
+        return tuple(sorted(range(len(self.true_shape)), key=lambda dim: self.strides[dim], reverse=True))
+
     def offset_to_coord(self, element_offset: int) -> tuple[int, ...]:
         if element_offset < 0:
             raise UnsupportedTritonAnalysis("negative_offset", f"{self.name}: active access has negative element offset {element_offset}")
         remaining = element_offset
         coord = [0] * len(self.true_shape)
-        for dimension in sorted(range(len(coord)), key=lambda dim: self.strides[dim], reverse=True):
+        for dimension in self._stride_order:
             if self.true_shape[dimension] == 1:
                 continue
             stride = self.strides[dimension]
@@ -1407,6 +1435,8 @@ class EvaluationLimits:
     max_dynamic_events: int = 1 << 18
     max_loop_iterations: int = 1 << 16
     max_tensor_elements: int = 1 << 18
+    workers: int = 1
+    checkpoint_dir: str | None = None
 
 
 @dataclass
@@ -1435,6 +1465,8 @@ class _TraceState:
     operation_counter: int = 0
     dynamic_events: int = 0
     shared_expression_cache: dict[int, RuntimeValue] = field(default_factory=dict)
+    ownership_cache: dict = field(default_factory=dict)
+    program_expression_cache: dict[int, RuntimeValue] = field(default_factory=dict)
     _evaluator: ExpressionEvaluator | None = field(default=None, init=False)
 
     def evaluator(self) -> ExpressionEvaluator:
@@ -1450,6 +1482,7 @@ class _TraceState:
                 ),
                 max_tensor_elements=self.limits.max_tensor_elements,
                 shared_cache=self.shared_expression_cache,
+                program_cache=self.program_expression_cache,
             )
         return self._evaluator
 
@@ -1513,89 +1546,96 @@ def _memory_events(node: ManifestMemory, state: _TraceState, structural_phase: s
     ):
         return []
     allocation = state.allocations[(node.base_arg, node.base_path)]
-    result = []
-    for slice_index, registers in enumerate(_register_slices(node, register_count)):
-        accesses = []
-        for register in registers:
-            for lane in range(lane_count):
-                coordinates = {name: 0 for name in layout.input_dims}
-                coordinates.update(register=register, lane=lane, warp=state.wave, block=state.block)
-                coordinates = {name: coordinates[name] for name in layout.input_dims}
-                if any(coordinates[name] & layout_record.free_mask(name) for name in layout.input_dims):
-                    continue
-                location = HardwareLocation.make(coordinates)
-                tensor_coord = layout.apply(location)
-                if node.shape and tensor_coord and tuple(node.shape) != layout.output_shape:
-                    raise ManifestError(f"memory site {node.site_id}: operation shape {node.shape} disagrees with LinearLayout output {layout.output_shape}")
-                if not bool(_at(mask, tensor_coord)):
-                    continue
-                root_argument = state.arguments[node.base_arg]
-                runtime_descriptor = all(
-                    hasattr(root_argument, field)
-                    for field in ("base", "shape", "strides", "block_shape")
-                )
-                if runtime_descriptor and descriptor_indices:
-                    block_shape = tuple(int(extent) for extent in root_argument.block_shape)
-                    if tuple(node.shape) != block_shape:
-                        raise UnsupportedTritonAnalysis(
-                            "descriptor_metadata",
-                            f"memory site {node.site_id}: compiled block shape "
-                            f"{node.shape} does not match runtime descriptor "
-                            f"block shape {block_shape}",
-                            site=node.site_id,
-                        )
-                    if len(descriptor_indices) != len(allocation.true_shape):
-                        raise UnsupportedTritonAnalysis(
-                            "descriptor_metadata",
-                            f"memory site {node.site_id}: descriptor index rank does not match allocation",
-                            site=node.site_id,
-                        )
-                    starts = tuple(
-                        int(_at(index, tensor_coord))
-                        for index in descriptor_indices
-                    )
-                    if len(tensor_coord) != len(starts):
-                        raise UnsupportedTritonAnalysis(
-                            "descriptor_metadata",
-                            f"memory site {node.site_id}: descriptor block rank does not match its indices",
-                            site=node.site_id,
-                        )
-                    coord = tuple(
-                        start + component
-                        for start, component in zip(starts, tensor_coord)
-                    )
-                    if any(
-                        component < 0 or component >= extent
-                        for component, extent in zip(coord, allocation.true_shape)
-                    ):
-                        if node.operation != "load":
-                            raise UnsupportedTritonAnalysis(
-                                "descriptor_out_of_bounds_store",
-                                f"memory site {node.site_id}: active descriptor "
-                                f"{node.operation} coordinate {coord} is outside "
-                                f"logical shape {allocation.true_shape}",
-                                site=node.site_id,
-                            )
-                        padding = getattr(root_argument, "padding", None)
-                        if padding not in {"zero", "nan"}:
-                            raise UnsupportedTritonAnalysis(
-                                "descriptor_boundary_semantics",
-                                f"memory site {node.site_id}: out-of-bounds descriptor "
-                                "load has no concrete zero/nan padding policy",
-                                site=node.site_id,
-                            )
+    owner_key = (id(node), state.wave, state.block)
+    if owner_key not in state.ownership_cache:
+        slices = []
+        for registers in _register_slices(node, register_count):
+            owners = []
+            for register in registers:
+                for lane in range(lane_count):
+                    coordinates = {name: 0 for name in layout.input_dims}
+                    coordinates.update(register=register, lane=lane, warp=state.wave, block=state.block)
+                    coordinates = {name: coordinates[name] for name in layout.input_dims}
+                    if any(coordinates[name] & layout_record.free_mask(name) for name in layout.input_dims):
                         continue
-                else:
-                    if offset is None:
-                        raise ManifestError(
-                            f"memory site {node.site_id}: direct operation has no element offset"
+                    tensor_coord = layout.apply(HardwareLocation.make(coordinates))
+                    if node.shape and tensor_coord and tuple(node.shape) != layout.output_shape:
+                        raise ManifestError(f"memory site {node.site_id}: operation shape {node.shape} disagrees with LinearLayout output {layout.output_shape}")
+                    owners.append((lane, tensor_coord))
+            slices.append((len(registers), tuple(owners)))
+        state.ownership_cache[owner_key] = tuple(slices)
+    root_argument = state.arguments[node.base_arg]
+    runtime_descriptor = all(hasattr(root_argument, field)
+                             for field in ("base", "shape", "strides", "block_shape"))
+    offset_width = None
+    result = []
+    for slice_index, (vector_elements, owners) in enumerate(state.ownership_cache[owner_key]):
+        accesses = []
+        for lane, tensor_coord in owners:
+            if not bool(_at(mask, tensor_coord)):
+                continue
+            if runtime_descriptor and descriptor_indices:
+                block_shape = tuple(int(extent) for extent in root_argument.block_shape)
+                if tuple(node.shape) != block_shape:
+                    raise UnsupportedTritonAnalysis(
+                        "descriptor_metadata",
+                        f"memory site {node.site_id}: compiled block shape "
+                        f"{node.shape} does not match runtime descriptor "
+                        f"block shape {block_shape}",
+                        site=node.site_id,
+                    )
+                if len(descriptor_indices) != len(allocation.true_shape):
+                    raise UnsupportedTritonAnalysis(
+                        "descriptor_metadata",
+                        f"memory site {node.site_id}: descriptor index rank does not match allocation",
+                        site=node.site_id,
+                    )
+                starts = tuple(
+                    int(_at(index, tensor_coord))
+                    for index in descriptor_indices
+                )
+                if len(tensor_coord) != len(starts):
+                    raise UnsupportedTritonAnalysis(
+                        "descriptor_metadata",
+                        f"memory site {node.site_id}: descriptor block rank does not match its indices",
+                        site=node.site_id,
+                    )
+                coord = tuple(
+                    start + component
+                    for start, component in zip(starts, tensor_coord)
+                )
+                if any(
+                    component < 0 or component >= extent
+                    for component, extent in zip(coord, allocation.true_shape)
+                ):
+                    if node.operation != "load":
+                        raise UnsupportedTritonAnalysis(
+                            "descriptor_out_of_bounds_store",
+                            f"memory site {node.site_id}: active descriptor "
+                            f"{node.operation} coordinate {coord} is outside "
+                            f"logical shape {allocation.true_shape}",
+                            site=node.site_id,
                         )
-                    element_offset = int(_at(offset, tensor_coord))
-                    offset_expression = state.manifest.expression_map[node.offset]
-                    offset_width = _require_integer_width(offset_expression)
-                    element_offset = _signed(element_offset, offset_width)
-                    coord = allocation.offset_to_coord(element_offset)
-                accesses.append(Access(allocation.name, coord, lane=lane, kind=node.operation, width_bytes=node.element_bytes))
+                    padding = getattr(root_argument, "padding", None)
+                    if padding not in {"zero", "nan"}:
+                        raise UnsupportedTritonAnalysis(
+                            "descriptor_boundary_semantics",
+                            f"memory site {node.site_id}: out-of-bounds descriptor "
+                            "load has no concrete zero/nan padding policy",
+                            site=node.site_id,
+                        )
+                    continue
+            else:
+                if offset is None:
+                    raise ManifestError(
+                        f"memory site {node.site_id}: direct operation has no element offset"
+                    )
+                element_offset = int(_at(offset, tensor_coord))
+                if offset_width is None:
+                    offset_width = _require_integer_width(state.manifest.expression_map[node.offset])
+                element_offset = _signed(element_offset, offset_width)
+                coord = allocation.offset_to_coord(element_offset)
+            accesses.append(Access(allocation.name, coord, lane=lane, kind=node.operation, width_bytes=node.element_bytes))
         if not accesses:
             continue
         order = len(state.events) + len(result)
@@ -1607,7 +1647,7 @@ def _memory_events(node: ManifestMemory, state: _TraceState, structural_phase: s
             "block": str(state.block),
             "step": str(state.operation_counter),
             "operation_instance": str(state.operation_counter),
-            "vector_elements": str(len(registers)),
+            "vector_elements": str(vector_elements),
             "phase": f"{structural_phase}.sync{state.phase_counter}",
             "issue_slice": str(slice_index),
         }
@@ -1681,7 +1721,8 @@ def _sequence_signature(
     anchors: dict[str, int] = {}
     for event in sequence.events:
         for access in event.accesses:
-            anchors.setdefault(access.array, matrices[access.array].coord_to_bits(access.coord))
+            if access.array not in anchors:
+                anchors[access.array] = matrices[access.array].coord_to_bits(access.coord)
     signature = []
     for event in sequence.events:
         metadata = tuple((key, value) for key, value in event.metadata if key not in {"workgroup", "wave", "block", "step"})
@@ -1725,9 +1766,13 @@ def _compress_sequences(
             )
         else:
             groups[signature] = (sequence, sequence.multiplicity)
+    return _materialize_sequences(tuple(groups.values()))
+
+
+def _materialize_sequences(groups):
     events = []
     sequences = []
-    for class_index, (_signature, (concrete_sequence, multiplicity)) in enumerate(groups.items()):
+    for class_index, (concrete_sequence, multiplicity) in enumerate(groups):
         event_ids = []
         for event_index, event in enumerate(concrete_sequence.events):
             event_id = f"trace{class_index}.event{event_index}.{event.site}"
@@ -2216,6 +2261,42 @@ def _translation_launch_classes(
     return tuple(classes)
 
 
+def _trace_chunks(pid_classes):
+    from itertools import islice
+    iterator = iter(pid_classes)
+    while chunk := tuple(islice(iterator, 4)):
+        yield chunk
+
+
+def _trace_chunk(context, pid_classes):
+    """Compress one contiguous workgroup chunk; ordered merging keeps representatives."""
+    concrete = {}
+    retained_events = 0
+    for pid, multiplicity in pid_classes:
+        program_cache = {}
+        for block in range(context['max_blocks']):
+            events = []
+            for wave in range(context['max_waves']):
+                state = _TraceState(context['manifest'], context['arguments'], context['allocations'],
+                    context['readonly'], context['limits'], pid, block, wave, context['grid'], [],
+                    shared_expression_cache=context['shared_expression_cache'],
+                    ownership_cache=context['ownership_cache'], program_expression_cache=program_cache)
+                _execute_nodes(context['manifest'].body, state)
+                events.extend(state.events)
+            sequence = _ConcreteSequence(events, pid, block, 0, multiplicity)
+            signature = _sequence_signature(sequence, context['matrices'],
+                                             normalize_translations=context['normalize'])
+            if signature in concrete:
+                concrete[signature].multiplicity += multiplicity
+            else:
+                retained_events += len(events)
+                if retained_events > context['limits'].max_dynamic_events:
+                    raise UnsupportedTritonAnalysis("enumeration_bound",
+                        f"retained exact trace classes exceed {context['limits'].max_dynamic_events} events")
+                concrete[signature] = sequence
+    return concrete
+
+
 def evaluate_manifest(
     manifest: AccessManifest,
     arguments: Mapping[int | str, Any],
@@ -2276,52 +2357,32 @@ def evaluate_manifest(
             raise UnsupportedTritonAnalysis("enumeration_bound", f"launch needs {context_count} exact workgroup/wave contexts; limit is {limits.max_trace_contexts}, and aligned-translation exactness was not proved")
         if len(launch_classes) * max_blocks * max_waves > limits.max_trace_contexts:
             raise UnsupportedTritonAnalysis("enumeration_bound", "aligned-translation trace classes still exceed the exact context bound")
-    readonly = _readonly_launch_tensors(allocations, arguments)
+    if limits.workers < 1:
+        raise ValueError("CPU worker count must be positive")
+    context = dict(manifest=manifest, arguments=arguments, allocations=allocation_map,
+                   readonly=_readonly_launch_tensors(allocations, arguments),
+                   limits=replace(limits, workers=1, checkpoint_dir=None),
+                   grid=normalized_grid, matrices=matrix_map, max_blocks=max_blocks,
+                   max_waves=max_waves, normalize=not preserve_resource_anchors,
+                   shared_expression_cache={}, ownership_cache={})
+    pid_classes = (((pid, 1) for pid in _grid_points(normalized_grid))
+                   if launch_classes is None else launch_classes)
     concrete = {}
     retained_events = 0
-    shared_expression_cache: dict[int, RuntimeValue] = {}
-    pid_classes = (
-        ((pid, 1) for pid in _grid_points(normalized_grid))
-        if launch_classes is None
-        else launch_classes
-    )
-    for pid, multiplicity in pid_classes:
-        for block in range(max_blocks):
-            workgroup_events = []
-            for wave in range(max_waves):
-                state = _TraceState(
-                    manifest,
-                    arguments,
-                    allocation_map,
-                    readonly,
-                    limits,
-                    pid,
-                    block,
-                    wave,
-                    normalized_grid,
-                    [],
-                    shared_expression_cache=shared_expression_cache,
-                )
-                _execute_nodes(manifest.body, state)
-                workgroup_events.extend(state.events)
-            # Temporal lane/SIMD scopes split this workgroup into wave streams;
-            # workgroup scopes union every owner of the same dynamic operation.
-            sequence = _ConcreteSequence(workgroup_events, pid, block, 0, multiplicity)
-            signature = _sequence_signature(sequence, matrix_map,
-                normalize_translations=not preserve_resource_anchors)
+    checkpoint = Path(limits.checkpoint_dir) / 'trace' if limits.checkpoint_dir else None
+    for chunk in ordered_parallel_map(_trace_chunk, context, _trace_chunks(pid_classes),
+                                      limits.workers, checkpoint_dir=checkpoint):
+        for signature, sequence in chunk.items():
             if signature in concrete:
-                concrete[signature].multiplicity += multiplicity
+                concrete[signature].multiplicity += sequence.multiplicity
             else:
-                retained_events += len(workgroup_events)
+                retained_events += len(sequence.events)
                 if retained_events > limits.max_dynamic_events:
                     raise UnsupportedTritonAnalysis("enumeration_bound",
                         f"retained exact trace classes exceed {limits.max_dynamic_events} events")
                 concrete[signature] = sequence
-    events, sequences = _compress_sequences(
-        tuple(concrete.values()),
-        matrix_map,
-        normalize_translations=not preserve_resource_anchors,
-    )
+    events, sequences = _materialize_sequences(tuple(
+        (sequence, sequence.multiplicity) for sequence in concrete.values() if sequence.events))
     return allocations, matrices, events, sequences
 
 
@@ -2628,11 +2689,13 @@ def analyze_compiled_manifest(
     *,
     selected_config: Mapping[str, Any] | None = None,
     options: AnalysisOptions = AnalysisOptions(),
+    on_phase: Callable[[str, float], None] | None = None,
 ) -> TritonLaunchAnalysis:
     """CPU-testable half of :func:`analyze_launch` after concrete compilation."""
 
     try:
         manifest = parse_access_manifest(manifest_payload)
+        started = perf_counter()
         allocations, matrices, events, sequences = evaluate_manifest(
             manifest,
             bound_arguments,
@@ -2643,6 +2706,8 @@ def analyze_compiled_manifest(
                 and options.hardware_profile.resource_maps
             ),
         )
+        if on_phase is not None:
+            on_phase("trace", perf_counter() - started)
         if options.require_native_baseline:
             scales = options.hardware_profile.byte_scales if options.hardware_profile is not None else ()
             native = {a.name: _native_row_major_score_equivalent(a, scales) for a in allocations}
@@ -2653,11 +2718,19 @@ def analyze_compiled_manifest(
                     "no eligible operand has a proved ordinary region partition in its logical-bit envelope")
         matrix_map = {matrix.name: matrix for matrix in matrices}
         event_map = {event.id: event for event in events}
-        families = build_edge_families(matrix_map, event_map, sequences)
+        started = perf_counter()
+        checkpoint = Path(options.limits.checkpoint_dir) / 'scopes' if options.limits.checkpoint_dir else None
+        families = build_edge_families(matrix_map, event_map, sequences, workers=options.limits.workers,
+                                      checkpoint_dir=checkpoint)
+        if on_phase is not None:
+            on_phase("edge_families", perf_counter() - started)
+        started = perf_counter()
         components = ()
         if options.hardware_profile is not None:
             components = materialize_edge_families(families, matrix_map, options.hardware_profile.byte_scales)
             options.hardware_profile.component_weights(components)
+        if on_phase is not None:
+            on_phase("components", perf_counter() - started)
         return TritonLaunchAnalysis(
             supported=True,
             compiled_kernel=compiled_kernel,

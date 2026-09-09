@@ -1078,6 +1078,8 @@ def parse_arguments(argv=None):
         nargs="+",
         help="finish with an explicitly supplied full-rank address mapping",
     )
+    parser.add_argument("--packet-layout", action="store_true")
+    parser.add_argument("--profile-panel", type=Path)
     parser.add_argument("--profile-candidate-id")
     parser.add_argument("--profile-quotient-score", type=float)
     parser.add_argument(
@@ -1148,6 +1150,15 @@ def main():
     repository = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository))
     args = parse_arguments()
+    if args.packet_layout:
+        sys.path.insert(0, str(Path(__file__).with_name("experiments")))
+        import packet_pilot_kernels
+        if args.case == "bias_relu":
+            raise ValueError("bias_relu is excluded from packet pilot experiments")
+        if args.counter_panel not in (None, "experiment1_gc_whole"):
+            raise ValueError("packet pilots support only Experiment 1")
+        for name in ("softmax_bias", "embedding_bag", "gemv", "gesummv", "mvt", "stencil5"):
+            globals()[name + "_kernel"] = getattr(packet_pilot_kernels, name + "_kernel")
     if args.profile_rows is None and (
         args.profile_candidate_id is not None
         or args.profile_quotient_score is not None

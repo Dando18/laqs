@@ -217,6 +217,23 @@ def bound_arguments(n: int, *, aliases: bool = False) -> dict[int | str, object]
 
 
 class ManifestParserAndExpressionTests(unittest.TestCase):
+    def test_ownership_cache_distinguishes_nodes_with_the_same_site_label(self):
+        payload = vector_manifest(4)
+        other = blocked_layout(4)
+        other['id'] = 'layout1'
+        other['bases'][1]['basis'].reverse()
+        payload['layouts'].append(other)
+        first = payload['body'][0]
+        payload['body'] = [first, dict(first, layout='layout1', lexical_order=1)]
+        phases = {}
+        analysis = analyze_compiled_manifest(None, payload, (1,), bound_arguments(4),
+            on_phase=lambda name, seconds: phases.__setitem__(name, seconds))
+        self.assertTrue(analysis.supported, analysis.unsupported)
+        self.assertEqual([[a.coord for a in e.accesses] for e in analysis.events],
+                         [[(0,), (1,), (2,), (3,)], [(0,), (2,), (1,), (3,)]])
+        self.assertEqual(set(phases), {'trace', 'edge_families', 'components'})
+        self.assertTrue(all(seconds >= 0 for seconds in phases.values()))
+
     def test_strict_version_and_deterministic_layout_parse(self) -> None:
         payload = vector_manifest()
         manifest = parse_access_manifest(json.dumps(payload, sort_keys=True))

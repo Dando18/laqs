@@ -30,15 +30,18 @@ def commands(args):
             command = ([str(ROOT / '.venv/bin/python'), str(HERE / 'run.py')] if cpu
                        else [str(HERE / f'job-{args.platform}.bash')])
             command += ['--stage', stage, '--case', case, *common]
+            cores = args.cpu_workers if cpu else 1
+            if cpu:
+                command += ['--cpu-workers', str(cores)]
             if args.platform == 'tuolumne':
-                scheduler = ['flux', 'submit', '-N1', '-n1', '-c1', '-q', queue, '-t', duration,
+                scheduler = ['flux', 'submit', '-N1', '-n1', f'-c{cores}', '-q', queue, '-t', duration,
                              '--cwd', str(ROOT), '--job-name', name, '--output', str(logs / f'{name}.out'),
                              '--error', str(logs / f'{name}.err')]
                 if not cpu:
                     scheduler += ['-g1']
             else:
                 # Matrix accepted GPU allocations but rejected CPU-only requests.
-                scheduler = ['sbatch', '--parsable', '--nodes=1', '--ntasks=1', '--cpus-per-task=1', '--gpus=1',
+                scheduler = ['sbatch', '--parsable', '--nodes=1', '--ntasks=1', f'--cpus-per-task={cores}', '--gpus=1',
                              f'--partition={queue}', f'--time={int(duration[:-1]) * 60}', f'--chdir={ROOT}',
                              f'--job-name={name}', f'--output={logs / (name + "-%j.out")}',
                              f'--error={logs / (name + "-%j.err")}']
@@ -55,8 +58,12 @@ def main():
     parser.add_argument('--tau-name', choices=['expert', 'l1_to_l2', 'speedup'], default='expert')
     parser.add_argument('--selection', choices=['analytical', 'measured'], default='measured')
     parser.add_argument('--queue')
+    parser.add_argument('--cpu-workers', type=int, default=4,
+                        help='Cores requested and processes used for each CPU search job')
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
+    if args.cpu_workers < 1:
+        parser.error('CPU worker count must be positive')
     if Path.cwd().resolve() != ROOT.resolve():
         parser.error('run from the RELAY repository root')
     jobs, previous = [], {}

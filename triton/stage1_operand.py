@@ -55,6 +55,16 @@ def rank_persistent_operand(
         weighted_component_region_count,
     )
 
+    if getattr(args, "packet_layout", False):
+        from packet_pilot import rank_packet_operand
+        return rank_packet_operand(
+            matrix, logical_operand, default_source, args=args,
+            make_output=make_output, make_launch=make_launch, validate=validate,
+            inner_tile_shapes=inner_tile_shapes, automatic_analysis=automatic_analysis,
+            automatic_target_name=automatic_target_name,
+            execution_layout_spec=execution_layout_spec,
+        )
+
     service_name = getattr(args, "service_model", "none")
     fiber_objectives = ()
     objective_taus = None

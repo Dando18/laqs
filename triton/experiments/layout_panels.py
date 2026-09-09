@@ -376,6 +376,7 @@ def _candidate_layouts(
     experiment: int,
     samples: int,
     seed: int,
+    packet_bits: int | None = None,
 ):
     from relay import CanonicalLayout, LinearInnerLayout, layout_matrix_rows
 
@@ -392,9 +393,16 @@ def _candidate_layouts(
     if not tile_exponents:
         raise ValueError("the kernel supplies no tile hypotheses")
 
+    prefix = ()
+    remaining_bits = tuple(matrix.mode_bits)
+    if packet_bits is not None:
+        if experiment != 1 or matrix.rank != 2 or not 0 <= packet_bits <= matrix.mode_bits[-1]:
+            raise ValueError("packet canonical panels require Experiment 1 and a minor-coordinate packet")
+        prefix = (matrix.rank - 1,) * packet_bits
+        remaining_bits = (*matrix.mode_bits[:-1], matrix.mode_bits[-1] - packet_bits)
     grammar_size = None
     if experiment == 1:
-        grammar_size = _canonical_word_count(tile_exponents[0])
+        grammar_size = _canonical_word_count(remaining_bits)
     elif experiment == 2:
         grammar_size = sum(_canonical_word_count(item) for item in tile_exponents)
 
@@ -404,6 +412,8 @@ def _candidate_layouts(
     def add(layout, attempt: int, origin: str) -> None:
         layout.validate(matrix)
         mapping = tuple(layout_matrix_rows(matrix, layout))
+        if prefix and layout.word[:len(prefix)] != prefix:
+            return
         if mapping in mappings:
             return
         mappings.add(mapping)
@@ -458,7 +468,8 @@ def _candidate_layouts(
     anchor_count = len(layouts)
     if grammar_size is not None and grammar_size <= samples:
         for exponents in tile_exponents:
-            for word in _canonical_words(exponents):
+            for suffix in _canonical_words(remaining_bits if packet_bits is not None else exponents):
+                word = prefix + suffix
                 attempt += 1
                 add(
                     CanonicalLayout(
@@ -480,7 +491,7 @@ def _candidate_layouts(
             attempt += 1
             exponents = tile_exponents[generator.randrange(len(tile_exponents))]
             if experiment in (1, 2):
-                word = _random_canonical_word(exponents, generator)
+                word = prefix + _random_canonical_word(remaining_bits if packet_bits is not None else exponents, generator)
                 layout = CanonicalLayout(
                     f"experiment{experiment}_canonical_{attempt}",
                     matrix.name,
@@ -672,6 +683,7 @@ def stratified_experiment_panel(
     platform: str,
     stratification: str,
     pool_multiplier: int,
+    packet_bits: int | None = None,
 ) -> dict[str, object]:
     """Build a pre-counter stratified panel for experiment 1, 2, or 3."""
 
@@ -694,6 +706,7 @@ def stratified_experiment_panel(
         experiment=experiment,
         samples=requested_pool_count,
         seed=seed,
+        packet_bits=packet_bits,
     )
     pool = [
         _layout_record(
@@ -725,7 +738,8 @@ def stratified_experiment_panel(
     distribution = {
         1: {
             "candidate_pool": (
-                "uniform over distinct whole-tensor canonical words"
+                "uniform over distinct packet-compatible whole-tensor canonical words"
+                if packet_bits is not None else "uniform over distinct whole-tensor canonical words"
             ),
         },
         2: {
@@ -747,6 +761,12 @@ def stratified_experiment_panel(
         "selection": "pre-counter stratified sampling without replacement",
         "grouping": f"stratified_{stratification}",
         "layout_grammar": grammar,
+        "packet_constraint": (None if packet_bits is None else {
+            "protected_low_element_bits": packet_bits,
+            "grammar": "whole-tensor canonical words preserving ordinary low packet bits",
+            "anchors": "ordinary and column-major if packet-compatible",
+            "compiler_validation": "required for every profiled mapping",
+        }),
         "sampling_distribution": distribution,
         "stratification": stratification_record,
         "random_seed": seed,

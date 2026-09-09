@@ -73,6 +73,8 @@ def _profile_configuration(
 ) -> dict[str, object]:
     return {
         "profile_schema": 6,
+        **({"realization": "packet", "packet_identity": args.packet_identity}
+           if getattr(args, "packet_layout", False) else {}),
         "profiler_backend": "nvidia_ncu",
         "case": args.case,
         "kernel_name": KERNEL_NAMES[args.case],

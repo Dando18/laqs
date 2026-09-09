@@ -127,6 +127,10 @@ def _worker_command(args, *extra: str) -> list[str]:
         command.extend(("--counter-platform", str(args.platform)))
     if getattr(args, "gemv_k", None) is not None:
         command.extend(("--gemv-k", str(args.gemv_k)))
+    if getattr(args, "packet_layout", False):
+        command.append("--packet-layout")
+        if "--profile-rows" in extra:
+            command.extend(("--profile-panel", str((args.results_dir / "panel.json").resolve())))
     command.extend(extra)
     return command
 
@@ -166,6 +170,8 @@ def _panel_configuration(args, panel_mode: str) -> dict[str, object]:
         )
     if getattr(args, "gemv_k", None) is not None:
         configuration["gemv_k"] = args.gemv_k
+    if getattr(args, "packet_layout", False):
+        configuration.update(realization="packet", packet_identity=args.packet_identity)
     return configuration
 
 
@@ -255,6 +261,8 @@ def _profile_configuration(
 ) -> dict[str, object]:
     return {
         "profile_schema": 3,
+        **({"realization": "packet", "packet_identity": args.packet_identity}
+           if getattr(args, "packet_layout", False) else {}),
         "case": args.case,
         "kernel_name": KERNEL_NAMES[args.case],
         "candidate_id": candidate["candidate_id"],

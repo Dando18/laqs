@@ -54,9 +54,9 @@ def parse_arguments(argv=None):
     parser.add_argument("--analyze-only", action="store_true")
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument(
-        "--results-root", type=Path, default=EXPERIMENT_ROOT / "results"
+        "--results-root", type=Path, default=EXPERIMENT_ROOT / "results/pilot-v2"
     )
-    parser.add_argument("--plots-root", type=Path, default=EXPERIMENT_ROOT / "plots")
+    parser.add_argument("--plots-root", type=Path, default=EXPERIMENT_ROOT / "plots/pilot-v2")
     parser.add_argument(
         "--rocprof",
         type=Path,
@@ -75,6 +75,9 @@ def main() -> None:
             raise ValueError("--gemv-k is only valid with --case gemv")
         if args.gemv_k & (args.gemv_k - 1):
             raise ValueError("--gemv-k must be a power of two")
+    args.packet_layout = args.experiment == 1
+    if args.packet_layout and args.case == "bias_relu":
+        raise ValueError("bias_relu is excluded from packet Experiment 1")
     args.transaction_bytes = 64 if args.platform == "tuolumne" else 32
     case_root = (
         args.results_root
@@ -95,6 +98,17 @@ def main() -> None:
     ).resolve()
 
     if not args.analyze_only:
+        if args.packet_layout:
+            # The driver now inspects the compiler too, so use the worker's
+            # platform-specific Triton checkout before importing its runtime.
+            if args.platform == "tuolumne":
+                from stage1_counter_sweep import _worker_environment
+            else:
+                from stage1_nvidia_counter_sweep import _worker_environment
+            import os
+            sys.path.insert(0, _worker_environment()["PYTHONPATH"].split(os.pathsep)[0])
+            from packet_pilot import freeze_run
+            args.packet_identity = freeze_run(args, case_root)
         common = {
             "panel_mode": PANEL_MODES[args.experiment],
             "experiment": f"triton_final_experiment_{args.experiment}",

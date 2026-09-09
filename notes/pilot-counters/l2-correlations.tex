@@ -1,0 +1,14 @@
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Kernel & H100 & MI300A \\
+\midrule
+GEMV & 0.299 & 0.977 \\
+GESUMMV & 0.442 & 0.727 \\
+MVT & 0.771 & 0.935 \\
+Embedding bag & 0.966 & 0.988 \\
+Softmax + bias & 0.959 & 1.000 \\
+5-point stencil & 0.931 & 0.999 \\
+\midrule
+Median & 0.851 & 0.982 \\
+\bottomrule
+\end{tabular}

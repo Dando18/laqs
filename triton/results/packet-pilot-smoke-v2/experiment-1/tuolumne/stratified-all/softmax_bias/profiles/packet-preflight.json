@@ -1,0 +1,4996 @@
+{
+  "accepted": [
+    {
+      "a_rows": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512
+      ],
+      "address_expression_runs": 2,
+      "candidate_id": "experiment1_candidate_6bf086fe2b52",
+      "candidate_pool_index": 1,
+      "fine_component": "issue.g64.stream.load.64B",
+      "fixed_outer_order": [
+        "feature",
+        "row"
+      ],
+      "grammar": "canonical",
+      "inner_a_rows": null,
+      "inner_tile_shape": [
+        1024,
+        256
+      ],
+      "inner_word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturerowrowrowrowrowrowrowrowrowrow",
+      "inner_word_runs": 2,
+      "j_area": 0.0,
+      "j_area_rank": 1,
+      "layout": "experiment1_row_major_anchor",
+      "layout_descriptor": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturerowrowrowrowrowrowrowrowrowrow",
+      "mapping_id": "mapping_0fadc8968e5d",
+      "packet_preflight": {
+        "accepted": true,
+        "candidate_execution_layout": {
+          "bases": {
+            "block": [],
+            "lane": [
+              [
+                1
+              ],
+              [
+                2
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ],
+              [
+                16
+              ],
+              [
+                32
+              ]
+            ],
+            "register": [],
+            "warp": [
+              [
+                64
+              ],
+              [
+                128
+              ]
+            ]
+          },
+          "blocked": {
+            "order": [
+              0
+            ],
+            "sizePerThread": [
+              1
+            ],
+            "threadsPerWarp": [
+              64
+            ],
+            "warpsPerCTA": [
+              4
+            ]
+          },
+          "input_sizes": {
+            "block": 1,
+            "lane": 64,
+            "register": 1,
+            "warp": 4
+          },
+          "output_shape": [
+            256
+          ]
+        },
+        "execution_layout_matches_reference": true,
+        "load_instruction_structure_matches_reference": true,
+        "load_instruction_structure_nonempty": true,
+        "no_candidate_spills": true,
+        "packet_sites": [
+          {
+            "argument": 1,
+            "mask_alignment": 1,
+            "native_alignment": 4,
+            "ownership": "tensor<256xf32, #ttg.blocked<{sizePerThread = [1], threadsPerWarp = [64], warpsPerCTA = [4], order = [0]}>>",
+            "site": 0,
+            "vector_elements": 1
+          }
+        ],
+        "reference_execution_layout": {
+          "bases": {
+            "block": [],
+            "lane": [
+              [
+                1
+              ],
+              [
+                2
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ],
+              [
+                16
+              ],
+              [
+                32
+              ]
+            ],
+            "register": [],
+            "warp": [
+              [
+                64
+              ],
+              [
+                128
+              ]
+            ]
+          },
+          "blocked": {
+            "order": [
+              0
+            ],
+            "sizePerThread": [
+              1
+            ],
+            "threadsPerWarp": [
+              64
+            ],
+            "warpsPerCTA": [
+              4
+            ]
+          },
+          "input_sizes": {
+            "block": 1,
+            "lane": 64,
+            "register": 1,
+            "warp": 4
+          },
+          "output_shape": [
+            256
+          ]
+        },
+        "rejections": [],
+        "store_instruction_structure_matches_reference": true
+      },
+      "panel_rank": 1,
+      "peak_normalized_excess": 0.0,
+      "quotient_score": 16384.0,
+      "sample_index": 1,
+      "sampling_attempt": 1,
+      "sampling_origin": "row_major_anchor",
+      "score": {
+        "aggregates": {
+          "hardware_area": 0.0,
+          "hardware_peak": 0.0,
+          "hardware_place": 0,
+          "peak_normalized_excess": 0.0,
+          "weighted_normalized_excess": 0.0,
+          "weighted_region_count": 12288.0
+        },
+        "codegen": {
+          "arrays": [
+            {
+              "grammar": "canonical",
+              "name": "bias",
+              "runs": 2,
+              "xors": 0
+            }
+          ],
+          "runs": 2,
+          "xors": 0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g8.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g8.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g8.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g8.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g32.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g32.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g32.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g32.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g64.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g64.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": 0.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.5,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 8192.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g64.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": 0.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.2,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 1638.4
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "issue.g64.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t4.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": 0.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.2,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 1638.4
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "simd_window.t16.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t4.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_window.t16.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": 0.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.1,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 819.2
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "workgroup_step.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.simd.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 32768.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 32768.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 16384.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 16384.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 8192.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 8192.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 4096.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.workgroup.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 4096.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          }
+        ],
+        "placements": []
+      },
+      "stratification": {
+        "cells": {
+          "issue.g16.stream.load.128B": 0,
+          "issue.g16.stream.load.256B": 0,
+          "issue.g16.stream.load.32B": 0,
+          "issue.g16.stream.load.64B": 0,
+          "issue.g32.stream.load.128B": 0,
+          "issue.g32.stream.load.256B": 0,
+          "issue.g32.stream.load.32B": 0,
+          "issue.g32.stream.load.64B": 0,
+          "issue.g64.stream.load.128B": 0,
+          "issue.g64.stream.load.256B": 0,
+          "issue.g64.stream.load.32B": 0,
+          "issue.g64.stream.load.64B": 0,
+          "issue.g8.stream.load.128B": 0,
+          "issue.g8.stream.load.256B": 0,
+          "issue.g8.stream.load.32B": 0,
+          "issue.g8.stream.load.64B": 0,
+          "phase.simd.array.load.128B": 0,
+          "phase.simd.array.load.256B": 0,
+          "phase.simd.array.load.32B": 0,
+          "phase.simd.array.load.64B": 0,
+          "phase.simd.stream.load.128B": 0,
+          "phase.simd.stream.load.256B": 0,
+          "phase.simd.stream.load.32B": 0,
+          "phase.simd.stream.load.64B": 0,
+          "phase.workgroup.array.load.128B": 0,
+          "phase.workgroup.array.load.256B": 0,
+          "phase.workgroup.array.load.32B": 0,
+          "phase.workgroup.array.load.64B": 0,
+          "phase.workgroup.stream.load.128B": 0,
+          "phase.workgroup.stream.load.256B": 0,
+          "phase.workgroup.stream.load.32B": 0,
+          "phase.workgroup.stream.load.64B": 0,
+          "simd_window.t16.array.load.128B": 0,
+          "simd_window.t16.array.load.256B": 0,
+          "simd_window.t16.array.load.32B": 0,
+          "simd_window.t16.array.load.64B": 0,
+          "simd_window.t16.stream.load.128B": 0,
+          "simd_window.t16.stream.load.256B": 0,
+          "simd_window.t16.stream.load.32B": 0,
+          "simd_window.t16.stream.load.64B": 0,
+          "simd_window.t4.array.load.128B": 0,
+          "simd_window.t4.array.load.256B": 0,
+          "simd_window.t4.array.load.32B": 0,
+          "simd_window.t4.array.load.64B": 0,
+          "simd_window.t4.stream.load.128B": 0,
+          "simd_window.t4.stream.load.256B": 0,
+          "simd_window.t4.stream.load.32B": 0,
+          "simd_window.t4.stream.load.64B": 0,
+          "workgroup_step.array.load.128B": 0,
+          "workgroup_step.array.load.256B": 0,
+          "workgroup_step.array.load.32B": 0,
+          "workgroup_step.array.load.64B": 0,
+          "workgroup_step.stream.load.128B": 0,
+          "workgroup_step.stream.load.256B": 0,
+          "workgroup_step.stream.load.32B": 0,
+          "workgroup_step.stream.load.64B": 0,
+          "workgroup_window.t16.array.load.128B": 0,
+          "workgroup_window.t16.array.load.256B": 0,
+          "workgroup_window.t16.array.load.32B": 0,
+          "workgroup_window.t16.array.load.64B": 0,
+          "workgroup_window.t16.stream.load.128B": 0,
+          "workgroup_window.t16.stream.load.256B": 0,
+          "workgroup_window.t16.stream.load.32B": 0,
+          "workgroup_window.t16.stream.load.64B": 0,
+          "workgroup_window.t4.array.load.128B": 0,
+          "workgroup_window.t4.array.load.256B": 0,
+          "workgroup_window.t4.array.load.32B": 0,
+          "workgroup_window.t4.array.load.64B": 0,
+          "workgroup_window.t4.stream.load.128B": 0,
+          "workgroup_window.t4.stream.load.256B": 0,
+          "workgroup_window.t4.stream.load.32B": 0,
+          "workgroup_window.t4.stream.load.64B": 0
+        },
+        "mode": "all",
+        "selection_step": 1
+      },
+      "word": "featurefeaturefeaturefeaturefeaturefeaturefeaturefeaturerowrowrowrowrowrowrowrowrowrow",
+      "xor_count": 0
+    },
+    {
+      "a_rows": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "address_expression_runs": 2,
+      "candidate_id": "experiment1_candidate_729685a8c46c",
+      "candidate_pool_index": 2,
+      "fine_component": "issue.g64.stream.load.64B",
+      "fixed_outer_order": [
+        "feature",
+        "row"
+      ],
+      "grammar": "canonical",
+      "inner_a_rows": null,
+      "inner_tile_shape": [
+        1024,
+        256
+      ],
+      "inner_word": "rowrowrowrowrowrowrowrowrowrowfeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+      "inner_word_runs": 2,
+      "j_area": 11.5,
+      "j_area_rank": 2,
+      "layout": "experiment1_column_major_anchor",
+      "layout_descriptor": "rowrowrowrowrowrowrowrowrowrowfeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+      "mapping_id": "mapping_770cda11adc3",
+      "packet_preflight": {
+        "accepted": true,
+        "candidate_execution_layout": {
+          "bases": {
+            "block": [],
+            "lane": [
+              [
+                1
+              ],
+              [
+                2
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ],
+              [
+                16
+              ],
+              [
+                32
+              ]
+            ],
+            "register": [],
+            "warp": [
+              [
+                64
+              ],
+              [
+                128
+              ]
+            ]
+          },
+          "blocked": {
+            "order": [
+              0
+            ],
+            "sizePerThread": [
+              1
+            ],
+            "threadsPerWarp": [
+              64
+            ],
+            "warpsPerCTA": [
+              4
+            ]
+          },
+          "input_sizes": {
+            "block": 1,
+            "lane": 64,
+            "register": 1,
+            "warp": 4
+          },
+          "output_shape": [
+            256
+          ]
+        },
+        "execution_layout_matches_reference": true,
+        "load_instruction_structure_matches_reference": true,
+        "load_instruction_structure_nonempty": true,
+        "no_candidate_spills": true,
+        "packet_sites": [
+          {
+            "argument": 1,
+            "mask_alignment": 1,
+            "native_alignment": 4,
+            "ownership": "tensor<256xf32, #ttg.blocked<{sizePerThread = [1], threadsPerWarp = [64], warpsPerCTA = [4], order = [0]}>>",
+            "site": 0,
+            "vector_elements": 1
+          }
+        ],
+        "reference_execution_layout": {
+          "bases": {
+            "block": [],
+            "lane": [
+              [
+                1
+              ],
+              [
+                2
+              ],
+              [
+                4
+              ],
+              [
+                8
+              ],
+              [
+                16
+              ],
+              [
+                32
+              ]
+            ],
+            "register": [],
+            "warp": [
+              [
+                64
+              ],
+              [
+                128
+              ]
+            ]
+          },
+          "blocked": {
+            "order": [
+              0
+            ],
+            "sizePerThread": [
+              1
+            ],
+            "threadsPerWarp": [
+              64
+            ],
+            "warpsPerCTA": [
+              4
+            ]
+          },
+          "input_sizes": {
+            "block": 1,
+            "lane": 64,
+            "register": 1,
+            "warp": 4
+          },
+          "output_shape": [
+            256
+          ]
+        },
+        "rejections": [],
+        "store_instruction_structure_matches_reference": true
+      },
+      "panel_rank": 2,
+      "peak_normalized_excess": 31.0,
+      "quotient_score": 262144.0,
+      "sample_index": 2,
+      "sampling_attempt": 2,
+      "sampling_origin": "column_major_anchor",
+      "score": {
+        "aggregates": {
+          "hardware_area": 11.5,
+          "hardware_peak": 31.0,
+          "hardware_place": 0,
+          "peak_normalized_excess": 31.0,
+          "weighted_normalized_excess": 23.0,
+          "weighted_region_count": 262144.0
+        },
+        "codegen": {
+          "arrays": [
+            {
+              "grammar": "canonical",
+              "name": "bias",
+              "runs": 2,
+              "xors": 0
+            }
+          ],
+          "runs": 2,
+          "xors": 0
+        },
+        "components": [
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "issue.g8.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.0,
+            "name": "issue.g8.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 14.0,
+            "name": "issue.g8.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 28.0,
+            "name": "issue.g8.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "issue.g16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "issue.g16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.0,
+            "name": "issue.g16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 30.0,
+            "name": "issue.g16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "issue.g32.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "issue.g32.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "issue.g32.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.0,
+            "name": "issue.g32.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "issue.g64.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "issue.g64.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": 15.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.5,
+            "weighted_excess_footprint": 3.75,
+            "weighted_normalized_excess": 7.5,
+            "weighted_region_count": 131072.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "issue.g64.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": 31.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.2,
+            "weighted_excess_footprint": 3.1,
+            "weighted_normalized_excess": 6.2,
+            "weighted_region_count": 52428.8
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "issue.g64.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t4.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "lane_window.t16.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "simd_window.t4.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "simd_window.t4.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "simd_window.t4.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "simd_window.t4.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "simd_window.t4.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "simd_window.t4.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "simd_window.t4.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "simd_window.t4.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "simd_window.t16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "simd_window.t16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "simd_window.t16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": 31.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.2,
+            "weighted_excess_footprint": 3.1,
+            "weighted_normalized_excess": 6.2,
+            "weighted_region_count": 52428.8
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "simd_window.t16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "simd_window.t16.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "simd_window.t16.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "simd_window.t16.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "simd_window.t16.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "workgroup_window.t4.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "workgroup_window.t4.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "workgroup_window.t4.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "workgroup_window.t4.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "workgroup_window.t4.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "workgroup_window.t4.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "workgroup_window.t4.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "workgroup_window.t4.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "workgroup_window.t16.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "workgroup_window.t16.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "workgroup_window.t16.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "workgroup_window.t16.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "workgroup_window.t16.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "workgroup_window.t16.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "workgroup_window.t16.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "workgroup_window.t16.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "workgroup_step.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "workgroup_step.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "workgroup_step.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": 31.0,
+            "peak_tolerance": 1.0,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.1,
+            "weighted_excess_footprint": 1.55,
+            "weighted_normalized_excess": 3.1,
+            "weighted_region_count": 26214.4
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "workgroup_step.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "workgroup_step.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "workgroup_step.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "workgroup_step.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "workgroup_step.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 0.0,
+                "packing_lower_bound": 262144.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 0.0,
+            "name": "phase.lane.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 0.0,
+            "packing_lower_bound": 262144.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "phase.simd.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "phase.simd.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "phase.simd.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "phase.simd.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "phase.simd.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "phase.simd.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "phase.simd.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "phase.simd.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "phase.workgroup.stream.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "phase.workgroup.stream.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "phase.workgroup.stream.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "phase.workgroup.stream.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 7.0,
+                "packing_lower_bound": 32768.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 3.5,
+            "name": "phase.workgroup.array.load.32B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 7.0,
+            "packing_lower_bound": 32768.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 32,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 15.0,
+                "packing_lower_bound": 16384.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 7.5,
+            "name": "phase.workgroup.array.load.64B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 15.0,
+            "packing_lower_bound": 16384.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 64,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 31.0,
+                "packing_lower_bound": 8192.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 15.5,
+            "name": "phase.workgroup.array.load.128B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 31.0,
+            "packing_lower_bound": 8192.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 128,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          },
+          {
+            "arrays": [
+              {
+                "name": "bias",
+                "normalized_excess": 63.0,
+                "packing_lower_bound": 4096.0,
+                "raw_region_count": 262144.0
+              }
+            ],
+            "excess_footprint": 31.5,
+            "name": "phase.workgroup.array.load.256B",
+            "normalization_bytes": 2097152.0,
+            "normalized_excess": 63.0,
+            "packing_lower_bound": 4096.0,
+            "peak_excess_ratio": null,
+            "peak_tolerance": null,
+            "raw_region_count": 262144.0,
+            "region_bytes": 256,
+            "weight": 0.0,
+            "weighted_excess_footprint": 0.0,
+            "weighted_normalized_excess": 0.0,
+            "weighted_region_count": 0.0
+          }
+        ],
+        "placements": []
+      },
+      "stratification": {
+        "cells": {
+          "issue.g16.stream.load.128B": 4,
+          "issue.g16.stream.load.256B": 4,
+          "issue.g16.stream.load.32B": 4,
+          "issue.g16.stream.load.64B": 4,
+          "issue.g32.stream.load.128B": 4,
+          "issue.g32.stream.load.256B": 4,
+          "issue.g32.stream.load.32B": 4,
+          "issue.g32.stream.load.64B": 4,
+          "issue.g64.stream.load.128B": 4,
+          "issue.g64.stream.load.256B": 4,
+          "issue.g64.stream.load.32B": 4,
+          "issue.g64.stream.load.64B": 4,
+          "issue.g8.stream.load.128B": 4,
+          "issue.g8.stream.load.256B": 4,
+          "issue.g8.stream.load.32B": 4,
+          "issue.g8.stream.load.64B": 4,
+          "phase.simd.array.load.128B": 4,
+          "phase.simd.array.load.256B": 4,
+          "phase.simd.array.load.32B": 4,
+          "phase.simd.array.load.64B": 4,
+          "phase.simd.stream.load.128B": 4,
+          "phase.simd.stream.load.256B": 4,
+          "phase.simd.stream.load.32B": 4,
+          "phase.simd.stream.load.64B": 4,
+          "phase.workgroup.array.load.128B": 4,
+          "phase.workgroup.array.load.256B": 4,
+          "phase.workgroup.array.load.32B": 4,
+          "phase.workgroup.array.load.64B": 4,
+          "phase.workgroup.stream.load.128B": 4,
+          "phase.workgroup.stream.load.256B": 4,
+          "phase.workgroup.stream.load.32B": 4,
+          "phase.workgroup.stream.load.64B": 4,
+          "simd_window.t16.array.load.128B": 4,
+          "simd_window.t16.array.load.256B": 4,
+          "simd_window.t16.array.load.32B": 4,
+          "simd_window.t16.array.load.64B": 4,
+          "simd_window.t16.stream.load.128B": 4,
+          "simd_window.t16.stream.load.256B": 4,
+          "simd_window.t16.stream.load.32B": 4,
+          "simd_window.t16.stream.load.64B": 4,
+          "simd_window.t4.array.load.128B": 4,
+          "simd_window.t4.array.load.256B": 4,
+          "simd_window.t4.array.load.32B": 4,
+          "simd_window.t4.array.load.64B": 4,
+          "simd_window.t4.stream.load.128B": 4,
+          "simd_window.t4.stream.load.256B": 4,
+          "simd_window.t4.stream.load.32B": 4,
+          "simd_window.t4.stream.load.64B": 4,
+          "workgroup_step.array.load.128B": 4,
+          "workgroup_step.array.load.256B": 4,
+          "workgroup_step.array.load.32B": 4,
+          "workgroup_step.array.load.64B": 4,
+          "workgroup_step.stream.load.128B": 4,
+          "workgroup_step.stream.load.256B": 4,
+          "workgroup_step.stream.load.32B": 4,
+          "workgroup_step.stream.load.64B": 4,
+          "workgroup_window.t16.array.load.128B": 4,
+          "workgroup_window.t16.array.load.256B": 4,
+          "workgroup_window.t16.array.load.32B": 4,
+          "workgroup_window.t16.array.load.64B": 4,
+          "workgroup_window.t16.stream.load.128B": 4,
+          "workgroup_window.t16.stream.load.256B": 4,
+          "workgroup_window.t16.stream.load.32B": 4,
+          "workgroup_window.t16.stream.load.64B": 4,
+          "workgroup_window.t4.array.load.128B": 4,
+          "workgroup_window.t4.array.load.256B": 4,
+          "workgroup_window.t4.array.load.32B": 4,
+          "workgroup_window.t4.array.load.64B": 4,
+          "workgroup_window.t4.stream.load.128B": 4,
+          "workgroup_window.t4.stream.load.256B": 4,
+          "workgroup_window.t4.stream.load.32B": 4,
+          "workgroup_window.t4.stream.load.64B": 4
+        },
+        "mode": "all",
+        "selection_step": 2
+      },
+      "word": "rowrowrowrowrowrowrowrowrowrowfeaturefeaturefeaturefeaturefeaturefeaturefeaturefeature",
+      "xor_count": 0
+    }
+  ],
+  "complete": true,
+  "rejected": []
+}

@@ -102,6 +102,12 @@ class PacketSearchTests(unittest.TestCase):
         self.assertNotEqual(result['analytical_top1'], 'ordinary')
         self.assertLess(best, result['candidates'][0]['score']['hardware_area'])
         self.assertEqual(len({str(c['runtime_layouts']) for c in result['candidates']}), len(result['candidates']))
+        split_only = select_candidates(analysis, profile, families=('split',))
+        self.assertEqual(split_only['maximum_realized_candidates'], 2)
+        self.assertEqual({record['family'] for record in split_only['array_searches']}, {'split'})
+        split_candidate = next(c for c in split_only['candidates'] if 'split' in c['families'])
+        self.assertEqual(split_candidate['score'], selected['score'])
+        self.assertEqual(split_candidate['runtime_layouts'], selected['runtime_layouts'])
 
 
 class PacketMeasuredSelectionTests(unittest.TestCase):
@@ -233,13 +239,16 @@ class PacketMeasuredSelectionTests(unittest.TestCase):
         from types import SimpleNamespace
         from submit import commands
         args = SimpleNamespace(platform='tuolumne', queue=None, root=Path('/tmp/packet-jobs'),
-                               tau_name='expert', selection='measured', cases=['sum--small'])
+                               tau_name='expert', selection='measured', cases=['sum--small'], cpu_workers=4)
         jobs = list(commands(args))
         self.assertEqual(len(jobs), 5)
         self.assertNotIn('-g1', jobs[1][2])
+        self.assertIn('-c4', jobs[1][2])
+        self.assertEqual(jobs[1][3][-2:], ['--cpu-workers', '4'])
         for i in [0, 2, 3, 4]:
             self.assertIn('-g1', jobs[i][2])
         args.platform = 'matrix'
         self.assertTrue(all('--gpus=1' in job[2] for job in commands(args)))
+        self.assertIn('--cpus-per-task=4', list(commands(args))[1][2])
         args.cases = ['row_column--small']
         self.assertEqual(list(commands(args))[-1][1], 'conventional')

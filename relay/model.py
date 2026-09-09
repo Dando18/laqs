@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import cached_property
 from math import isfinite, log2
 from numbers import Real
 from typing import Iterable, Mapping, Sequence
@@ -49,11 +50,11 @@ class MatrixSpec:
     def rank(self) -> int:
         return len(self.shape)
 
-    @property
+    @cached_property
     def mode_bits(self) -> tuple[int, ...]:
         return tuple(exact_log2(extent) for extent in self.shape)
 
-    @property
+    @cached_property
     def total_bits(self) -> int:
         return sum(self.mode_bits)
 
@@ -72,13 +73,19 @@ class MatrixSpec:
                 raise ValueError(f"{self.name}: coordinate {coord} is out of bounds")
 
     def bit_offsets(self, widths: Sequence[int] | None = None) -> tuple[int, ...]:
-        widths = tuple(widths if widths is not None else self.mode_bits)
+        if widths is None:
+            return self._default_bit_offsets
+        widths = tuple(widths)
         offsets: list[int] = []
         current = 0
         for width in widths:
             offsets.append(current)
             current += width
         return tuple(offsets)
+
+    @cached_property
+    def _default_bit_offsets(self) -> tuple[int, ...]:
+        return self.bit_offsets(self.mode_bits)
 
     def coord_to_bits(self, coord: Coord) -> int:
         self.validate_coord(coord)

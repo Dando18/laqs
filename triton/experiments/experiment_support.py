@@ -125,7 +125,7 @@ def save_graph(path, value):
     """Write an internal, trusted cache atomically; return its content hash."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = gzip.compress(pickle.dumps(value, protocol=5), mtime=0)
+    data = gzip.compress(pickle.dumps(value, protocol=5), compresslevel=1, mtime=0)
     temp = path.with_suffix(path.suffix + ".tmp")
     temp.write_bytes(data)
     temp.replace(path)

@@ -1,0 +1,298 @@
+device,tau,experiment,stratification,counter,label,median_spearman_rho,defined_kernels
+H100,expert,1,all,tex_source_l2_read_requests,Read requests,0.6659563191781677,6
+H100,expert,1,all,l2_read_work,Read sectors,0.5891954934433461,6
+H100,expert,1,all,l2_read_misses,Read-sector misses,0.41629326698943325,6
+H100,expert,1,issue,tex_source_l2_read_requests,Read requests,0.7593293503657087,6
+H100,expert,1,issue,l2_read_work,Read sectors,0.4851390713674316,6
+H100,expert,1,issue,l2_read_misses,Read-sector misses,0.3686731327686352,6
+H100,expert,1,temporal,tex_source_l2_read_requests,Read requests,0.6480592912044494,6
+H100,expert,1,temporal,l2_read_work,Read sectors,0.6613408119320957,6
+H100,expert,1,temporal,l2_read_misses,Read-sector misses,0.3536963223419391,6
+H100,expert,2,all,tex_source_l2_read_requests,Read requests,0.7755242513309848,6
+H100,expert,2,all,l2_read_work,Read sectors,0.6968749244667752,6
+H100,expert,2,all,l2_read_misses,Read-sector misses,0.21666714438810583,6
+H100,expert,2,issue,tex_source_l2_read_requests,Read requests,0.7930586575292635,6
+H100,expert,2,issue,l2_read_work,Read sectors,0.3763508872942387,6
+H100,expert,2,issue,l2_read_misses,Read-sector misses,0.37703689012779174,6
+H100,expert,2,temporal,tex_source_l2_read_requests,Read requests,0.7782543723084774,6
+H100,expert,2,temporal,l2_read_work,Read sectors,0.6717298878384922,6
+H100,expert,2,temporal,l2_read_misses,Read-sector misses,0.3554087579423036,6
+H100,expert,3,all,tex_source_l2_read_requests,Read requests,0.621510930656469,6
+H100,expert,3,all,l2_read_work,Read sectors,0.16995051957778567,6
+H100,expert,3,all,l2_read_misses,Read-sector misses,0.5325813429094272,6
+H100,expert,3,issue,tex_source_l2_read_requests,Read requests,0.6514101844450753,6
+H100,expert,3,issue,l2_read_work,Read sectors,0.1880676055492213,6
+H100,expert,3,issue,l2_read_misses,Read-sector misses,0.5035412653410333,6
+H100,expert,3,temporal,tex_source_l2_read_requests,Read requests,0.5679153076233525,6
+H100,expert,3,temporal,l2_read_work,Read sectors,0.20119561675302067,6
+H100,expert,3,temporal,l2_read_misses,Read-sector misses,0.5012121297594538,6
+H100,l1_to_l2,1,all,tex_source_l2_read_requests,Read requests,0.7496216615817951,6
+H100,l1_to_l2,1,all,l2_read_work,Read sectors,0.5817806830590366,6
+H100,l1_to_l2,1,all,l2_read_misses,Read-sector misses,0.36960157481369876,6
+H100,l1_to_l2,1,issue,tex_source_l2_read_requests,Read requests,0.8248828547839588,6
+H100,l1_to_l2,1,issue,l2_read_work,Read sectors,0.5183928571662633,6
+H100,l1_to_l2,1,issue,l2_read_misses,Read-sector misses,0.36308071826754285,6
+H100,l1_to_l2,1,temporal,tex_source_l2_read_requests,Read requests,0.7492084132504515,6
+H100,l1_to_l2,1,temporal,l2_read_work,Read sectors,0.6280514558752823,6
+H100,l1_to_l2,1,temporal,l2_read_misses,Read-sector misses,0.27646724403735334,6
+H100,l1_to_l2,2,all,tex_source_l2_read_requests,Read requests,0.8510820198301744,6
+H100,l1_to_l2,2,all,l2_read_work,Read sectors,0.7331369292067345,6
+H100,l1_to_l2,2,all,l2_read_misses,Read-sector misses,0.23751100843257833,6
+H100,l1_to_l2,2,issue,tex_source_l2_read_requests,Read requests,0.8281610828806403,6
+H100,l1_to_l2,2,issue,l2_read_work,Read sectors,0.44288615989265845,6
+H100,l1_to_l2,2,issue,l2_read_misses,Read-sector misses,0.36945158299990644,6
+H100,l1_to_l2,2,temporal,tex_source_l2_read_requests,Read requests,0.8504960658193503,6
+H100,l1_to_l2,2,temporal,l2_read_work,Read sectors,0.6777970816933498,6
+H100,l1_to_l2,2,temporal,l2_read_misses,Read-sector misses,0.3759868791692647,6
+H100,l1_to_l2,3,all,tex_source_l2_read_requests,Read requests,0.7854796436014815,6
+H100,l1_to_l2,3,all,l2_read_work,Read sectors,0.22333234346842692,6
+H100,l1_to_l2,3,all,l2_read_misses,Read-sector misses,0.5191962866221365,6
+H100,l1_to_l2,3,issue,tex_source_l2_read_requests,Read requests,0.8113963307210085,6
+H100,l1_to_l2,3,issue,l2_read_work,Read sectors,0.21546686729795836,6
+H100,l1_to_l2,3,issue,l2_read_misses,Read-sector misses,0.44151810622399323,6
+H100,l1_to_l2,3,temporal,tex_source_l2_read_requests,Read requests,0.7536172203772757,6
+H100,l1_to_l2,3,temporal,l2_read_work,Read sectors,0.25802176182037573,6
+H100,l1_to_l2,3,temporal,l2_read_misses,Read-sector misses,0.44388513902396043,6
+H100,speedup,1,all,tex_source_l2_read_requests,Read requests,0.7737101403421283,6
+H100,speedup,1,all,l2_read_work,Read sectors,0.7351324898655639,6
+H100,speedup,1,all,l2_read_misses,Read-sector misses,0.12946130745349743,6
+H100,speedup,1,issue,tex_source_l2_read_requests,Read requests,0.46928089994458383,6
+H100,speedup,1,issue,l2_read_work,Read sectors,0.7574901810218324,6
+H100,speedup,1,issue,l2_read_misses,Read-sector misses,0.011762228982907748,6
+H100,speedup,1,temporal,tex_source_l2_read_requests,Read requests,0.8106706222180308,6
+H100,speedup,1,temporal,l2_read_work,Read sectors,0.8028050464513583,6
+H100,speedup,1,temporal,l2_read_misses,Read-sector misses,0.08310335825469413,6
+H100,speedup,2,all,tex_source_l2_read_requests,Read requests,0.73849748866309,6
+H100,speedup,2,all,l2_read_work,Read sectors,0.7907994123116551,6
+H100,speedup,2,all,l2_read_misses,Read-sector misses,0.2803105785149411,6
+H100,speedup,2,issue,tex_source_l2_read_requests,Read requests,0.46485792553908045,6
+H100,speedup,2,issue,l2_read_work,Read sectors,0.7139499340895242,6
+H100,speedup,2,issue,l2_read_misses,Read-sector misses,0.13213212593181992,6
+H100,speedup,2,temporal,tex_source_l2_read_requests,Read requests,0.7670783695562264,6
+H100,speedup,2,temporal,l2_read_work,Read sectors,0.7736884712297694,6
+H100,speedup,2,temporal,l2_read_misses,Read-sector misses,0.24443685883730773,6
+H100,speedup,3,all,tex_source_l2_read_requests,Read requests,0.12261051270551396,6
+H100,speedup,3,all,l2_read_work,Read sectors,0.007688266285767499,6
+H100,speedup,3,all,l2_read_misses,Read-sector misses,0.18210906956475453,6
+H100,speedup,3,issue,tex_source_l2_read_requests,Read requests,0.16529844717619643,6
+H100,speedup,3,issue,l2_read_work,Read sectors,0.10370282190211995,6
+H100,speedup,3,issue,l2_read_misses,Read-sector misses,0.17160592334841718,6
+H100,speedup,3,temporal,tex_source_l2_read_requests,Read requests,0.1076094942884725,6
+H100,speedup,3,temporal,l2_read_work,Read sectors,0.06518416739413797,6
+H100,speedup,3,temporal,l2_read_misses,Read-sector misses,0.0865722318581465,6
+MI300A,expert,1,all,l1_to_l2_read_requests,TCP→TCC reads,0.9770244209696742,6
+MI300A,expert,1,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,1,all,l1_to_l2_total_requests,TCP→TCC total,0.9770244209696742,6
+MI300A,expert,1,all,l2_tag_requests,TCC tag requests,0.9635761693031824,6
+MI300A,expert,1,all,second_level_read_requests,TCC reads,0.9659355513270078,6
+MI300A,expert,1,all,l2_hits,TCC hits,0.9305326588724547,6
+MI300A,expert,1,all,l2_misses,TCC misses,0.10592006994161177,6
+MI300A,expert,1,all,l2_hit_rate_percent,TCC hit rate,0.9317838181943962,6
+MI300A,expert,1,issue,l1_to_l2_read_requests,TCP→TCC reads,0.9807758329151233,6
+MI300A,expert,1,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,1,issue,l1_to_l2_total_requests,TCP→TCC total,0.9807758329151233,6
+MI300A,expert,1,issue,l2_tag_requests,TCC tag requests,0.9782491832747492,6
+MI300A,expert,1,issue,second_level_read_requests,TCC reads,0.9796305275990126,6
+MI300A,expert,1,issue,l2_hits,TCC hits,0.953113527114164,6
+MI300A,expert,1,issue,l2_misses,TCC misses,0.2843724792343589,6
+MI300A,expert,1,issue,l2_hit_rate_percent,TCC hit rate,0.9525978199783567,6
+MI300A,expert,1,temporal,l1_to_l2_read_requests,TCP→TCC reads,0.9653068955406865,6
+MI300A,expert,1,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,1,temporal,l1_to_l2_total_requests,TCP→TCC total,0.9653068955406865,6
+MI300A,expert,1,temporal,l2_tag_requests,TCC tag requests,0.9384828266113477,6
+MI300A,expert,1,temporal,second_level_read_requests,TCC reads,0.9425061222471891,6
+MI300A,expert,1,temporal,l2_hits,TCC hits,0.9133244963242679,6
+MI300A,expert,1,temporal,l2_misses,TCC misses,0.11256975698993632,6
+MI300A,expert,1,temporal,l2_hit_rate_percent,TCC hit rate,0.91544739423237,6
+MI300A,expert,2,all,l1_to_l2_read_requests,TCP→TCC reads,0.9594533636507361,6
+MI300A,expert,2,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,2,all,l1_to_l2_total_requests,TCP→TCC total,0.9594533636507361,6
+MI300A,expert,2,all,l2_tag_requests,TCC tag requests,0.9586160486330053,6
+MI300A,expert,2,all,second_level_read_requests,TCC reads,0.9564574196375382,6
+MI300A,expert,2,all,l2_hits,TCC hits,0.9241730357101162,6
+MI300A,expert,2,all,l2_misses,TCC misses,0.017483695379111527,6
+MI300A,expert,2,all,l2_hit_rate_percent,TCC hit rate,0.9229249173232111,6
+MI300A,expert,2,issue,l1_to_l2_read_requests,TCP→TCC reads,0.9721733453596206,6
+MI300A,expert,2,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,2,issue,l1_to_l2_total_requests,TCP→TCC total,0.9721733453596206,6
+MI300A,expert,2,issue,l2_tag_requests,TCC tag requests,0.9702929998793514,6
+MI300A,expert,2,issue,second_level_read_requests,TCC reads,0.9671391802706932,6
+MI300A,expert,2,issue,l2_hits,TCC hits,0.9421884060173864,6
+MI300A,expert,2,issue,l2_misses,TCC misses,0.02964388416031845,6
+MI300A,expert,2,issue,l2_hit_rate_percent,TCC hit rate,0.9403154802307611,6
+MI300A,expert,2,temporal,l1_to_l2_read_requests,TCP→TCC reads,0.9591033105649982,6
+MI300A,expert,2,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,2,temporal,l1_to_l2_total_requests,TCP→TCC total,0.9591033105649982,6
+MI300A,expert,2,temporal,l2_tag_requests,TCC tag requests,0.9425872674298237,6
+MI300A,expert,2,temporal,second_level_read_requests,TCC reads,0.9384657273047776,6
+MI300A,expert,2,temporal,l2_hits,TCC hits,0.9186828379763105,6
+MI300A,expert,2,temporal,l2_misses,TCC misses,0.052508577866478265,6
+MI300A,expert,2,temporal,l2_hit_rate_percent,TCC hit rate,0.918158294597661,6
+MI300A,expert,3,all,l1_to_l2_read_requests,TCP→TCC reads,0.9547266392859123,6
+MI300A,expert,3,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,3,all,l1_to_l2_total_requests,TCP→TCC total,0.9547266392859123,6
+MI300A,expert,3,all,l2_tag_requests,TCC tag requests,0.9392505459346547,6
+MI300A,expert,3,all,second_level_read_requests,TCC reads,0.9432654849392851,6
+MI300A,expert,3,all,l2_hits,TCC hits,0.9404937753907556,6
+MI300A,expert,3,all,l2_misses,TCC misses,0.3549326328839414,6
+MI300A,expert,3,all,l2_hit_rate_percent,TCC hit rate,0.9384746067639499,6
+MI300A,expert,3,issue,l1_to_l2_read_requests,TCP→TCC reads,0.9530399844167032,6
+MI300A,expert,3,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,3,issue,l1_to_l2_total_requests,TCP→TCC total,0.9530399844167032,6
+MI300A,expert,3,issue,l2_tag_requests,TCC tag requests,0.9454135696417585,6
+MI300A,expert,3,issue,second_level_read_requests,TCC reads,0.947242013649333,6
+MI300A,expert,3,issue,l2_hits,TCC hits,0.9417913429619741,6
+MI300A,expert,3,issue,l2_misses,TCC misses,0.5007461622174962,6
+MI300A,expert,3,issue,l2_hit_rate_percent,TCC hit rate,0.9393412296822317,6
+MI300A,expert,3,temporal,l1_to_l2_read_requests,TCP→TCC reads,0.9481633575813693,6
+MI300A,expert,3,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,expert,3,temporal,l1_to_l2_total_requests,TCP→TCC total,0.9481633575813693,6
+MI300A,expert,3,temporal,l2_tag_requests,TCC tag requests,0.9404114444918158,6
+MI300A,expert,3,temporal,second_level_read_requests,TCC reads,0.9466724287781445,6
+MI300A,expert,3,temporal,l2_hits,TCC hits,0.9382534651044616,6
+MI300A,expert,3,temporal,l2_misses,TCC misses,0.34278212832033944,6
+MI300A,expert,3,temporal,l2_hit_rate_percent,TCC hit rate,0.9356754910407676,6
+MI300A,l1_to_l2,1,all,l1_to_l2_read_requests,TCP→TCC reads,0.982690989649095,6
+MI300A,l1_to_l2,1,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,1,all,l1_to_l2_total_requests,TCP→TCC total,0.982690989649095,6
+MI300A,l1_to_l2,1,all,l2_tag_requests,TCC tag requests,0.9779864589304266,6
+MI300A,l1_to_l2,1,all,second_level_read_requests,TCC reads,0.9782785801840398,6
+MI300A,l1_to_l2,1,all,l2_hits,TCC hits,0.9545985341016267,6
+MI300A,l1_to_l2,1,all,l2_misses,TCC misses,0.10224053069104536,6
+MI300A,l1_to_l2,1,all,l2_hit_rate_percent,TCC hit rate,0.9542416112368246,6
+MI300A,l1_to_l2,1,issue,l1_to_l2_read_requests,TCP→TCC reads,0.9886482883084414,6
+MI300A,l1_to_l2,1,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,1,issue,l1_to_l2_total_requests,TCP→TCC total,0.9886482883084414,6
+MI300A,l1_to_l2,1,issue,l2_tag_requests,TCC tag requests,0.9836797401098583,6
+MI300A,l1_to_l2,1,issue,second_level_read_requests,TCC reads,0.9846943656319536,6
+MI300A,l1_to_l2,1,issue,l2_hits,TCC hits,0.9618887291169719,6
+MI300A,l1_to_l2,1,issue,l2_misses,TCC misses,0.2884151794242803,6
+MI300A,l1_to_l2,1,issue,l2_hit_rate_percent,TCC hit rate,0.9607404743869443,6
+MI300A,l1_to_l2,1,temporal,l1_to_l2_read_requests,TCP→TCC reads,0.9705505383166277,6
+MI300A,l1_to_l2,1,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,1,temporal,l1_to_l2_total_requests,TCP→TCC total,0.9705505383166277,6
+MI300A,l1_to_l2,1,temporal,l2_tag_requests,TCC tag requests,0.9624681217835591,6
+MI300A,l1_to_l2,1,temporal,second_level_read_requests,TCC reads,0.9647136592152071,6
+MI300A,l1_to_l2,1,temporal,l2_hits,TCC hits,0.9407335417911216,6
+MI300A,l1_to_l2,1,temporal,l2_misses,TCC misses,0.11641014404743379,6
+MI300A,l1_to_l2,1,temporal,l2_hit_rate_percent,TCC hit rate,0.9402913279286702,6
+MI300A,l1_to_l2,2,all,l1_to_l2_read_requests,TCP→TCC reads,0.9823952154941908,6
+MI300A,l1_to_l2,2,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,2,all,l1_to_l2_total_requests,TCP→TCC total,0.9823952154941908,6
+MI300A,l1_to_l2,2,all,l2_tag_requests,TCC tag requests,0.974597935714849,6
+MI300A,l1_to_l2,2,all,second_level_read_requests,TCC reads,0.9749621633726249,6
+MI300A,l1_to_l2,2,all,l2_hits,TCC hits,0.9553814154860971,6
+MI300A,l1_to_l2,2,all,l2_misses,TCC misses,0.006012980040660809,6
+MI300A,l1_to_l2,2,all,l2_hit_rate_percent,TCC hit rate,0.9544214079787816,6
+MI300A,l1_to_l2,2,issue,l1_to_l2_read_requests,TCP→TCC reads,0.9839335605003761,6
+MI300A,l1_to_l2,2,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,2,issue,l1_to_l2_total_requests,TCP→TCC total,0.9839335605003761,6
+MI300A,l1_to_l2,2,issue,l2_tag_requests,TCC tag requests,0.9806195045459076,6
+MI300A,l1_to_l2,2,issue,second_level_read_requests,TCC reads,0.9811483054584723,6
+MI300A,l1_to_l2,2,issue,l2_hits,TCC hits,0.959181830001897,6
+MI300A,l1_to_l2,2,issue,l2_misses,TCC misses,0.029852419956884604,6
+MI300A,l1_to_l2,2,issue,l2_hit_rate_percent,TCC hit rate,0.9589671951764922,6
+MI300A,l1_to_l2,2,temporal,l1_to_l2_read_requests,TCP→TCC reads,0.9809053440403478,6
+MI300A,l1_to_l2,2,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,2,temporal,l1_to_l2_total_requests,TCP→TCC total,0.9809053440403478,6
+MI300A,l1_to_l2,2,temporal,l2_tag_requests,TCC tag requests,0.9697562271961151,6
+MI300A,l1_to_l2,2,temporal,second_level_read_requests,TCC reads,0.9698228181464352,6
+MI300A,l1_to_l2,2,temporal,l2_hits,TCC hits,0.9516916702226925,6
+MI300A,l1_to_l2,2,temporal,l2_misses,TCC misses,0.03893834650587018,6
+MI300A,l1_to_l2,2,temporal,l2_hit_rate_percent,TCC hit rate,0.9491698254213817,6
+MI300A,l1_to_l2,3,all,l1_to_l2_read_requests,TCP→TCC reads,0.9668020222254414,6
+MI300A,l1_to_l2,3,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,3,all,l1_to_l2_total_requests,TCP→TCC total,0.9668020222254414,6
+MI300A,l1_to_l2,3,all,l2_tag_requests,TCC tag requests,0.9545946136209731,6
+MI300A,l1_to_l2,3,all,second_level_read_requests,TCC reads,0.9571478816758214,6
+MI300A,l1_to_l2,3,all,l2_hits,TCC hits,0.9575608317782625,6
+MI300A,l1_to_l2,3,all,l2_misses,TCC misses,0.40241049375279286,6
+MI300A,l1_to_l2,3,all,l2_hit_rate_percent,TCC hit rate,0.9534286322085781,6
+MI300A,l1_to_l2,3,issue,l1_to_l2_read_requests,TCP→TCC reads,0.958874153125012,6
+MI300A,l1_to_l2,3,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,3,issue,l1_to_l2_total_requests,TCP→TCC total,0.958874153125012,6
+MI300A,l1_to_l2,3,issue,l2_tag_requests,TCC tag requests,0.9497982017969062,6
+MI300A,l1_to_l2,3,issue,second_level_read_requests,TCC reads,0.9525494819573418,6
+MI300A,l1_to_l2,3,issue,l2_hits,TCC hits,0.9495668069282899,6
+MI300A,l1_to_l2,3,issue,l2_misses,TCC misses,0.5010031461239386,6
+MI300A,l1_to_l2,3,issue,l2_hit_rate_percent,TCC hit rate,0.9447945454297078,6
+MI300A,l1_to_l2,3,temporal,l1_to_l2_read_requests,TCP→TCC reads,0.9488047384604484,6
+MI300A,l1_to_l2,3,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,l1_to_l2,3,temporal,l1_to_l2_total_requests,TCP→TCC total,0.9488047384604484,6
+MI300A,l1_to_l2,3,temporal,l2_tag_requests,TCC tag requests,0.9382237342607294,6
+MI300A,l1_to_l2,3,temporal,second_level_read_requests,TCC reads,0.9447031825708541,6
+MI300A,l1_to_l2,3,temporal,l2_hits,TCC hits,0.9399162689270123,6
+MI300A,l1_to_l2,3,temporal,l2_misses,TCC misses,0.3633593855997237,6
+MI300A,l1_to_l2,3,temporal,l2_hit_rate_percent,TCC hit rate,0.9344752975201787,6
+MI300A,speedup,1,all,l1_to_l2_read_requests,TCP→TCC reads,-0.6812128440050826,3
+MI300A,speedup,1,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,1,all,l1_to_l2_total_requests,TCP→TCC total,-0.6812128440050826,3
+MI300A,speedup,1,all,l2_tag_requests,TCC tag requests,-0.6822086887906285,3
+MI300A,speedup,1,all,second_level_read_requests,TCC reads,-0.6862062117078934,3
+MI300A,speedup,1,all,l2_hits,TCC hits,-0.682515444839747,3
+MI300A,speedup,1,all,l2_misses,TCC misses,-0.2747452145917782,3
+MI300A,speedup,1,all,l2_hit_rate_percent,TCC hit rate,-0.6844517516638254,3
+MI300A,speedup,1,issue,l1_to_l2_read_requests,TCP→TCC reads,-0.6221597698946432,3
+MI300A,speedup,1,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,1,issue,l1_to_l2_total_requests,TCP→TCC total,-0.6221597698946432,3
+MI300A,speedup,1,issue,l2_tag_requests,TCC tag requests,-0.6241322702678312,3
+MI300A,speedup,1,issue,second_level_read_requests,TCC reads,-0.6262769823981263,3
+MI300A,speedup,1,issue,l2_hits,TCC hits,-0.6246648943749981,3
+MI300A,speedup,1,issue,l2_misses,TCC misses,-0.24265346879221106,3
+MI300A,speedup,1,issue,l2_hit_rate_percent,TCC hit rate,-0.6234370353625799,3
+MI300A,speedup,1,temporal,l1_to_l2_read_requests,TCP→TCC reads,-0.7555179390225403,3
+MI300A,speedup,1,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,1,temporal,l1_to_l2_total_requests,TCP→TCC total,-0.7555179390225403,3
+MI300A,speedup,1,temporal,l2_tag_requests,TCC tag requests,-0.7581704346840618,3
+MI300A,speedup,1,temporal,second_level_read_requests,TCC reads,-0.7589553139263432,3
+MI300A,speedup,1,temporal,l2_hits,TCC hits,-0.7573014237241298,3
+MI300A,speedup,1,temporal,l2_misses,TCC misses,-0.18579694904834443,3
+MI300A,speedup,1,temporal,l2_hit_rate_percent,TCC hit rate,-0.7572300716370604,3
+MI300A,speedup,2,all,l1_to_l2_read_requests,TCP→TCC reads,-0.7023437156872321,3
+MI300A,speedup,2,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,2,all,l1_to_l2_total_requests,TCP→TCC total,-0.7023437156872321,3
+MI300A,speedup,2,all,l2_tag_requests,TCC tag requests,-0.7085025533792968,3
+MI300A,speedup,2,all,second_level_read_requests,TCC reads,-0.7029642134560884,3
+MI300A,speedup,2,all,l2_hits,TCC hits,-0.708057984374206,3
+MI300A,speedup,2,all,l2_misses,TCC misses,-0.11830787319735893,3
+MI300A,speedup,2,all,l2_hit_rate_percent,TCC hit rate,-0.7032218982850679,3
+MI300A,speedup,2,issue,l1_to_l2_read_requests,TCP→TCC reads,-0.7352409733240511,3
+MI300A,speedup,2,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,2,issue,l1_to_l2_total_requests,TCP→TCC total,-0.7352409733240511,3
+MI300A,speedup,2,issue,l2_tag_requests,TCC tag requests,-0.7413623301799258,3
+MI300A,speedup,2,issue,second_level_read_requests,TCC reads,-0.7320444950214534,3
+MI300A,speedup,2,issue,l2_hits,TCC hits,-0.7410285293561514,3
+MI300A,speedup,2,issue,l2_misses,TCC misses,-0.15179237510510202,3
+MI300A,speedup,2,issue,l2_hit_rate_percent,TCC hit rate,-0.7410794259380958,3
+MI300A,speedup,2,temporal,l1_to_l2_read_requests,TCP→TCC reads,-0.7328664047418049,3
+MI300A,speedup,2,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,2,temporal,l1_to_l2_total_requests,TCP→TCC total,-0.7328664047418049,3
+MI300A,speedup,2,temporal,l2_tag_requests,TCC tag requests,-0.7469314671687102,3
+MI300A,speedup,2,temporal,second_level_read_requests,TCC reads,-0.7301080167700901,3
+MI300A,speedup,2,temporal,l2_hits,TCC hits,-0.7452175467631531,3
+MI300A,speedup,2,temporal,l2_misses,TCC misses,-0.15904753669554061,3
+MI300A,speedup,2,temporal,l2_hit_rate_percent,TCC hit rate,-0.74549657270131,3
+MI300A,speedup,3,all,l1_to_l2_read_requests,TCP→TCC reads,-0.27798252901462683,3
+MI300A,speedup,3,all,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,3,all,l1_to_l2_total_requests,TCP→TCC total,-0.27798252901462683,3
+MI300A,speedup,3,all,l2_tag_requests,TCC tag requests,-0.26864132676873964,3
+MI300A,speedup,3,all,second_level_read_requests,TCC reads,-0.2597325342673752,3
+MI300A,speedup,3,all,l2_hits,TCC hits,-0.26236830374473574,3
+MI300A,speedup,3,all,l2_misses,TCC misses,-0.05635964240173152,3
+MI300A,speedup,3,all,l2_hit_rate_percent,TCC hit rate,-0.26287351832921213,3
+MI300A,speedup,3,issue,l1_to_l2_read_requests,TCP→TCC reads,-0.2332878662349787,3
+MI300A,speedup,3,issue,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,3,issue,l1_to_l2_total_requests,TCP→TCC total,-0.2332878662349787,3
+MI300A,speedup,3,issue,l2_tag_requests,TCC tag requests,-0.20985937545644232,3
+MI300A,speedup,3,issue,second_level_read_requests,TCC reads,-0.18820582864522017,3
+MI300A,speedup,3,issue,l2_hits,TCC hits,-0.20302500944782928,3
+MI300A,speedup,3,issue,l2_misses,TCC misses,-0.006579439204730479,3
+MI300A,speedup,3,issue,l2_hit_rate_percent,TCC hit rate,-0.2014723266730151,3
+MI300A,speedup,3,temporal,l1_to_l2_read_requests,TCP→TCC reads,-0.18297727227523938,3
+MI300A,speedup,3,temporal,l1_to_l2_write_requests,TCP→TCC writes,,0
+MI300A,speedup,3,temporal,l1_to_l2_total_requests,TCP→TCC total,-0.18297727227523938,3
+MI300A,speedup,3,temporal,l2_tag_requests,TCC tag requests,-0.1792329645620036,3
+MI300A,speedup,3,temporal,second_level_read_requests,TCC reads,-0.17942285380892758,3
+MI300A,speedup,3,temporal,l2_hits,TCC hits,-0.18322998590045936,3
+MI300A,speedup,3,temporal,l2_misses,TCC misses,-0.03790356441902995,3
+MI300A,speedup,3,temporal,l2_hit_rate_percent,TCC hit rate,-0.1834798275995692,3

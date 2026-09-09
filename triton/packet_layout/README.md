@@ -43,6 +43,174 @@ change the queue. Inspect commands without building/submitting:
 .venv/bin/python triton/packet_layout/submit.py --platform matrix --dry-run
 ```
 
+## Collect all 29 TritonBench cases in debug allocations
+
+The resumable runner uses one GPU, eight CPU workers, the split-only grammar,
+and analytical selection by default. It runs capture, exact CPU search,
+primitive/numerical validation, selection, and fresh held-out evaluation for all
+29 configured TritonBench cases across 15 operators. The synthetic row/column
+cases are not part of this panel. Evaluation retains the regular three timing
+processes, 21 samples, 50 iterations, and 10 warmups; these are not shortened
+smoke-test measurements. The GPU is idle during CPU search.
+
+Build once on the respective system before starting the first allocation:
+
+```bash
+triton/packet_layout/build-tuolumne.bash   # Tuolumne
+triton/packet_layout/build-matrix.bash     # Matrix
+```
+
+Run the following from the repository root. These are commands for the user to
+submit; a 30-minute allocation gets a 25-minute work budget and cleanup margin.
+
+Tuolumne, queued debug submission:
+
+```bash
+flux submit -N1 -n1 -c8 -g1 -q pdebug -t 30m \
+  --output='triton/experiments/results/packet-debug-tuolumne-{{id}}.log' \
+  triton/packet_layout/run-debug-tuolumne.bash --minutes 25
+```
+
+Matrix, foreground debug allocation:
+
+```bash
+srun -N1 -n1 -c8 -G1 -p pdebug -t 00:30:00 \
+  triton/packet_layout/run-debug-matrix.bash --minutes 25
+```
+
+For an hour, use `-t 60m` / `-t 01:00:00` and `--minutes 55`, if the queue
+permits an hour. On Matrix, try `pdebug` first; if its debug nodes are occupied,
+the same command with `-p pbatch` is an alternative. For interactive shells:
+
+```bash
+# Tuolumne: allocate, then launch the runner inside that allocation.
+flux alloc -N1 -n1 -c8 -g1 -q pdebug -t 30m
+flux run -n1 -c8 -g1 triton/packet_layout/run-debug-tuolumne.bash --minutes 25
+
+# Matrix: allocate, then launch the runner as a job step.
+salloc -N1 -n1 -c8 -G1 -p pdebug -t 00:30:00
+srun -N1 -n1 -c8 -G1 triton/packet_layout/run-debug-matrix.bash --minutes 25
+```
+
+If you spend time in an interactive shell before launching, reduce `--minutes`
+to fit the remaining allocation. The runner also handles SIGINT, SIGTERM and
+SIGUSR1, stopping the stage's process group, including spawned workers.
+
+**Repeat the same command to continue. Keep the same result root.** The default
+is `triton/experiments/results/packet-debug-split`, with separate platform
+subdirectories, so Matrix and Tuolumne may run concurrently. Only one allocation
+may own a given platform/root at once. Do not generate a fresh timestamp on each
+restart. Large trace and graph checkpoints live under this shared results root,
+not node-local `/tmp`.
+
+Progress and results appear in:
+
+```text
+<root>/<platform>/debug-summary.md
+<root>/<platform>/debug-state.json
+<root>/<platform>/<case>/expert/analysis.md
+<root>/<platform>/<case>/expert/debug-<stage>.log
+```
+
+Completed stages have dependency-bound output checksums. During CPU search,
+completed four-workgroup trace batches and individual scope partitions are
+written atomically by workers and reused after interruption. Their order,
+representatives, weights, and exact scores are preserved. A completed graph is
+saved before selection. Completed independent timing processes are also reused.
+The unfinished batch/partition, graph serialization or selection pass may need
+to run again; this does not resume arbitrary instructions. If an individual
+unit cannot finish within an allocation, that case needs a longer allocation.
+Checkpoints add shared-filesystem I/O and disk usage.
+
+Untouched cases get a turn before retrying an interrupted long case. A failed
+case is retained in the summary and other cases continue. Repeat with
+`--retry-failed` to retry failed stages; completed earlier stages stay cached.
+Failures/exclusions are not counted as completed results. A suite ending with
+only complete/failed cases exits nonzero if any failed. A budget-limited partial
+run exits successfully and reports how much remains.
+
+The manifest freezes sources, GPU/compiler/plugin identity, case panel, grammar,
+tau profile and measurement settings. Changing those requires a fresh `--root`;
+fixing source code therefore requires a new run. Worker count and allocation
+budget may change when resuming. Old `packet-v1` roots are not imported.
+
+Eight workers is the recommended starting point on both systems, **not a
+measured optimum**. Scope construction currently has eight independent
+partitions; tracing can use more workers. Sixteen is a reasonable next tracing
+experiment: change the reservation to `-c16` and pass `--cpu-workers 16` on the
+same root. More workers replicate graph/interpreter state and increase memory
+and I/O demands, so using all 96/112 cores is unlikely to help this runner.
+The wrappers cap nested OpenMP/BLAS threading at one thread per worker.
+
+Inspect the full command list without building, submitting, or requiring a GPU:
+
+```bash
+.venv/bin/python triton/packet_layout/debug-suite.py --platform tuolumne --dry-run
+```
+
+For a separate smaller panel, pass `--cases sum--small fp8_gemm--small` together
+with a fresh `--root`. `--grammar split-chunks` and `--selection measured` are
+available for separate experiments.
+
+## CPU iteration and timing
+
+Every search prints phase timings and writes `search-timings.json` beside
+`search.json`: capture loading, tracing, edge-family construction, component
+materialization, selection, graph writing, and total time. Timing diagnostics
+are separate from the signed analytical selection.
+
+Submission scripts reserve four CPU cores for each search and pass
+`--cpu-workers 4` to the driver. Override this with, for example,
+`submit-tuolumne.bash --cpu-workers 8`. GPU stages retain their one-task,
+one-GPU allocation. Direct driver and CPU benchmark commands default to one
+CPU worker; reserve cores before increasing their worker count.
+Already-submitted one-core jobs retain their original requests.
+
+Tracing is divided into contiguous workgroup batches and merged in launch
+order. Scope construction runs in independent partitions, preserving original
+within-scope edge and floating-point accumulation order. Spawned workers avoid
+inheriting the GPU runtime. Pools bound in-flight results and terminate when
+analysis fails. More workers require more host memory because each owns its
+trace/graph working state; they are not GPU timing processes.
+
+For CPU development, replay an existing trusted capture without a GPU or a
+new capture job. Run from the repository root, substituting the case directory:
+
+```bash
+.venv/bin/python triton/packet_layout/benchmark-cpu.py \
+  --platform tuolumne \
+  --directory triton/experiments/results/packet-v1/tuolumne/row_column--small/expert
+```
+
+Add `--selection-only` to reuse a completed graph and skip tracing and edge
+construction. This diagnostic prints timings, the current selection, and
+whether it matches the saved selection. It verifies cached payload hashes but
+intentionally runs current CPU sources against the frozen input. It writes no
+workflow artifacts and does not certify compiler realization or GPU speedup.
+Normal experiment runs still require a fresh capture/root after source changes.
+
+To measure graph construction using a four-core CPU allocation on Tuolumne:
+
+```bash
+flux run -n1 -c4 -q pdebug -t 30m \
+  .venv/bin/python triton/packet_layout/benchmark-cpu.py \
+  --cpu-workers 4 --platform tuolumne \
+  --directory triton/experiments/results/packet-v1/tuolumne/sum--small/expert
+```
+
+For an interactive GPU allocation, use `-n1 -c4 -g1` with Flux, or
+`-n1 -c4 -G1` with Slurm, and pass `--cpu-workers 4` to the job wrapper.
+
+The packet search uses exact prepared region counts: affine cosets are scored
+by the rank of their mapped quotient basis; non-affine sets use exact encoded
+point counts. Static ownership, broadcast indexing, coordinate metadata, and
+repeated affine proofs are cached. These optimizations preserve templates,
+partial-flag equivalence, edge multiplicities, weights, and score tie-breaking.
+Graph caches use lossless gzip level 1 to avoid expensive maximum compression.
+
+Loop-containing kernels still use concrete tracing. The optimization does not
+claim size-independent CPU time or introduce access sampling.
+
 ## Search boundary
 
 The first family enumerates all two-dimensional split-coordinate templates

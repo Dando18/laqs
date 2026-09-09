@@ -7,6 +7,7 @@ from math import prod
 
 from relay import CanonicalLayout, layout_matrix_rows, row_major_layout, score_layouts
 from relay.gf2 import invert_matrix_rows, rref_basis
+from relay.prepared_scoring import PreparedRegionScorer
 from layout_contract import RuntimeLayout, preserves_vector_bits
 from search_algorithms import _score_dict, natural_tile_hypotheses
 
@@ -110,7 +111,7 @@ def supported_allocation(matrix, allocation, packet_bits):
     return None
 
 
-def select_candidates(analysis, profile):
+def select_candidates(analysis, profile, *, families=("split", "chunks")):
     """Return at most three physical candidates, with analytical top-1 separate.
 
     Exact minimization is over each enumerated supported template family for the
@@ -118,6 +119,8 @@ def select_candidates(analysis, profile):
     Partial flags deduplicate only equivalent supported refinements; an arbitrary
     unrepresentable flag is never chosen first.
     """
+    if families not in (("split",), ("split", "chunks")):
+        raise ValueError('families must be split or split plus chunks')
     if profile.resource_maps:
         raise ValueError("packet-family separability requires no resource maps")
     problem = analysis.relay_problem(hardware_profile=profile, grammar="canonical")
@@ -128,9 +131,12 @@ def select_candidates(analysis, profile):
     if not active:
         raise ValueError("profile has no active graph components")
     cache = {}
+    prepared = PreparedRegionScorer(matrices, analysis.components)
 
     def score(layouts, full=False):
-        return score_layouts(matrices, analysis.components if full else active, layouts,
+        components = analysis.components if full else active
+        prepared.populate(components, layouts, cache)
+        return score_layouts(matrices, components, layouts,
                             hardware_profile=profile, array_component_cache=cache)
 
     baseline_score = score(baseline)
@@ -142,7 +148,8 @@ def select_candidates(analysis, profile):
     names = {str(name): int(index) for index, name in analysis.bound_arguments["__names__"].items()}
     records = []
     family_choices = {}
-    for family in ("split", "chunks"):
+    tiles_by_matrix = {}
+    for family in families:
         chosen = dict(baseline)
         for matrix in problem.matrices:
             allocation = allocations[matrix.name]
@@ -151,7 +158,9 @@ def select_candidates(analysis, profile):
             if reason:
                 records.append({"family": family, "matrix": matrix.name, "fixed_reason": reason})
                 continue
-            tiles = natural_tile_hypotheses(matrix, analysis.events)
+            if matrix.name not in tiles_by_matrix:
+                tiles_by_matrix[matrix.name] = natural_tile_hypotheses(matrix, analysis.events)
+            tiles = tiles_by_matrix[matrix.name]
             layouts = list(split_templates(matrix, packet_bits))
             if family == "chunks":
                 layouts.extend(chunk_templates(matrix, packet_bits, tiles))
@@ -207,5 +216,6 @@ def select_candidates(analysis, profile):
     best = min(candidates, key=lambda c: (c["score"]["hardware_area"], bool(c["runtime_layouts"]), c["id"]))
     return {"schema": "laqs.packet.search.v1", "candidates": candidates,
             "analytical_top1": best["id"], "array_searches": records,
-            "search_scope": "exact enumeration of split and native-boundary chunk templates with supported partial-flag refinements",
-            "maximum_realized_candidates": 3}
+            "search_scope": ("exact enumeration of " + " and ".join(families)
+                             + " templates with supported partial-flag refinements"),
+            "maximum_realized_candidates": 1 + len(families)}

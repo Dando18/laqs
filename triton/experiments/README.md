@@ -1,5 +1,9 @@
 # Final Triton experiments
 
+For the updated packet-preserving Experiment 1 and six-kernel submission
+commands, see [packet pilot experiments](packet-pilots.md). Experiment 3 keeps
+its original GL(p,2) realization; the note explains historical-result reuse.
+
 This directory implements Experiments 1--6, 10, and 12 from
 [`notes/final-experiments.md`](../../notes/final-experiments.md). Each run uses
 one GPU. Experiments 1--3 use the seven pilot kernels; Experiments 4--6 use the

@@ -46,6 +46,8 @@ def args_parser(argv=None):
     parser.add_argument('--tau-name', choices=['expert', 'l1_to_l2', 'speedup'], default='expert')
     parser.add_argument('--tau-profile', type=Path, default=ROOT / 'triton/experiments/tau-profiles.json')
     parser.add_argument('--selection', choices=['analytical', 'measured'], default='measured')
+    parser.add_argument('--grammar', choices=['split', 'split-chunks'], default='split-chunks')
+    parser.add_argument('--resume', action='store_true', help='reuse exact CPU and timing checkpoints')
     parser.add_argument('--processes', type=int, default=3)
     parser.add_argument('--samples', type=int, default=21)
     parser.add_argument('--iterations', type=int, default=50)
@@ -53,6 +55,8 @@ def args_parser(argv=None):
     parser.add_argument('--minimum-gain', type=float, default=.01)
     parser.add_argument('--max-trace-contexts', type=int, default=1 << 24)
     parser.add_argument('--max-events', type=int, default=1 << 20)
+    parser.add_argument('--cpu-workers', type=int, default=1,
+                        help='CPU processes for tracing and graph construction; reserve this many cores')
     parser.add_argument('--rerun', action='store_true')
     parser.add_argument('--phase', choices=['tune', 'evaluate', 'diagnose', 'conventional-tune', 'conventional-evaluate'], default='evaluate')
     parser.add_argument('--process-index', type=int, default=0)
@@ -62,6 +66,8 @@ def args_parser(argv=None):
     args = parser.parse_args(argv)
     if min(args.processes, args.samples, args.iterations, args.warmup) <= 0:
         parser.error('timing counts must be positive')
+    if args.cpu_workers < 1:
+        parser.error('CPU worker count must be positive')
     if not 0 < args.minimum_gain < 1:
         parser.error('minimum gain must lie strictly between zero and one')
     args.root = args.root.resolve()
@@ -182,25 +188,56 @@ def search(args):
     from relay.triton_frontend import analyze_compiled_manifest
     from packet_search import select_candidates
     from search_algorithms import load_tau_profile
+    timings = {'cpu_workers': args.cpu_workers}
+
+    def completed(name, seconds):
+        timings[name] = seconds
+        write_json(args.directory / 'search-timings.json', timings)
+        print(f'CPU {name}: {seconds:.3f}s', flush=True)
+
     stamp = verify(args)
+    phase_started = perf_counter()
     captured = load_graph(args.directory / 'capture.pkl.gz', stamp['capture_hash'])
+    completed('capture_load', perf_counter() - phase_started)
     profile = load_tau_profile(args.platform, args.tau_profile, args.tau_name)
     started = perf_counter()
-    analysis = analyze_compiled_manifest(None, captured['manifest'], captured['grid'], captured['bound'],
-        selected_config=captured['selected_config'], options=AnalysisOptions(hardware_profile=profile,
-        require_native_baseline=True, limits=EvaluationLimits(max_trace_contexts=args.max_trace_contexts,
-                                                            max_dynamic_events=args.max_events)))
-    if not analysis.supported:
-        raise ValueError(f'{analysis.unsupported.category}: {analysis.unsupported.message}')
-    result = select_candidates(analysis, profile)
-    analysis = replace(analysis, compiled_kernel=None, manifest=None,
-                       bound_arguments={'__names__': analysis.bound_arguments['__names__']})
-    result['graph_hash'] = save_graph(args.directory / 'graph.pkl.gz', analysis)
+    print(f'CPU trace and graph construction started (up to {args.cpu_workers} workers)', flush=True)
+    cache_key = digest({'capture': stamp['capture_hash'], 'source': stamp['source_identity'],
+                        'profile': profile.to_dict(), 'contexts': args.max_trace_contexts,
+                        'events': args.max_events})
+    ready_path = args.directory / 'graph-ready.json'
+    ready = json.loads(ready_path.read_text()) if args.resume and ready_path.exists() else None
+    if ready is not None and ready['key'] == cache_key:
+        analysis = load_graph(args.directory / 'graph.pkl.gz', ready['graph_hash'])
+        graph_hash = ready['graph_hash']
+        print('CPU graph restored from checkpoint', flush=True)
+    else:
+        checkpoint = args.directory / 'search-checkpoints' / cache_key if args.resume else None
+        analysis = analyze_compiled_manifest(None, captured['manifest'], captured['grid'], captured['bound'],
+            selected_config=captured['selected_config'], options=AnalysisOptions(hardware_profile=profile,
+            require_native_baseline=True, limits=EvaluationLimits(max_trace_contexts=args.max_trace_contexts,
+                max_dynamic_events=args.max_events, workers=args.cpu_workers,
+                checkpoint_dir=str(checkpoint) if checkpoint else None)), on_phase=completed)
+        if not analysis.supported:
+            raise ValueError(f'{analysis.unsupported.category}: {analysis.unsupported.message}')
+        analysis = replace(analysis, compiled_kernel=None, manifest=None,
+                           bound_arguments={'__names__': analysis.bound_arguments['__names__']})
+        phase_started = perf_counter()
+        graph_hash = save_graph(args.directory / 'graph.pkl.gz', analysis)
+        write_json(ready_path, {'key': cache_key, 'graph_hash': graph_hash})
+        completed('graph_write', perf_counter() - phase_started)
+    phase_started = perf_counter()
+    print('CPU layout selection started', flush=True)
+    result = select_candidates(analysis, profile,
+                               families=('split',) if args.grammar == 'split' else ('split', 'chunks'))
+    completed('selection', perf_counter() - phase_started)
+    result['graph_hash'] = graph_hash
     result['capture_hash'] = stamp['capture_hash']
     result['source_identity'] = stamp['source_identity']
     result['hardware_profile'] = profile.to_dict()
     result['tau_sha256'] = hashlib.sha256(args.tau_profile.read_bytes()).hexdigest()
     result['elapsed_seconds'] = perf_counter() - started
+    completed('total', result['elapsed_seconds'] + timings['capture_load'])
     result['selection_hash'] = digest({k: v for k, v in result.items() if k != 'elapsed_seconds'})
     write_json(args.directory / 'search.json', result)
 
@@ -361,9 +398,24 @@ def worker(args):
 
 def run_processes(args, phase):
     from packet_measure import summarize
+    if args.resume:
+        verify(args, gpu=True)
     records = []
     for index in range(args.processes):
         output = args.directory / phase / f'process-{index}.json'
+        checkpoint = output.with_suffix('.complete.json')
+        binding = None
+        if args.resume and phase in ('tune', 'evaluate'):
+            binding = digest({'selection': read(args, 'search.json')['selection_hash'],
+                'validation': read(args, 'validated.json')['validation_hash'],
+                'choice': read(args, 'choice.json')['choice_hash'] if phase == 'evaluate' else None,
+                'phase': phase, 'index': index,
+                'measurement': [args.samples, args.iterations, args.warmup]})
+            if checkpoint.exists() and output.exists():
+                saved = json.loads(checkpoint.read_text())
+                if saved == {'binding': binding, 'sha256': hashlib.sha256(output.read_bytes()).hexdigest()}:
+                    records.append(json.loads(output.read_text()))
+                    continue
         command = [sys.executable, str(HERE / 'run.py'), '--stage', 'worker', '--phase', phase,
                    '--platform', args.platform, '--case', args.case, '--root', str(args.root),
                    '--tau-name', args.tau_name, '--samples', str(args.samples), '--iterations', str(args.iterations),
@@ -371,6 +423,8 @@ def run_processes(args, phase):
         if args.diagnostic_selection:
             command += ['--diagnostic-selection', str(args.diagnostic_selection.resolve())]
         subprocess.run(command, cwd=ROOT, check=True)
+        if binding is not None:
+            write_json(checkpoint, {'binding': binding, 'sha256': hashlib.sha256(output.read_bytes()).hexdigest()})
         records.append(json.loads(output.read_text()))
     return summarize(records)
 
@@ -466,7 +520,7 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX)
         for stage in stages:
             status_path = args.directory / 'status.json'
-            if status_path.exists() and stage != 'capture':
+            if status_path.exists() and stage != 'capture' and not args.resume:
                 previous = json.loads(status_path.read_text())
                 if previous['status'] == 'running' and previous['stage'] != stage:
                     previous.update(status='failed', reason='stage did not complete; inspect its scheduler log for timeout or interruption')

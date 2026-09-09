@@ -1,0 +1,2813 @@
+{
+  "sources": [
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-all/gemv/report.json",
+      "sha256": "12cdc05f05ff801609795dabd2bb1e27f49f3f3b8f0733e65313bb8a02a73d1d",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-all/gesummv/report.json",
+      "sha256": "e25a3366144112199183b12c07c3ab44678b9f007192b9587c5ac45b070fbd00",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-all/mvt/report.json",
+      "sha256": "ca208a859cc21891b393f2f1ec5b23148b392d990255c50a7601cf880f3a8933",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "d836f4111c2da3cbaab0ae208d6618ada43e1c5b5e992a755bea84bb059b47a1",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "cb18cbbc34e8c68ad5677d989980de093579c7841199a4e5d63b6d9d2f66903c",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-all/stencil5/report.json",
+      "sha256": "03e2656bfaf737d471887655704f30bb7efea30bdab853f343a313b5f08be743",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-issue/gemv/report.json",
+      "sha256": "72dd5f587efc3a1f04838d1404a85612fe88903f4f2f063a0a1a714acd9b30cc",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "1f2eaa7851bb39adf02a5c05d3ebac0576211be4c134a498ea5b6431231c2d0f",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-issue/mvt/report.json",
+      "sha256": "0ea96731c26959a42d6f26ed1ef1f4ea30fa235e9968ed032545ed77a888f826",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "0e6c2e4e4638e4b56e1e78533d3576ea1cc85333544086d364b215433ecfce55",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "28b899336adec8d101c62ae05092461d56feebb2d9b32c97a17e49338e529780",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "0a269d1bc6abee3ed36dd3462466c121892136a68f6dc2f271833146cb699c23",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "88aacfac4ff4fbab34d85eaafc6a9d44a2f3161fa606beda3d7ece8ed1d85320",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "d4b26b02762610f75f8a63a4c5cc12ee235a96163438f37940245f9fba59c9d6",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "4aafd3f01fe230c1074113f2c310229ee7475357ab01ddf3361c9251081aeca0",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "0a62836509f546d637942fdc965f52c7b716c5994a3d761fffef8212a5670faf",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "51d85689499dffac67d128e5acc64fc97d2aa0da27291e90b12f9f2585bc61cb",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "3a3a2e70f3af97230aded8ab448d282a163161d5b4209ceb0ddf0a95f9722d97",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-all/gemv/report.json",
+      "sha256": "2ec77032e2f6c91ee886025f6c2c6f57e0bc58d378560759538dfc9fb6014b9b",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-all/gesummv/report.json",
+      "sha256": "e3780624831b6355dc400fe476241737641fd108a313532ab09cfa01dec7919c",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-all/mvt/report.json",
+      "sha256": "cc0daa5823fd20f875c456c6290a63f15a4659a4a794f806a1d335e6ff3e99c0",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "fb3613583204682710281edb7e5db76c1732a8360134d6a8fe5917b6bd03be20",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "ee4e6e12954914ffdda741c67f227a444a50b3a86b1cca21879797f91636e171",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-all/stencil5/report.json",
+      "sha256": "7ca6a4b33cef11dd817c1739a4c75027296431a84e50cb97417a09cb5823bf27",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-issue/gemv/report.json",
+      "sha256": "ca1caadd387390a5001553bc26f99f51fde5acd97d57faa1924c54fd065ec66c",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "a11e94bc9f6c1ec1070da860f442bea37381700aa9eed0150a2a8c0374286bf4",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-issue/mvt/report.json",
+      "sha256": "0ab42afc1c83c698a671b2e14b267c216e720169ea07a8810a9b94a1d4c6852c",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "b19e3a0e05f480fa8077fd6bb6442d6a6762e7289b58bec36df7662d323b0420",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "ce8cc46ededd31dd111a175867e15713471d874c748d303b2eafa1c937c502f4",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "f1acb13d3c6e9045c714b0898dec22f3a674eaf712133dbaedce38a4e47f4110",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "6130f71c9de61ca1d8b3686a147ef6479dcabffa971419d909c9e9227a0d18de",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "1de8269f233e21a685728796542b6d8823ee2bb22e67bbd272111c702f2c24ef",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "c8f682ec564da1b600aa6b08fc67894b651beb805cd84d5c832216606cfc0d4d",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "b76c58d402665431372103b03d3cc50e26728bdf188227002e43a3127832bb27",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "37f14f6fc8e283ee5648c585180d9d2c96e735e5bed7a7ef66b35f5332f6a656",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "bfbd5afa5eda42064ae801d2690668a696e27a55f15936dfad0e9b08b2c5b3dd",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-all/gemv/report.json",
+      "sha256": "8ee74eca19609666fb2c5e9561f1295b35bffeae270ba9a3890eca27db22d68a",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-all/gesummv/report.json",
+      "sha256": "8391361d464fd5925d0349494753e68b8006f5117daeeb8f78834f5dc11b4174",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-all/mvt/report.json",
+      "sha256": "cc885c84fdf8642801ad4380e7a4a351650ee0627f4761f84f22d13c0ee9b4fa",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "238cf682a2705f429d87131a21b5034619502adcf7e412328b118768447947a5",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "e73d997cbd366ee2853dda16aca7ea6e8bae9cae83e16e778dfad963274bee99",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-all/stencil5/report.json",
+      "sha256": "c5199e7304c58369c9b5f74dfcf4c5bb8933382bb75bcfea9a533afe91fb31cf",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-issue/gemv/report.json",
+      "sha256": "e13d9b917559369ddb20bba6b42bee71073cd5701efb76f2b88f5dde6ee19ac6",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "406fb169dd5e6c5430fbffff7e037b0cd569a670ae8d294002fd05d14d526f05",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-issue/mvt/report.json",
+      "sha256": "1a78b175db64d06889c19b256832aaa249c46b97fe458868e3577e5c7c5bd690",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "66d785860332c3b77d42ca4e552abcac1024a754f26828469a7aab7544801c10",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "501507ab1642a67e663dd1e30809edc24cdd2c0b3af7773898f9e50501d725a2",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "313d515b232296b7d162640ab98c7f186febb2a80aae4e85c61c2f265fd125b9",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "d616a275f5c1d8d6e41c2f483017ef6df569ef333dc992fce3f85e5e9d9ab95c",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "3f0e7371a8845ad786000805ca0618b141417106148294e4109df8198c39f720",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "dc1bc4271963c54fb505204928fc0e4edf6f62c75152a60469d6f890b288aa24",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "0f797ce4378d51aa60eb34717b744032ebc8f59cbdb3d4b67dd1de75102e9af1",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "daf4c1dbeb02fcaa98d4d6439dc9b0c27d37ea4b429b9737184ffb3874656ad6",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "69286d2fe6d2dd640c12d45bc60dd63d517d7a1fd24e6ebbba2aed3039305f68",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.2,
+        "issue.g32.stream.load.32B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-all/gemv/report.json",
+      "sha256": "980a7031e2609e084189c4aeb36d582c8d0649727016a5374287858fb370156b",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-all/gesummv/report.json",
+      "sha256": "74abc2f301f78f40da3adfb88422d9f1f18995a40f0dc9e10d1db19dc0bb8fea",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-all/mvt/report.json",
+      "sha256": "4b40791f4b6a428f34939941d6b9f7087e01a32e5500076e278a7428563e5db5",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "5fa1328613780e8bf669decc205ee4c9b45dd857e2f74f95dd0fe21a112d2251",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "b09320fef299340c8b5592bc90fa47c8172c782ca4754cb41e76d52bb23a216d",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-all/stencil5/report.json",
+      "sha256": "5161fdfcd84736bc79dd4dceffe045d19a72ce153d7c15f2b6cbd27b8439eff2",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-issue/gemv/report.json",
+      "sha256": "a08500a4234b3b052c63b2dcd9359017c15d11fb1d544f7b4a73bf6e6f4781a8",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "7a350728492add866dd4e94c4aa2f4210f9311adc969ad325d3bd05bee6f967a",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-issue/mvt/report.json",
+      "sha256": "5c03a67e1d7512f6dc51d4f598f3811c684200ad2f41427aabdbe17d4adbe926",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "01c784af04fb3f5ef2f6175cc4d22f35fb07d69a55130985868b0c1423d4fd97",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "8c3c07f23562755d57c6086ba14e99023787943d2ded81b548ebc4855b852167",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "2f42e5d4205fea1630a11dbbb00725618c70f163342a1fad6f5504a5b33978bb",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "de7defb64b4de75aa34a4844e5c7fdfc3e59824eb2085185ec3cc62c30044aec",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "76ad09e824dc3200a7f8ab3f0506327908939c6fc618a2b040b2b73367570fa1",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "0a671206487fb69bbdcff908761e42dcc6f30153cbcaee4a8b07f52df4469b80",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "ffc72ce45193855b45048fb96d2cf6315de018344df807134ee7c0829f94e04d",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "8cc878c9b8c4e04b8118af8d7c25b12bc97d2e458c7476db9c095f3628dbc0ac",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "04c8010cc8c05a98c0c24184780fa75dee0a2cf8e33b3e0fc2bb3cf12bad3127",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-all/gemv/report.json",
+      "sha256": "8fef06cf7f2407c9ebcc04e0d9d5f1ce64ea2507395e98627fc94b89906f1c72",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-all/gesummv/report.json",
+      "sha256": "a1df4cd07540f10bc6a2ca573e7189cd2de893ed07242f87c6a2ab9d27463f16",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-all/mvt/report.json",
+      "sha256": "508e1e7f37997ce12f8cdc1bfff939bdf72714cb9b2e7095239c784c686f70c5",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "b79399384766d4077ebc2120277d5da0dd993884b40f0a8db3925b7d3a9bbe75",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "2853fceab8fd0ab240dc8a3c3e7b1b12712c85c576ec8b68337f68a886e15f7e",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-all/stencil5/report.json",
+      "sha256": "085bcfd2edbc29c3e675c2b2d9fb78435b39d1727bea54624e8bc41dd31c55cd",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-issue/gemv/report.json",
+      "sha256": "a36c2578506334df7d6663337d06bf7097c284772e2d49e255069ff90d7880fc",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "d6fef89884ca841f4ab3b63feb580a0b3b2a8b4caa77185ce8301f80d6316820",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-issue/mvt/report.json",
+      "sha256": "ed38bfbaa2d827c4bafbdc34c706129d2abc8f85c8dd8058c7ee96152f2dd37c",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "3b66cea247e73829f7fd5ee9a8cc31f100aaf8b2d21a83e06038d8b28197c831",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "8ff9c63fceec1fea8233bd76d7923a159d792b3d6f9e08d2b03b6ec0397a158d",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "4f53b6ec9955e4ef129a1c917fc463fec8a1b4c7f34a272d7d8b9daa19db3475",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "587192a1668a4826005c4f93f8a9d7ead7881e0dcba4bcf7c43fe4631822dcf0",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "1e643249aa0db8b3b13a8ddb2585355caaf357f4e7334b24b1d4f4894701e681",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "768854363e79b1698dac5424fde13b82879d59cd2bd5041f58810ce9e8d1455a",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "9cab9a6807547a3078f9e733f07d46587a81b9856818fd56829e5039c5537dec",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "478a341e473fce1395f849e55dbb99858d6e84ca8894759f05f0869c2b70c0d0",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "ba3bde3a67161f3b418e660447ef443582c26643519e07f4cadb353935ec910a",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-all/gemv/report.json",
+      "sha256": "4e7b82dad1fcf7f3f53f317cea7522372a978b2eac91d9b292793b2b3a1cf6d9",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-all/gesummv/report.json",
+      "sha256": "ceb0bcb4ac19792089c6c7ee72a9d9aeb40e8c93b8a41d72053cc0d927468603",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-all/mvt/report.json",
+      "sha256": "04cd8bc4777609b7fbccb6ff33419480b3c3c44817c2953f951fdbda4b2dc5a4",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "9d1c89c677619841963bdaf4dd8b00e9fd3ddaf1ca8b8762ce22da8cda29c2de",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "1769f6012755e8c822e496a21b73d901367684cd76978028856fbf233ca44fac",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-all/stencil5/report.json",
+      "sha256": "31a343cf3ff3834710cbf74882b341c4bdba2f4859c2f4b3433ee1c3726899f0",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-issue/gemv/report.json",
+      "sha256": "c2026795af9ff0c69c3f858bfc03af2fb9826bb1d045af024b3ec5f216efc755",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "1d86ecf936669d0f09d604f1d9ff1d3b76a0e72ad2115523c9b6304e72e237ee",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-issue/mvt/report.json",
+      "sha256": "995e735e4f60bb352e80182a665942a5defd4e7db1b65344ee043597b538182b",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "9886d34f8621f417f3f0e2eff97c938d42a920677cff8f6b557ccffa9c12c70c",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "899bbac4e9768a892701ca57ab3e0ce1a69f3b28a7d92f6f1e0c4042d8fed8aa",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "0c5f2b73f2d235f64be77d07621899cfd0807c3f228d5ae1d8a759f878aa4621",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "f9952b3d9a512a491501a0d63e51b089cdef8e518414c39cd93dee06ccfab897",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "e42b9f985269b4b89b1169de8189e69fc3e32e9905fdb1aba75cc2d562d8c1ca",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "2373ef90df6be00766f3ef9de0db81a29d6720d0e92bbdb3888c314eb4a8ea33",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "e518b8b48a5965025e2bbb89e99b5572db1c6d589f45326b4990938428e4267d",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "1a8e4342059d2726661e92d3fe8adbf6021c14dbbcbec8fe1be91768f30831e9",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "85bfcfb1d49f8eb79ef9ac57d5c2d1092b4e6beeb8683f38c7db83983401eef3",
+      "active_tau": {
+        "issue.g32.stream.load.128B": 0.36562500000000003,
+        "workgroup_step.array.load.128B": 0.625,
+        "workgroup_window.t16.array.load.256B": 0.009374999999999967
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-all/gemv/report.json",
+      "sha256": "9ef0ce99b9c773b0298c43c36a161192edfdb351de06c5316bed3be8a0959494",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-all/gesummv/report.json",
+      "sha256": "4e55adbeb8e1278619d46da58ca610d2bb205b96c4f6d81606584af68fac87ce",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-all/mvt/report.json",
+      "sha256": "7be87b8f302ac02baf333335a37895c2bf01f41479fd8986518610aeaf1cb7ac",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "46f8dcabd711133a24fe5122c51498ec9f8a5467a672cbc8eed85b6425aa8f22",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "02b1213b21ea68f7151e5b5d9da5732625f2a5d805d5dadb6ff0c95e408777be",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-all/stencil5/report.json",
+      "sha256": "655eaae8cc75da55a4e74277e9f925b90ceb448187e40737e92a584722f26436",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-issue/gemv/report.json",
+      "sha256": "76548897f06516e5690baf4e8cf9610628e543aa5bb74abad1145a224a16bf1e",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "e3a922b4bac8ce9f0c0c2ad670bba78293299e1ce4b3dadd0359b0ef89282014",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-issue/mvt/report.json",
+      "sha256": "681af3fa6caaf87e5f2190d632e99546a673df511851dba7e1f02db3b780060c",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "0b261162136171d66f0b283e7d4537fb8f2a61a945f1c6df741eabd972f79b7a",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "45e98385040dbe1c4a24feda164d8dd068937265596fbff77c35b2f647118e9a",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "ef7e48267a82711ae14ed507b5e2fdab1f8636c650e93d930229e88d316b6a4a",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "54b9d92c6c2536596e03b4837d086513a75991ecc67a5841c4ec34d3ac3c3110",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "09494f49f518051138bd0d94e3742a2dd487ce3fb3fd99fabef3c332a2c21e39",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "fafe06595459c6654949106dfd890adfee33059d979fa27e52a61c967da99d68",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "26d5d9485e987ec6c3d0fc816b201d9a7fbb6a5a68309f22a99c8791edd864dd",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "2831ab0aea45a70bbcbdaef317745a29878f9bfd9dc63c1bca1601df3dd76eb0",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "8d084c10cea5978cff7224671ec545f9f4cb752d641c142270b001dc3858bd87",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-all/gemv/report.json",
+      "sha256": "f2e2f22a727fa8fece0ac035c67bae21e941a9d99b9f4197798965e01e864a33",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-all/gesummv/report.json",
+      "sha256": "f0c0cf40dad6a3d4af5c47c9fa6fb947fa3664d7320a77e549fe2d7be9a30ed8",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-all/mvt/report.json",
+      "sha256": "6ed04461ff45d862645d14220610daa0e1e2b075b0d9343233a50d4ded3e5428",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "28b74c008b2a7b5068e77e8dd1d72f50e83b1ea2175931067ed85ed623db4004",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "22b53186fa1b4ee26db0c0e65a1e5ef94f1e2cad63a09a76ea3f184127c8552a",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-all/stencil5/report.json",
+      "sha256": "fb261a87bfe70002c6762c9d5f406d67e83ae6ea2827c247cc1a603de79ca02b",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-issue/gemv/report.json",
+      "sha256": "df5e1650406abc5b406409fd04ccd52be8651da4d2159a30cd0c71563f53e16b",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "fe1a7e66aeb9d37543ad0296b05e881f0a2d07713195bc10fd87bd77ff6714b5",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-issue/mvt/report.json",
+      "sha256": "aedc3e1d1aea37a0c86cc109b01e9d407878bf931dbbd6588d44a806db7ac521",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "dd35950a09c321f80069cbe54b26d04eacf540db574dc3adb6a7725da1a30124",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "565e3d6346a8fe3b387723c2bc51e71b084e5a48e3b444dd9b56174708d0913d",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "a896c4fce09fb1d45e914fe65fed5aa12edbdbfef891c7381bb285097313eb99",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "13efcf074ce5d38f6d09edf27bfea93f955949b41bac5cd7cc8140948f0cbad2",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "92728dece811500e22e402c36f333494a98b2f5a177a665c88d2442a031c1943",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "bf0447c079e68c3985f79074e99fe2cbdf2f9d4ac5a5c65fc0770728d4859aa5",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "c06a9671a2d89fc056e51de2168ffab052f8afca446ec45b0a3d32b16aedffc4",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "8ea03e3ca224b6405f15907182ac15dd9e72763bd6fa835370800c18898bd62c",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "0d1e64bc151da0f2508facb5780629a11c5f441af11a4a38d9b46a5d11c6ceee",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-all/gemv/report.json",
+      "sha256": "abd2f89665161aeb60eb4c54c211e13ac11ad20ca93ae391128f6d14bd6ce198",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-all/gesummv/report.json",
+      "sha256": "a7fa324984be21b57a03feaad32f40dff3aeb239f706d7836de5f7fbc4a81d08",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-all/mvt/report.json",
+      "sha256": "1c3de47b5391aa98827dbb22610acf058a4fd81a02defead954b7beed3d7c8c7",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-all/embedding_bag/report.json",
+      "sha256": "8e9afaf390c96d00b945c2e9384a2d0f9889f1d836b4fd34ba59c15770f21368",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-all/softmax_bias/report.json",
+      "sha256": "a1464d8d6f89029f82fff350583c9c0a126cba73981c3e0422217db53215d227",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-all/stencil5/report.json",
+      "sha256": "eaacfa488c2e99d8cbec4cb9d3eade6831f141ce120b31aa4c251f7079f1ca2f",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-issue/gemv/report.json",
+      "sha256": "e2e9d68df4e5eb714c0d9ad0b138be91470fee2a5648f05cd10dbd957733d10d",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-issue/gesummv/report.json",
+      "sha256": "7dec6e95497ac510ace45bd15349422221d7e3a1a109f81341c88c59a3983da1",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-issue/mvt/report.json",
+      "sha256": "2cb71d095ed235929f0ea339c75a9e339f6bf0221d573629fb1bec02977eb717",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-issue/embedding_bag/report.json",
+      "sha256": "d94e8eea1f43ae375b18aa9b06fce1ebe8fa6e5211388be7c16e51e28eb21887",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-issue/softmax_bias/report.json",
+      "sha256": "08f6215f4bf448f27b0af167b67a8cce3353cbebcf314bcd92cc6c84e3d6ab4d",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-issue/stencil5/report.json",
+      "sha256": "0d31a54097630edde1cce5c7c1084880f28ff8711d709e793f08c422af52f9b3",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-temporal/gemv/report.json",
+      "sha256": "3b5b42f92ea5f50ca4289e29017d878e8469ddfca32deafe2ae9617c492db6d6",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-temporal/gesummv/report.json",
+      "sha256": "4a9b8c810493a3cdd137ed3e87327b5dc4e0895a4fa7223b6d98f31ef1897427",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-temporal/mvt/report.json",
+      "sha256": "c50407b1827c8618e2cd54d2a3b3ca2dfbfd3942e144deb97aea1d01f9a1ba87",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-temporal/embedding_bag/report.json",
+      "sha256": "69c8e602036a8bfb56101df3d56f1a4f0da65c5402ff2102deacebbaada3a810",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-temporal/softmax_bias/report.json",
+      "sha256": "0d1384d4f6b06b085dca2732cf99d5cd97860092f0fc37b83289dad5221bc92d",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/matrix/stratified-temporal/stencil5/report.json",
+      "sha256": "90dac8ad76ff97b75b17010866f34d62ce4e7c65cc2cb3d43c168b99ecff88c8",
+      "active_tau": {
+        "lane_window.t16.stream.load.32B": 0.975,
+        "lane_window.t4.stream.load.32B": 0.025
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "fded831d3ba2db2583332f283468c1379d49b3b0d0ac0c3a592028ad5eb922fa",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "05f0d01a58ccbf0298cca43dd96998aa9ec774a6e0a864212553f538cb5a79fe",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "b4737911c9944022b8d8cd6c4f3c616ddecd63fe764c65b6e244ad888887718f",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "e3f73a638cdf9345da8059e554b0921ffab53fd8d6de7aa6f5540800e0dd2bea",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "416be235f8225f4ce58881e3e749c36b747821a1fe0f025302fb74b1499044e8",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "8c01228f79b75527f81f36d31df7a6f70550e4edcf3d599fd50a9a57466d3b86",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "ff636d1d8b1a6426ff8389585ffd2d5f39973fc518ab304e26c34a565a8a282b",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "bd1c832e88c8ff9afe373eca39773fae75eae441bef41606eefd23217af1dc52",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "ee7f70ed32fe1e6af3989896d6bfa9dc6187e202a22235c62886968aaa537e33",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "5754db4a0e1d7a76c63dca65421f831826524991fa984f8b3c391f57ab5c6153",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "d08ac54bcbc238e84079d1ed0ec06fd93002754131df981d7aa9bda40b5a2d10",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "c9c48a4b68b8f391f55a7c30771e333d2124ec1ca57015cf48ff74c2969a2a8e",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "0313ef245c02381f0efe7c4d2904fd46b08bda6ed63818e724dae7303e394ea3",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "7917d203f692087cda078d60f22caf1e98c21ab2779199346f5749c4a41a8908",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "4becdd0870673024e67c15d84f268f9d1730d7f3ee9695f8faa1d33f39a2b9e1",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "d57c6aeb1e5d1ea01149745e28d339f0702e994b3cce60ad8629dd25141b20c9",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "f75c1845e39f42b7921366a217e7ce3314b5c0e77c0b9c09e76b3609b2cd6b85",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-1/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "cacf51976bc2b187f0ef64a2a507f15de092f7d749d5df04e89e5175eca403bd",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "e6bd1da4bb8144eeb06b073607e0cf1136293cfc7011bcfdf4c01e751a79b336",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "af57ee701c15392390421c304df900fec87e28b2004e8b365176b8d64093e988",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "c2edd5515aa7567143518d95f4baaf8588efd31fdd540950c370edd3230a5ce9",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "e096dabb399cb45e936cb8e8d08f2af18cf7f1be311db2d46b96a94ea63bf139",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "d02e532b7e9bc0123a0676250ac7bcf89d98ce786c7c6200bc496ca46bcbe74e",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "359bc76f34c3e968f4a8855edfb7fd1b10d5b8283bbdc6f24a3548d342401407",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "7d2f5f74c405714e9cf988f4261e85d789cdb38592c3d0b1eae583a345362010",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "928f746ef2138ee476ef6c0e2590460ca8ecd550b0ecd2bcad4f5bcc0b4eda4c",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "4ecdd4a329526d2e68c40dcd825628c9320645892856f5b795674749463a8ce7",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "564b6937dae7ab277fe8da4ecb765d4edfb86ef7607da0714d569656e560e8b0",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "7a8b2b9b717105249459973e4c13cd3ec84d28f32c8b417de545e3046f074ade",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "e41bd74768271ddf81fee5da4f381420e4e2eb6d28c0b39f4906cc7abb773df5",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "5a37077f4e6e96a521f533a303f13be321c800eeb644c5859fedebe770e6f38a",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "e22ec3ee3f519f8788c98a29123de8fd99e8a5e0ed89a9d75e6dc4b7a8af02f4",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "0393ac69a33b76ccadd4932294bc480c2e8a2ad546bf9661e25581d678f77917",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "523872ffafceee095e01910aa197b4f570bce3787ccacb8d1f0447953aed8f0b",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "24d5ad1f4690c1c83da4433473bc21e2f5dfd18ff153914604dbaea5b2d76e78",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-2/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "76c3b78b281debbbba78f2f2dc155b74ac8240ba3b04fe6f1b103b6a9955af59",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "ae8dd60e963194dd17d6fe90ac8620961c1bc406ec33cc32ecf471d21fbdefd5",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "5cdc516dc0f8e861c2d805bb34fcdb924c3d4e9f363ffa6db8d867d79d9f6eee",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "f2bc3a1797b4787df76d80a9d680ac944cb5bbede905a5b520a4cd2218475408",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "7fac66aa4c87730d6e147a717012d111d1fb77c05d78e7558940bbe062d144f7",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "395d199916deed212c502ba249766fd8db4697ceceeb1e8d942abb8cf3c85bbb",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "cd908144957c669df7aaa1015c57ef9ad584f8eadf9954a95992bfb590c8ad03",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "3fd0e8ac584acf105b9cae2a23b1430b1c3a26aa4ac44b54a29faabe87ed2d00",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "8c85cfec0a065811b37e01678d3c09cb9091a3c7fd8502c6e37134bca4e57253",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "921bd3a289ec70c78c9e557445b6cd3a6eb8e590f8076a5b9a10cadaa548b942",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "ac760c013b0c6bdcda16f283f97cd6d9d6291a9dee1ebad1e0e29a56daf84759",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "6be3e0a99e7e932541c16dbd17a529030dbe0b15e570a77de921be0c87195613",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "d134d50b2788e2c249659f99135f831ac42678a3ce21efad6260e7b3d2999648",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "1a89fd2665e729a6fd99337503d6e2e9d825ea0d1a9bfffc00854367fa546ff8",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "899c466c68f670f93c4c63d7e61ddd50a032fde616a54923906c36e97f041bfa",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "4ce4e376974642d36c74f7491dbbf942fbe2b4e566616e97631d5327a03deb01",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "3d3923779c88c9acfa64882a4250c11e10bf5b90fde5458a3e296034e93ee484",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "99e4e73f5c4ca3f7e3d238e526ffbadc1f1ce4b5a306973367ed530b6e7f2b6e",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/expert/experiment-3/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "46e4460cdd75b5fcd19f604d47e64e597ed2d0c7af41c94cbacc9d0e5434b710",
+      "active_tau": {
+        "issue.g64.stream.load.128B": 0.2,
+        "issue.g64.stream.load.64B": 0.5,
+        "simd_window.t16.stream.load.128B": 0.2,
+        "workgroup_step.stream.load.128B": 0.1
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "fa9d2b096ea401468858a993a8e5a42247b14e86e9b18298172fa6c5d6e3f869",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "f61d976bc47dbadef2adcffd303adfd0d9258ae1625761a60072c942bdae604e",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "7d21a6f576e11ed8e598a78fca260aaf2fb026f142535c9b8e3f502014dbe239",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "6fbefbde508b54fc9a861192ceb20c16073d9304bd177e1a8413b9d2ae8c4b1d",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "cce1d03c34de329ccfe45d12026f87ef2f9cbde3e1255a9d2ecfc7343736bf60",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "212108906e1dec37359933c28b8c51f6abea3f6c71938a68e62562d80b0010bf",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "a53622664890c946a5f931ba751192c04980a03cb314119ee5ca379f0e211558",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "d952b8aa14b33771be68bafd38f3c03437425d029fcfddb76265f97bfe2e135d",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "d3e6a1adb0150e3f8f9549ab6b7bebec4b2ec92aa8f05c04dc807434043e9882",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "f88cfc19301e2f085156cbbe0e025a73fe4bf71cb2f70b595c33735ff5a7348c",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "68810ab1e420f68ba4230f2057bd16c75e57d933a3b033772023c4c7d2e31b2a",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "4caac0f7e2b3fa0333887dc6a3ad81004bc101755b2a653fd4f8371efbb25e5a",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "d91d05b7f425aebd5f6bd656d9b071159e9cbec92bf43aeb62e5d2c47b3af996",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "005ef6fbb42a7a6dc5f3008f90f04c1eb00c0b8ece26d8d82f1743e39b884851",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "9e11a8da2939c7062a5fbb0d128996df42fa3cc4e33b91b04d1760a6e7b4c6d1",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "b837c3a36a3d8baff311cf5ab0765845f57567939fd8775732f1f1c95dd81207",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "36a7b8de1de2959d278b7cb7ad5c471453658efaca40d7ce42ff50406a4a98e7",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-1/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "5ca8cff650379ea49a035f5bed7a1b72b25ae8154c71ed578ea49d9f7e1256b7",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "f1a907b3c9d537209ea83361ad6cbffd51f2f01df3d5c5c78503ce944c249bd8",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "93ca99f73e7222cb72ea2fd8f53680f1a8af18a1f0c6f6a7f8ceb3f5d7e9736d",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "b018442191dd63e60fc0c495b99c84bcfcd0daccbcf67873acdd0dd6bd5d1007",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "413a369e75ef03e796b6f180c7bcc14ee0291431c08f0347bd1d6f786f92c0ed",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "2633bbe92b1073e7c6aafd470466297ee0c430330edbb15523f2c316f778c542",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "6df7fd90c9e134ac2dca4b390e4f839e41912e9270d97cea1b44d18e4f3d0cc7",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "e9f3e4f85cb18825c05b7af4f6113752d47900cbd84975c072bef88029113b3f",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "f84b159331e37f7d89aa61fd0b46d49f30d45fb939c18b72ab90752eef7f3616",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "409d5681ba2e0270e39837549ce2d8d46615615647b2393c7b26c8e7b39817f0",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "eaa5efad23321a3b15b067949b69cf85c028029172adc1a3b47b0e63969fb768",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "9f615fd4c3826704c8bec8dbdf76fb41cb660400e9eac7b76406cd5f50a57155",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "77040f8bbcbfb8ec6e1e32108d5f3af166533dca4b65035d221dac69918aa49c",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "30b83384c234001908e89be52dc5af043a5a30e7d2ecdfc315c1e8f8011bdfdc",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "5c3d375fcd8abac0e052f5b026c57a79c964878931bd43633a40ca662299958c",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "467532050c6484815430f1c114cc3687e24e16ffd487d8ed3c5ad99d390e6c2e",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "d5612a3410a926dde7977d3c16bd4821371637828e318de2dd8aab8c5c3a4a3f",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "2566262060a66ffe6b8b7b4393694752c05a9387efb52e00e3f946173afebf9e",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-2/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "2cdf400f4263d7ae71e580c3c50d3c2667f3b35b3fa8452fec3ac8b07d9613ed",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "ac9c9a93c0447e9512f62158a35d5cd69793a0fc7e9e585747a6bc18c90e987d",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "e0a042a5ea4f96bcfc6a6545cb662b65a0682134ebba2a1fd62cbbc7af67ce84",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "8c538034b6249e74b12f6ce1df9f3987e77bedcc81e681d661df0056e0984f0e",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "6533d84c9c3a492066c8707420a496ce15309e101b9f83f07d59587bb8539667",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "f1609e9686b3b527a61601cf3dc81b78c697966f76cb177e063f23e22e12fcce",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "fd5054c5d4a97dbac56382267143862ab91fb6e43bc691c72bf604295d50947d",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "748486d896d7226d5c3ef872046023da9b4d87de6191b57f2e2a40f18eed3937",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "46093ef158bf9168aee8b2bc53a72dbf4f570ee6b05b1e80d6d5ca47ca14919f",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "5b3bacef76eeafa80e17d86a74aa045685e35690401fd2fbacf9f772ca6d7b45",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "a0898bf1ffaeb8d53256c842483f678168be0fb6ef302e086f301a70d40cc7f2",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "cd79fb7d813c2d72c52b8711ff6c710204fa26a8269bb47d16cc11d18e2adc0e",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "beaea681d6b3b6b071bc837a8b79deed4a2032ef93357177496a30c4467adb54",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "7cc442ddce0b81db0e167f345a110b8d86a6436e317d0dda7632bff812a1c914",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "6df461c8a7b7104177f30d70283a57bca811ecbb7bf57e5304f5f1f0e4aefb8e",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "77819b4489b0386572d7dcc267f20901316e81a4801d584daf8b64601e922aa6",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "84f509b7f5873494a9a3ef7cbff1b76955795afd0b197063110a8aa58d2ad532",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "171a7c07791dcffbc651bfd1d219bfba69b0eb4be60f222a743436c1821275bd",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/l1_to_l2/experiment-3/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "6b24ed206d026eb68d235faef3bf00ad1020941e3bf149e55cc5fad5d5352154",
+      "active_tau": {
+        "phase.simd.array.load.128B": 0.04000000000000001,
+        "simd_window.t16.array.load.128B": 0.96
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "e655c06e2fd20f5a992a8b1b47442f7c162590340fee4b1562b1273fbdfcc4f4",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "4dfe09548e4a751ea058d3b83565294778441604a718c6cc8df93818563515d6",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "4f4c88bc563a8db1e522ba7ffb6afd73e0d9999a3b43b43cda14f784a7bb6db5",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "fbd6df0f64a170ed105d062edc5f750d5bf50a28e25792b3a7b1e473fec07cdd",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "f12abf01163e2430c64e024745fc263bad9bcfd71920d26fbf29400b5543d97d",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "588490a740fd8b5593c730f54f9dbb3044e810c5b8ff5a9d48e77d7ab533029f",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "33be91acfacc79f1732b8a68e8971e08a46416bb4c37b1a8fa04f0dcfe59ad70",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "071e1e4426f03df5ebef40d34a966e4ce73f5af7a37b9619b2f947fd5231317e",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "9f98d0fcd05276b803ed320e3dfb53a705ca241721d536417dcf1989ad17d881",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "834af32d796b2a0cd56617f74700fdadc3fdf15b10cea1d2521231a9bd2459bb",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "feab272d58e9d487a6dbed140d54d72404ad1af9d10d74effbc32a5c37c04b5b",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "fd5868f8cc9658a18b58fa9394d239cdb99f4db5ebb42bfbdf7fc60a77dd4edd",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "b3136f942211d865d6763e72bade5c6b0f58ad44c303207ff8daf4155868e5e8",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "f0b584bb7b5ca038443b8a8da8fbfcff5bba7138de9d3f9ebd49f34127aa5847",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "4a8fb27a73313a540bea51910d9cd9327df3c40ee2973c2c24c5f544f3b5e2bd",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "11ac22ab6d8f2408d288850fe83f5883543eeecbda06c2a8fe0979f628ff1770",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "a3015e6419a4e4211bdd84beb9eb5809c8e973ce5f92774649185be0d7046ba4",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-1/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "ba7cbc8f3a42fb37468e71bd4e6e822521e26655df0e9fa2dee9955bca0d33d7",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "a5a98745176a00a981394831f50d0cbf5c92b4092669650c23e458d4024fac58",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "9477739a33d90904f85439139611603c1653608275ceaaa0ed83c1289cce83a3",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "954cb97d2e8ac02b7d7a5d3d93139cda4d71393da48f5824066cb5d9d06633e2",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "f09b7c281420126885ad0bb31fa61b82fda58f263980d9f16cd48ec2b92ebb76",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "4ce815760de9c8e64b2c1e2b1fb94be871577091e72df169da7b50f536e0edfe",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "328988836ed44c6964119f5ab368e73d5e22321520ac0a360778fdf7905df6ff",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "6d5ff9117862728fd27f3aa55c27a8ae9ad0d7e4f300243ccadde02617384189",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "128daeb36a366dc270542ebf092f702204f4b14037dd325d5905ad6dd91d1d6d",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "55b171eb04923eea378570619e1e5a400840f3dad25d2f4c534a0495e2f01f50",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "c8c90aabb7bc9a073a8ebb7d7a0e5e8cf8429e6c66567bfdc7ab446613278378",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "0b74ed1c853de56b98894396b9b39de365df3a7adbd248cc36fab1c3efa980b8",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "34cc0b80ff31f6b7798a05085b5e730917f4592d46f7ff29e5fa8786f29338f5",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "18def18762ecea3fda8866e1dffe1a6d7c869644b4bc67f38af5378ae7fdffb6",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "c2dd79948d41c66e9d46a136e9181a2f3f9eb69717bec16b3e132e3226638744",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "1867db5fbe26bb87d83eddab2deb2807b21194deec7c99e42d79255c67ed02e8",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "e8ae5b3fd1e22e34a616bb1062e4560625a8a5e754c7fd4deddd90a61ccc3579",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "df3bd8798634ff35c0a74bb162f24fce34eab1fb0246ea3873e7a82cf23aa5b1",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-2/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "e38f690d510849ad63a66b033dd40b2b378477be0e1c80886cd4df2cfb76c82f",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-all/gemv/report.json",
+      "sha256": "f045ccf47014f91ec899f654ff199d1d219b6d1a568668d86fc4f7b300685b0f",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-all/gesummv/report.json",
+      "sha256": "22a89143f58b06fd82f82eb84e65eb768aabeac9859f6a0fcbe2765abcf69f41",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-all/mvt/report.json",
+      "sha256": "fb393c17b47cb40d6e8aa959faf0776a00997c9aa3c5bc9e8b6f3ed888747e64",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-all/embedding_bag/report.json",
+      "sha256": "2982f3a791e300fff8d28b62db802c3b17ca5e74f2a5c27efeaa7eb0e2cfea9c",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-all/softmax_bias/report.json",
+      "sha256": "0ff6e3ac89d611d3d0b1c4bffe23a47fd1381f19cd8e3e8f3bb5f0ae9e661d62",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-all/stencil5/report.json",
+      "sha256": "4715d4d062ea553fb8bce02d791a2362901a5a19f9e9f72d09865d17366d4555",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-issue/gemv/report.json",
+      "sha256": "42ca475d5b8450cf2db4c01a531313d7c84d6f3afd3d545b359de3c1265a5f18",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-issue/gesummv/report.json",
+      "sha256": "12a86f05dffc71ac1164ef95ab6f69cefc7d1d1f6f7872eef97acd65818816df",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-issue/mvt/report.json",
+      "sha256": "4048369b12772d0102ceab8e25c295e07a73d1d1e36470c009b7c2d32a273466",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-issue/embedding_bag/report.json",
+      "sha256": "bd00987ac908f7c99e7b5ae7b5da7d4241950a2f9a747b0df07485e0d5f500b3",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-issue/softmax_bias/report.json",
+      "sha256": "5e6eb00aea1b34fca4684f9d9c56ff7cd127e005003e1b236ef99e6574dc549f",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-issue/stencil5/report.json",
+      "sha256": "ad06a20fb07af0644c7b2a040cb9781127a31cd3ef2508119c51109909e8cc60",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-temporal/gemv/report.json",
+      "sha256": "8a0477ac4e0b400c21c133548748c0e45e3a3c54fd1507a6a745d3657990e27d",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-temporal/gesummv/report.json",
+      "sha256": "e3b9aabc1bd51e1f9d8fc1d8a41d72faf74b451350e7aadfa432b4d965d0ab4f",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-temporal/mvt/report.json",
+      "sha256": "1dbc10548a2eb7bcf9fa4d665f60cfe7675b9fa1657c5623e4679ddd3f39c31b",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-temporal/embedding_bag/report.json",
+      "sha256": "4fe9633303cc2ab3cc96d0188f513570ad4f000c29a1ead7467b2e768f5cd473",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-temporal/softmax_bias/report.json",
+      "sha256": "f9c9f28f7049d0865f7767f09a3af0cba29aeed4fc12dfde6136d52806542683",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    },
+    {
+      "path": "triton/experiments/results/tau-profiles/speedup/experiment-3/tuolumne/stratified-temporal/stencil5/report.json",
+      "sha256": "61788192d9dbd435947ac85fe61dd862ff52efb5e54516617a08cb7543e29c43",
+      "active_tau": {
+        "lane_window.t16.stream.load.64B": 1.0
+      }
+    }
+  ],
+  "existing_correlations_verified": 1458
+}

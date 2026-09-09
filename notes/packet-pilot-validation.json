@@ -1,0 +1,31 @@
+{
+  "experiment": 1,
+  "protocol": "laqs.pilot.packet.v1",
+  "smoke_report": "triton/results/packet-pilot-smoke-v3/experiment-1/tuolumne/stratified-all/softmax_bias/report.json",
+  "smoke_report_sha256": "8a0039c942df1f38d5f85880b840e1b4e920c9f8eededac8d8cf5a785143214d",
+  "platform": "tuolumne",
+  "complete": true,
+  "correct": true,
+  "layouts": 2,
+  "profiler_launches_per_layout": 1,
+  "steady_dispatches_per_launch": 20,
+  "kernel": "softmax_bias",
+  "all_compiler_contracts_accepted": true,
+  "unit_checks": {
+    "packet_grammar_jobs_routing_and_resume": 6,
+    "legacy_counter_analysis": 12,
+    "final_experiment_analysis": 3,
+    "automatic_frontend": 8,
+    "all_six_pilot_kernels_compile_on_h100_and_mi300a": true
+  },
+  "limitations": [
+    "H100 runtime/profiling not tested on this cluster",
+    "GPU numerical/counter smoke covers two softmax+bias layouts, not the full pilot panel"
+  ],
+  "experiment3": {
+    "legacy_kernel_source_unchanged": true,
+    "sampler_matches_previous_implementation_for_300_mappings": true,
+    "old_scores_need_refresh": "dynamic-operation numbering and workgroup/wave temporal scopes changed since the old reports",
+    "old_counter_reuse": "historical measurements retained; old reports lack source/compiler fingerprints for current-build certification"
+  }
+}

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from math import isfinite
 from numbers import Real
 from typing import Iterable, Mapping, Sequence
@@ -10,6 +10,7 @@ from typing import Iterable, Mapping, Sequence
 from .gf2 import rank
 from .model import Access, Coord, EventSequence, MatrixSpec, MemoryEvent
 from .objectives import EdgeFamily, Hyperedge, ObjectiveComponent, ScopeKey
+from .parallel import ordered_parallel_map
 
 
 OPERATION_ALIASES = {
@@ -544,12 +545,13 @@ def _sequence_edges(
                 f"{sequence.name}:wave{wave}", event_ids, weight=sequence.weight,
                 metadata=dict(sequence.metadata)))
     for sequence in wave_sequences:
+        selected = {event_id: _selected(events[event_id], matrices) for event_id in sequence.event_ids}
         lane_streams: dict[tuple[str, str, str, int], list[_Occurrence]] = {}
 
         for event_id in sequence.event_ids:
             event = events[event_id]
             lane_buckets: dict[tuple[str, str, str, int], list[Coord]] = {}
-            for access, operation in _selected(event, matrices):
+            for access, operation in selected[event_id]:
                 if operation not in basis.operations:
                     continue
                 if access.lane is None:
@@ -616,7 +618,7 @@ def _sequence_edges(
                 interval = slot // window
                 by_site: dict[tuple[str, str, str], list[Coord]] = {}
                 by_array: dict[tuple[str, str], list[Coord]] = {}
-                for access, operation in _selected(event, matrices):
+                for access, operation in selected[event_id]:
                     if operation not in basis.operations:
                         continue
                     if access.lane is None:
@@ -933,24 +935,37 @@ def _compress_edges(
 
     groups: dict[tuple[object, ...], tuple[Hyperedge, float, int]] = {}
     nonaffine_orbits: dict[tuple[int, ...], tuple[int, ...]] = {}
+    affine_signatures: set[tuple[int, ...]] = set()
+    affine_signature_points = 0
+    encoded_points: dict[Coord, int] = {}
     offsets = matrix.bit_offsets()
 
     def encode(point: Coord) -> int:
+        cached = encoded_points.get(point)
+        if cached is not None:
+            return cached
         matrix.validate_coord(point)
         value = 0
         for component, shift in zip(point, offsets):
             value |= component << shift
+        if len(encoded_points) >= 65536:
+            encoded_points.clear()
+        encoded_points[point] = value
         return value
 
     for edge_index, edge in enumerate(edges):
         values = tuple(sorted(encode(point) for point in edge.points))
         normalized = tuple(sorted(value ^ values[0] for value in values))
         cardinality = len(normalized)
-        affine = (
+        affine = normalized in affine_signatures or (
             (cardinality & (cardinality - 1)) == 0
             and cardinality == 1 << rank(normalized)
         )
         if affine:
+            # Repeated translated footprints need only one affine proof.
+            if normalized not in affine_signatures and affine_signature_points + cardinality <= 1 << 20:
+                affine_signatures.add(normalized)
+                affine_signature_points += cardinality
             key: tuple[object, ...] = ("translation", normalized)
         elif len(values) <= _MAX_NONAFFINE_CANONICAL_POINTS:
             signature = nonaffine_orbits.get(normalized)
@@ -982,22 +997,44 @@ def _compress_edges(
     return tuple(result)
 
 
+def _build_scope_partition(context, task):
+    matrices, events, sequences = context
+    kind, basis = task
+    edges = {}
+    builders = {'issue': _issue_edges, 'sequence': _sequence_edges,
+                'workgroup': _workgroup_edges, 'phase': _phase_edges}
+    builders[kind](edges, basis, matrices, events, sequences)
+    return {scope: {array: _compress_edges(matrices[array], values)
+                    for array, values in sorted(arrays.items())}
+            for scope, arrays in edges.items()}
+
+
 def build_edge_families(
     matrices: Mapping[str, MatrixSpec],
     events: Mapping[str, MemoryEvent],
     sequences: Sequence[EventSequence],
     *,
     basis: UniversalScopeBasis = UNIVERSAL_V1_BASIS,
+    workers: int = 1,
+    checkpoint_dir=None,
 ) -> tuple[EdgeFamily, ...]:
     """Build the same scale-free scope grammar from any kernel event trace."""
 
     validate_trace_contract(events, sequences)
     exposure = dynamic_useful_bytes(matrices, events, sequences)
-    edge_lists: dict[ScopeKey, dict[str, list[Hyperedge]]] = {}
-    _issue_edges(edge_lists, basis, matrices, events, sequences)
-    _sequence_edges(edge_lists, basis, matrices, events, sequences)
-    _workgroup_edges(edge_lists, basis, matrices, events, sequences)
-    _phase_edges(edge_lists, basis, matrices, events, sequences)
+    if workers < 1:
+        raise ValueError("CPU worker count must be positive")
+    tasks = [(kind, basis) for kind in ('issue', 'sequence', 'workgroup', 'phase')]
+    if workers > 1 or checkpoint_dir is not None:
+        tasks = ([('sequence', replace(basis, temporal_windows=(window,)))
+                  for window in basis.temporal_windows]
+                 + [('workgroup', basis), ('phase', basis)]
+                 + [('issue', replace(basis, issue_lane_groups=(group,)))
+                    for group in basis.issue_lane_groups])
+    edge_arrays = {}
+    for partition in ordered_parallel_map(_build_scope_partition,
+            (matrices, events, sequences), tasks, workers, checkpoint_dir=checkpoint_dir):
+        edge_arrays.update(partition)
 
     descriptions = {
         "issue": "one aligned contiguous lane group at one dynamic instruction",
@@ -1009,16 +1046,13 @@ def build_edge_families(
     }
     families = []
     for scope in basis.scope_keys():
-        arrays = edge_lists.get(scope)
+        arrays = edge_arrays.get(scope)
         if not arrays:
             continue
         families.append(
             EdgeFamily(
                 scope=scope,
-                edges_by_array={
-                    array: _compress_edges(matrices[array], array_edges)
-                    for array, array_edges in sorted(arrays.items())
-                },
+                edges_by_array=arrays,
                 normalization_bytes=exposure,
                 provenance="universal-v1",
                 description=descriptions[scope.family],
