@@ -1,0 +1,642 @@
+{
+  "cpu_tests": 14,
+  "final_source_hash": "93d0c3618397244e1e74830e59019971d840734518de2b5f986c55008698c166",
+  "h100_offline_compile": "native and selected ld.global.v4.b32; cubins produced",
+  "legacy_plugins_unchanged": true,
+  "legacy_source_hash": "c6dba707d21c3fed582d43600814479a55211df8f57c3d11bcab7e29a9cf0692",
+  "limitations": "Short MI300A implementation checks; full-panel and H100 GPU measurements remain user runs.",
+  "measured_selection_policy": "Tuning CI must clear (1 + minimum_gain) * (1 + d) / (1 - d), d=max control deviation; d>=1 abstains. CPU-tested after these GPU measurements; held-out data are not used for deployment selection.",
+  "mi300a_gpu_tests": 6,
+  "raw_archive": "triton/experiments/results/packet-implementation-checks-2026-09-08",
+  "runs": {
+    "fp8_same_map": {
+      "codegen": {
+        "generic": {
+          "final_instruction_count": 655,
+          "matrix_primitives": {
+            "v_mfma_f32_32x32x16_fp8_fp8": 2
+          },
+          "memory_primitives": {
+            "buffer_load_ubyte": 16,
+            "buffer_store_dwordx2": 4
+          },
+          "n_regs": 64,
+          "n_spills": 6
+        },
+        "ordinary": {
+          "final_instruction_count": 556,
+          "matrix_primitives": {
+            "v_mfma_f32_32x32x16_fp8_fp8": 10
+          },
+          "memory_primitives": {
+            "buffer_load_dwordx2": 10,
+            "buffer_store_dwordx2": 4
+          },
+          "n_regs": 60,
+          "n_spills": 0
+        },
+        "structured": {
+          "final_instruction_count": 472,
+          "matrix_primitives": {
+            "v_mfma_f32_32x32x16_fp8_fp8": 6
+          },
+          "memory_primitives": {
+            "buffer_load_dwordx2": 6,
+            "buffer_store_dwordx2": 4
+          },
+          "n_regs": 58,
+          "n_spills": 0
+        }
+      },
+      "diagnose": {
+        "generic": {
+          "identity_max_deviation": 0.0034574519596124453,
+          "same_pointer_max_deviation": 0.006426686228242051,
+          "speedup": 0.2282586970860812,
+          "speedup_ci95": [
+            0.22705772558380835,
+            0.2294660208608679
+          ]
+        },
+        "ordinary": {
+          "identity_max_deviation": 0.0034574519596124453,
+          "same_pointer_max_deviation": 0.006426686228242051,
+          "speedup": 1.0,
+          "speedup_ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "structured": {
+          "identity_max_deviation": 0.0034574519596124453,
+          "same_pointer_max_deviation": 0.006426686228242051,
+          "speedup": 0.8804383060222126,
+          "speedup_ci95": [
+            0.8601429562147407,
+            0.901212531138529
+          ]
+        }
+      },
+      "frozen_config": {
+        "BLOCK_SIZE_K": 32,
+        "BLOCK_SIZE_M": 64,
+        "BLOCK_SIZE_N": 64,
+        "GROUP_SIZE_M": 1,
+        "kpack": 1,
+        "matrix_instr_nonkdim": 0,
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "waves_per_eu": 8
+      },
+      "inputs": [
+        {
+          "argument": 0,
+          "dtype": "torch.float8_e4m3fnuz",
+          "envelope_bytes": 1048576,
+          "logical_bytes": 1048576,
+          "name": "a_ptr",
+          "probe_sha256": "9c828d1e42136e8c133dc9115a0c9ed66fdd70a0a9cfe703656d2cf8ddf38fec",
+          "shape": [
+            1024,
+            1024
+          ],
+          "strides": [
+            1024,
+            1
+          ]
+        },
+        {
+          "argument": 1,
+          "dtype": "torch.float8_e4m3fnuz",
+          "envelope_bytes": 1048576,
+          "logical_bytes": 1048576,
+          "name": "b_ptr",
+          "probe_sha256": "1cc2e61186e851d6d04bd61b0298803abf85775116c03bde70b0d57aaf9cda34",
+          "shape": [
+            1024,
+            1024
+          ],
+          "strides": [
+            1024,
+            1
+          ]
+        }
+      ],
+      "raw_path": "carried-proof-final-fp8/tuolumne/fp8_gemm--small/expert",
+      "runtime_identity": {
+        "compiler": {
+          "changes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "/g/g16/dnicho/record-replay/relay/triton/triton-lang",
+          "revision": "b3376d6459bfb14f2500c1c20b3948ad59649bf8"
+        },
+        "gpu": "AMD Instinct MI300A",
+        "plugins": {
+          "libLAQSTritonAccessManifest.so": "9eefd0fdb7b3246e2fec02f83b90175d2a7eddeef14eba052ac56e84da2e747c",
+          "libLAQSTritonLayoutRewrite.so": "e424340648ee8da834a0836a8e6fd687e77a3ae74540417be30c2a54500504ec",
+          "libLAQSTritonPacketLayout.so": "1baf442dae71aabf517d93e4737cd369fe7c511f989cd37e1d6a05a78a19fc05"
+        },
+        "runtime": "7.2.53211",
+        "torch": "2.15.0.dev20260827+rocm7.2",
+        "triton": "3.8.0"
+      },
+      "source_hash": "d7ff815be5149439cc221a2e7e66069ee4bfdff74e3080182204882a1ea9b5d5"
+    },
+    "row_column_conventional": {
+      "analytical_candidates": [
+        {
+          "J": 1.9999999999999998,
+          "families": [
+            "ordinary"
+          ],
+          "id": "ordinary",
+          "runtime_layouts": []
+        },
+        {
+          "J": 1.08,
+          "families": [
+            "split",
+            "chunks"
+          ],
+          "id": "split",
+          "runtime_layouts": [
+            {
+              "argument": 0,
+              "envelope_shape": [
+                1024,
+                1024
+              ],
+              "name": "A",
+              "rows": [
+                1024,
+                2048,
+                4096,
+                1,
+                2,
+                4,
+                8,
+                16,
+                32,
+                64,
+                128,
+                256,
+                512,
+                8192,
+                16384,
+                32768,
+                65536,
+                131072,
+                262144,
+                524288
+              ],
+              "shape": [
+                1024,
+                1024
+              ],
+              "strides": [
+                1024,
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "evaluation_failures": [
+        {},
+        {},
+        {}
+      ],
+      "fixed_anchor_controls": [
+        {
+          "identity_deviation": -0.007580982469106434,
+          "process": 0,
+          "same_pointer_deviation": 0.009224880459393736
+        },
+        {
+          "identity_deviation": 0.006448648012588487,
+          "process": 1,
+          "same_pointer_deviation": 0.006790310522847953
+        },
+        {
+          "identity_deviation": 0.01846646422383791,
+          "process": 2,
+          "same_pointer_deviation": 0.007984379422288246
+        }
+      ],
+      "frozen_config": {
+        "kpack": 1,
+        "matrix_instr_nonkdim": 0,
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "waves_per_eu": 0
+      },
+      "inputs": [
+        {
+          "argument": 0,
+          "dtype": "torch.float32",
+          "envelope_bytes": 4194304,
+          "logical_bytes": 4194304,
+          "name": "A",
+          "probe_sha256": "87a9b120202f5431110b89dca71aef1b4311074dde66663d2afc6524ecbacb92",
+          "shape": [
+            1024,
+            1024
+          ],
+          "strides": [
+            1024,
+            1
+          ]
+        },
+        {
+          "argument": 1,
+          "dtype": "torch.float32",
+          "envelope_bytes": 4096,
+          "logical_bytes": 4096,
+          "name": "X",
+          "probe_sha256": "05ab52d74c9bd70dd1e26c74316883bf33ec75f714d187e0599d5d179e83ebcb",
+          "shape": [
+            1024
+          ],
+          "strides": [
+            1
+          ]
+        },
+        {
+          "argument": 2,
+          "dtype": "torch.float32",
+          "envelope_bytes": 4096,
+          "logical_bytes": 4096,
+          "name": "Z",
+          "probe_sha256": "ebc0af1d73536a40cd07bc9c66297040038ef4e34d9fcc6f15c47663abdf16af",
+          "shape": [
+            1024
+          ],
+          "strides": [
+            1
+          ]
+        }
+      ],
+      "raw_path": "final-driver/tuolumne/row_column--small/expert",
+      "results": {
+        "column": {
+          "conversion": {
+            "break_even_reuses": null,
+            "kernel_speedup": 0.9859883688162381,
+            "one_use_including_conversion_speedup": 0.05932081565820108
+          },
+          "packing_ms": 0.07492001168429852,
+          "speedup": 0.9879688932774534,
+          "speedup_ci95": [
+            0.9787003292960714,
+            0.9973252331343567
+          ]
+        },
+        "ordinary": {
+          "conversion": {
+            "break_even_reuses": null,
+            "kernel_speedup": 1.0,
+            "one_use_including_conversion_speedup": 1.0
+          },
+          "packing_ms": 0.0,
+          "speedup": 1.0,
+          "speedup_ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "split": {
+          "conversion": {
+            "break_even_reuses": 41,
+            "kernel_speedup": 1.5152492414341312,
+            "one_use_including_conversion_speedup": 0.06936617945329877
+          },
+          "packing_ms": 0.06505101919174194,
+          "speedup": 1.5269528747939536,
+          "speedup_ci95": [
+            1.4735365058021432,
+            1.5823056114733198
+          ]
+        },
+        "tile16": {
+          "conversion": {
+            "break_even_reuses": 46,
+            "kernel_speedup": 1.4616687594427096,
+            "one_use_including_conversion_speedup": 0.06584594714435552
+          },
+          "packing_ms": 0.06858119741082191,
+          "speedup": 1.4725726292895753,
+          "speedup_ci95": [
+            1.4290773387224618,
+            1.5173917392541814
+          ]
+        }
+      },
+      "runtime_identity": {
+        "compiler": {
+          "changes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "/g/g16/dnicho/record-replay/relay/triton/triton-lang",
+          "revision": "b3376d6459bfb14f2500c1c20b3948ad59649bf8"
+        },
+        "gpu": "AMD Instinct MI300A",
+        "plugins": {
+          "libLAQSTritonAccessManifest.so": "9eefd0fdb7b3246e2fec02f83b90175d2a7eddeef14eba052ac56e84da2e747c",
+          "libLAQSTritonLayoutRewrite.so": "e424340648ee8da834a0836a8e6fd687e77a3ae74540417be30c2a54500504ec",
+          "libLAQSTritonPacketLayout.so": "1baf442dae71aabf517d93e4737cd369fe7c511f989cd37e1d6a05a78a19fc05"
+        },
+        "runtime": "7.2.53211",
+        "torch": "2.15.0.dev20260827+rocm7.2",
+        "triton": "3.8.0"
+      },
+      "schedules": [
+        {
+          "BLOCK_K": 64,
+          "BLOCK_M": 1,
+          "num_warps": 4
+        },
+        {
+          "BLOCK_K": 128,
+          "BLOCK_M": 1,
+          "num_warps": 4
+        },
+        {
+          "BLOCK_K": 64,
+          "BLOCK_M": 4,
+          "num_warps": 4
+        },
+        {
+          "BLOCK_K": 128,
+          "BLOCK_M": 4,
+          "num_warps": 4
+        },
+        {
+          "BLOCK_K": 64,
+          "BLOCK_M": 16,
+          "num_warps": 4
+        },
+        {
+          "BLOCK_K": 128,
+          "BLOCK_M": 16,
+          "num_warps": 4
+        }
+      ],
+      "search_seconds": 424.82316768704914,
+      "selected_schedules": {
+        "column": "column-s5",
+        "ordinary": "ordinary-s5",
+        "split": "split-s2",
+        "tile16": "tile16-s5"
+      },
+      "source_hash": "e768025bdc249ea25464c34e61465ac331a4dc79501718afbca6d5b659943569"
+    },
+    "row_column_fixed_schedule": {
+      "evaluation": {
+        "ordinary": {
+          "identity_max_deviation": 0.019030390074204928,
+          "same_pointer_max_deviation": 0.0044647658793455225,
+          "speedup": 1.0,
+          "speedup_ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "split": {
+          "identity_max_deviation": 0.019030390074204928,
+          "same_pointer_max_deviation": 0.0044647658793455225,
+          "speedup": 1.9345687003905472,
+          "speedup_ci95": [
+            1.8584811236281316,
+            2.013771358207041
+          ]
+        }
+      },
+      "frozen_config": {
+        "kpack": 1,
+        "matrix_instr_nonkdim": 0,
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "waves_per_eu": 0
+      },
+      "method": "analytical",
+      "raw_path": "final-driver/tuolumne/row_column--small/expert",
+      "selected": "split",
+      "source_hash": "e768025bdc249ea25464c34e61465ac331a4dc79501718afbca6d5b659943569",
+      "validation": [
+        {
+          "accepted": true,
+          "id": "ordinary",
+          "packing": {
+            "gpu_median_ms": 0.0,
+            "median_ms": 0.0,
+            "samples_ms": []
+          },
+          "rejections": []
+        },
+        {
+          "accepted": true,
+          "id": "split",
+          "packing": {
+            "gpu_median_ms": 0.05615999922156334,
+            "gpu_samples_ms": [
+              0.059119999408721924,
+              0.05615999922156334,
+              0.047800999134778976
+            ],
+            "median_ms": 0.0710710883140564,
+            "method": "warm synchronous packing plus allocation; compilation and input generation excluded",
+            "samples_ms": [
+              0.18966104835271835,
+              0.0710710883140564,
+              0.06579002365469933
+            ]
+          },
+          "rejections": []
+        }
+      ]
+    },
+    "sum_workflow": {
+      "codegen": {
+        "generic": {
+          "final_instruction_count": 76,
+          "matrix_primitives": {},
+          "memory_primitives": {
+            "buffer_load_dword": 1,
+            "buffer_store_dword": 1
+          },
+          "n_regs": 11,
+          "n_spills": 0
+        },
+        "ordinary": {
+          "final_instruction_count": 69,
+          "matrix_primitives": {},
+          "memory_primitives": {
+            "buffer_load_dword": 1,
+            "buffer_store_dword": 1
+          },
+          "n_regs": 8,
+          "n_spills": 0
+        },
+        "structured": {
+          "final_instruction_count": 76,
+          "matrix_primitives": {},
+          "memory_primitives": {
+            "buffer_load_dword": 1,
+            "buffer_store_dword": 1
+          },
+          "n_regs": 11,
+          "n_spills": 0
+        }
+      },
+      "diagnose": {
+        "generic": {
+          "identity_max_deviation": 0.021977754401850902,
+          "same_pointer_max_deviation": 0.01148208825429542,
+          "speedup": 0.829605870171692,
+          "speedup_ci95": [
+            0.7655186909197469,
+            0.8990582568224744
+          ]
+        },
+        "ordinary": {
+          "identity_max_deviation": 0.021977754401850902,
+          "same_pointer_max_deviation": 0.01148208825429542,
+          "speedup": 1.0,
+          "speedup_ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "structured": {
+          "identity_max_deviation": 0.021977754401850902,
+          "same_pointer_max_deviation": 0.01148208825429542,
+          "speedup": 0.8297051611430317,
+          "speedup_ci95": [
+            0.7609500174219056,
+            0.9046726311403681
+          ]
+        }
+      },
+      "evaluate": {
+        "ordinary": {
+          "identity_max_deviation": 0.023040684053985405,
+          "same_pointer_max_deviation": 0.0071475645772467455,
+          "speedup": 1.0,
+          "speedup_ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "split": {
+          "identity_max_deviation": 0.023040684053985405,
+          "same_pointer_max_deviation": 0.0071475645772467455,
+          "speedup": 0.8258864947561599,
+          "speedup_ci95": [
+            0.8232295052519552,
+            0.8285520597465206
+          ]
+        }
+      },
+      "frozen_config": {
+        "BLOCK_SIZE_NON_REDUCE_DIM": 4,
+        "BLOCK_SIZE_REDUCE_DIM": 16,
+        "kpack": 1,
+        "matrix_instr_nonkdim": 0,
+        "num_ctas": 1,
+        "num_stages": 3,
+        "num_warps": 2,
+        "waves_per_eu": 0
+      },
+      "inputs": [
+        {
+          "argument": 0,
+          "dtype": "torch.float32",
+          "envelope_bytes": 16777216,
+          "logical_bytes": 16777216,
+          "name": "input_ptr",
+          "probe_sha256": "7102263b570ae1dfcabc3af78a08a0ac596bdd1919c2bd67d80c2e48c188e902",
+          "shape": [
+            4096,
+            1024
+          ],
+          "strides": [
+            1024,
+            1
+          ]
+        }
+      ],
+      "raw_path": "final-workflow/tuolumne/sum--small/expert",
+      "runtime_identity": {
+        "compiler": {
+          "changes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "path": "/g/g16/dnicho/record-replay/relay/triton/triton-lang",
+          "revision": "b3376d6459bfb14f2500c1c20b3948ad59649bf8"
+        },
+        "gpu": "AMD Instinct MI300A",
+        "plugins": {
+          "libLAQSTritonAccessManifest.so": "9eefd0fdb7b3246e2fec02f83b90175d2a7eddeef14eba052ac56e84da2e747c",
+          "libLAQSTritonLayoutRewrite.so": "e424340648ee8da834a0836a8e6fd687e77a3ae74540417be30c2a54500504ec",
+          "libLAQSTritonPacketLayout.so": "1baf442dae71aabf517d93e4737cd369fe7c511f989cd37e1d6a05a78a19fc05"
+        },
+        "runtime": "7.2.53211",
+        "torch": "2.15.0.dev20260827+rocm7.2",
+        "triton": "3.8.0"
+      },
+      "selected": "ordinary",
+      "source_hash": "d7ff815be5149439cc221a2e7e66069ee4bfdff74e3080182204882a1ea9b5d5",
+      "tune": {
+        "ordinary": {
+          "identity_max_deviation": 0.024219859830814205,
+          "same_pointer_max_deviation": 0.0014618933921242139,
+          "speedup": 1.0,
+          "speedup_ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "split": {
+          "identity_max_deviation": 0.024219859830814205,
+          "same_pointer_max_deviation": 0.0014618933921242139,
+          "speedup": 0.8252688101853609,
+          "speedup_ci95": [
+            0.8094058106748062,
+            0.8414426979427668
+          ]
+        }
+      },
+      "validation": [
+        {
+          "accepted": true,
+          "id": "ordinary",
+          "packing": {
+            "gpu_median_ms": 0.0,
+            "median_ms": 0.0,
+            "samples_ms": []
+          },
+          "rejections": []
+        },
+        {
+          "accepted": true,
+          "id": "split",
+          "packing": {
+            "gpu_median_ms": 0.07751999795436859,
+            "gpu_samples_ms": [
+              0.08027999848127365,
+              0.07751999795436859,
+              0.07100100070238113
+            ],
+            "median_ms": 0.09262096136808395,
+            "method": "warm synchronous packing plus allocation; compilation and input generation excluded",
+            "samples_ms": [
+              0.16791094094514847,
+              0.09262096136808395,
+              0.08391099981963634
+            ]
+          },
+          "rejections": []
+        }
+      ]
+    }
+  },
+  "schema": "laqs.packet.implementation-validation.v1"
+}

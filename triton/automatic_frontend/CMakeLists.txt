@@ -22,3 +22,8 @@ add_subdirectory(
   "${CMAKE_CURRENT_LIST_DIR}/../layout_rewrite"
   "${CMAKE_CURRENT_BINARY_DIR}/layout_rewrite"
 )
+
+add_subdirectory(
+  "${CMAKE_CURRENT_LIST_DIR}/../packet_layout"
+  "${CMAKE_CURRENT_BINARY_DIR}/packet_layout"
+)
