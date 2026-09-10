@@ -39,7 +39,8 @@ def identity():
 def args_parser(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage', choices=['capture', 'search', 'validate', 'tune', 'evaluate',
-                                         'diagnose', 'conventional', 'worker', 'profile', 'report', 'all'], required=True)
+                                         'diagnose', 'conventional', 'study_search', 'study', 'study_worker', 'study_profile', 'study_profile_worker',
+                                         'worker', 'profile', 'report', 'all'], required=True)
     parser.add_argument('--platform', choices=['tuolumne', 'matrix'], required=True)
     parser.add_argument('--case', choices=tuple(CASES), required=True)
     parser.add_argument('--root', type=Path, default=ROOT / 'triton/experiments/results/packet-v1')
@@ -66,6 +67,7 @@ def args_parser(argv=None):
     parser.add_argument('--phase', choices=['tune', 'evaluate', 'diagnose', 'profile', 'conventional-fixed', 'conventional-tune', 'conventional-evaluate'], default='evaluate')
     parser.add_argument('--process-index', type=int, default=0)
     parser.add_argument('--worker-output', type=Path)
+    parser.add_argument('--study-batch', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--diagnostic-selection', type=Path,
                         help='v2 proposed-selection.json for a same-map generic/structured diagnostic')
     args = parser.parse_args(argv)
@@ -179,6 +181,11 @@ def capture(args):
     frozen = freeze_launch(spec, config)
     frozen.run()
     validation = reference(spec.operator, frozen)
+    from packet_compatibility import native_contracts
+    contracts = native_contracts(getattr(analysis.compiled_kernel.metadata, MANIFEST_METADATA_KEY),
+                                 analysis.compiled_kernel.asm, torch.cuda.get_device_name())
+    if contracts:
+        (args.directory / 'native-compatibility.ptx').write_text(analysis.compiled_kernel.asm['ptx'])
     allocations = infer_allocations(analysis.manifest, analysis.bound_arguments)
     names = {str(name): int(index) for index, name in analysis.bound_arguments['__names__'].items()}
     outputs = sorted({a.argument if isinstance(a.argument, int) else names[a.argument]
@@ -198,6 +205,7 @@ def capture(args):
                        'probe_sha256': input_probe(t)})
     write_json(path, {'schema': 'laqs.packet.capture.v1', 'source_identity': identity(),
                      'runtime_identity': runtime_identity(), 'capture_hash': capture_hash,
+                     'native_layout_contracts': contracts,
                      'config': config, 'output_arguments': outputs, 'inputs': inputs, 'seed': 0,
                      'kernel_name': unwrap_jit(spec.kernel).fn.__name__, 'validation': validation,
                      'capture_seconds': perf_counter() - started})
@@ -210,6 +218,7 @@ def search(args):
     from relay import AnalysisOptions, EvaluationLimits
     from relay.triton_frontend import analyze_compiled_manifest
     from packet_search import select_candidates
+    from packet_compatibility import constrain_graph
     from search_algorithms import load_tau_profile
     timings = {'cpu_workers': args.cpu_workers}
 
@@ -227,6 +236,7 @@ def search(args):
     def finish(result, graph_hash):
         result.update(graph_hash=graph_hash, capture_hash=stamp['capture_hash'],
             source_identity=stamp['source_identity'], hardware_profile=profile.to_dict(),
+            native_layout_contracts=stamp.get('native_layout_contracts', []),
             tau_sha256=hashlib.sha256(args.tau_profile.read_bytes()).hexdigest(),
             elapsed_seconds=perf_counter() - started)
         completed('total', result['elapsed_seconds'] + timings['capture_load'])
@@ -262,6 +272,7 @@ def search(args):
                 checkpoint_dir=str(checkpoint) if checkpoint else None)), on_phase=completed)
         if not analysis.supported:
             raise ValueError(f'{analysis.unsupported.category}: {analysis.unsupported.message}')
+        analysis = constrain_graph(analysis, stamp.get('native_layout_contracts', []))
         analysis = replace(analysis, compiled_kernel=None, manifest=None,
                            bound_arguments={'__names__': analysis.bound_arguments['__names__']})
         phase_started = perf_counter()
@@ -270,6 +281,7 @@ def search(args):
         completed('graph_write', perf_counter() - phase_started)
     phase_started = perf_counter()
     print('CPU layout selection started', flush=True)
+    analysis = constrain_graph(analysis, stamp.get('native_layout_contracts', []))
     result = select_candidates(analysis, profile,
                                families=('split',) if args.grammar == 'split' else ('split', 'chunks'))
     completed('selection', perf_counter() - phase_started)
@@ -594,8 +606,12 @@ def report(args):
 def main():
     args = args_parser()
     args.directory.mkdir(parents=True, exist_ok=True)
-    if args.stage not in ['search', 'report']:
+    if args.stage not in ['search', 'study_search', 'report']:
         activate(args.platform)
+    if args.stage in ('study_worker', 'study_profile_worker'):
+        import layout_study
+        getattr(layout_study, 'worker' if args.stage == 'study_worker' else 'profile_worker')(args)
+        return
     if args.stage == 'worker':
         worker(args)
         return
@@ -617,7 +633,11 @@ def main():
                     raise ValueError(f"blocked by prior {previous['stage']} failure: {previous['reason']}")
             write_json(args.directory / 'status.json', {'status': 'running', 'stage': stage})
             try:
-                globals()[stage](args)
+                if stage in ('study_search', 'study', 'study_profile'):
+                    import layout_study
+                    getattr(layout_study, {'study_search': 'search', 'study': 'run', 'study_profile': 'profile'}[stage])(args)
+                else:
+                    globals()[stage](args)
             except Exception as error:
                 write_json(args.directory / 'status.json', {'status': 'failed', 'stage': stage,
                            'reason': f'{type(error).__name__}: {error}'})

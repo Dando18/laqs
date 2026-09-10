@@ -23,9 +23,12 @@ OUTPUTS = {'capture': ('capture.json',), 'search': ('search.json', 'graph-ready.
            'validate': ('validated.json',), 'tune': ('choice.json',),
            'evaluate': ('evaluation.json', 'report.json', 'analysis.md'), 'profile': ('profile.json',),
            'conventional': ('conventional.json', 'conventional.md')}
+OUTPUTS.update(study_search=('search.json',), study=('study.json', 'study.md'))
 
 
 def stages(args):
+    if getattr(args, 'study', False):
+        return ('capture', 'study_search', 'study')
     if args.manual:
         return ('capture', 'search', 'conventional')
     return STAGES if args.profile_addresses else STAGES[:-1]
@@ -45,6 +48,7 @@ def parser():
     result.add_argument('--root', type=Path, default=ROOT / 'triton/experiments/results/packet-debug-split')
     result.add_argument('--cases', nargs='+', choices=tuple(CASES), default=sorted(CASE_BY_ID, key=case_order))
     result.add_argument('--manual', action='store_true', help='compare exact source/pass realizations; row/column also receives equal-budget tuning')
+    result.add_argument('--study', action='store_true', help='unpruned fixed-schedule split panel with held-out selection evaluation')
     result.add_argument('--minutes', type=float, default=25, help='work budget; leave scheduler cleanup margin')
     result.add_argument('--cpu-workers', type=int, default=8)
     result.add_argument('--grammar', choices=['split', 'split-chunks'], default='split')
@@ -78,7 +82,7 @@ def common_arguments(args):
 
 def command(args, case, stage):
     environment = '.venv' if args.platform == 'tuolumne' else '.venv-matrix'
-    python = ROOT / '.venv/bin/python' if stage == 'search' else ROOT / 'triton' / environment / 'bin/python'
+    python = ROOT / '.venv/bin/python' if stage in ('search', 'study_search') else ROOT / 'triton' / environment / 'bin/python'
     return [str(python), str(HERE / 'run.py'), '--stage', stage, '--case', case,
             '--cpu-workers', str(args.cpu_workers), *common_arguments(args)]
 
@@ -88,7 +92,8 @@ def file_hash(path):
 
 
 def stage_binding(directory, stage, config_hash):
-    sequence = ('capture', 'search', 'conventional') if stage == 'conventional' else STAGES
+    sequence = (('capture', 'study_search', 'study') if stage.startswith('study') else
+                ('capture', 'search', 'conventional') if stage == 'conventional' else STAGES)
     index = sequence.index(stage)
     previous = directory / '.debug-stages' / f'{sequence[index - 1]}.json' if index else None
     return digest({'config': config_hash, 'stage': stage,
@@ -165,7 +170,11 @@ def save_summary(args, state, directory):
     for case in args.cases:
         record = state['cases'][case]
         speedup = ''
-        if record['status'] == 'complete' and args.manual:
+        if record['status'] == 'complete' and getattr(args, 'study', False):
+            report = json.loads((directory / case / args.tau_name / 'study.json').read_text())
+            value = report['H_ordinary_over_empirical'].get('speedup')
+            speedup = f'{value:.4f}× (held-out empirical)' if value else 'unavailable'
+        elif record['status'] == 'complete' and args.manual:
             report = json.loads((directory / case / args.tau_name / 'conventional.json').read_text())
             selected = report['analytical_top1'] + '-explicit'
             value = report['fixed_results'].get(selected, {})
@@ -176,7 +185,7 @@ def save_summary(args, state, directory):
             speedup = f"{report['evaluation']['candidates'][selected]['speedup']:.4f}× ({selected})"
         detail = record.get('reason', '')
         if record['status'] == 'complete':
-            report_name = 'conventional.md' if args.manual else 'analysis.md'
+            report_name = 'study.md' if getattr(args, 'study', False) else 'conventional.md' if args.manual else 'analysis.md'
             detail = f'[report]({case}/{args.tau_name}/{report_name})'
         lines.append(f"| {case} | {record['status']} | {record.get('stage', '')} | {speedup} | {detail} |")
     (directory / 'debug-summary.md').write_text('\n'.join(lines) + '\n')
@@ -233,6 +242,10 @@ def collect(args, directory, config_hash, budget):
 def main(argv=None):
     arg_parser = parser()
     args = arg_parser.parse_args(argv)
+    if args.study and (args.manual or args.profile_addresses or not args.address_reference
+                      or args.grammar != 'split' or args.selection != 'analytical'
+                      or any(c not in ('row_column--small', 'sum--small', 'gemm--asymmetric') for c in args.cases)):
+        arg_parser.error('--study requires a frozen --address-reference, split/analytical and row_column--small, sum--small or gemm--asymmetric')
     if args.manual and (args.profile_addresses or args.grammar != 'split'
                         or any(c.split('--')[0] not in ('row_column', 'sum', 'gemm') for c in args.cases)):
         arg_parser.error('--manual requires split grammar and row_column, sum or gemm cases; counters are separate')

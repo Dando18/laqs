@@ -140,11 +140,8 @@ def select_candidates(analysis, profile, *, families=("split", "chunks")):
                             hardware_profile=profile, array_component_cache=cache)
 
     baseline_score = score(baseline)
-    packets = {}
-    for event in analysis.events:
-        width = int(event.meta("vector_elements", "1"))
-        for access in event.accesses:
-            packets[access.array] = max(packets.get(access.array, 0), (width - 1).bit_length())
+    from packet_compatibility import protected_bits
+    packets = protected_bits(analysis.events)
     names = {str(name): int(index) for index, name in analysis.bound_arguments["__names__"].items()}
     records = []
     family_choices = {}

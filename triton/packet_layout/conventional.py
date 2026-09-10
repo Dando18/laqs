@@ -60,14 +60,17 @@ def worker(args):
     verify_inputs(ordinary, stamp)
     ordinary.run()
     reference(spec.operator, ordinary)
-    if spec.operator == 'row_column':
+    if hasattr(args, 'study_storages'):
+        storages = args.study_storages
+    elif spec.operator == 'row_column':
         storages = storage_candidates(ordinary.values[5], search)
     else:
         storages = [{'id': 'ordinary', 'runtime_layouts': [], 'storage': 0},
                     {'id': 'source-ordinary', 'runtime_layouts': [], 'explicit': True},
                     *laqs_candidates(search)]
     frozen = read(args, 'conventional-choice.json') if args.phase == 'conventional-evaluate' else None
-    schedules = ({},) if args.phase == 'conventional-fixed' else SCHEDULES
+    fixed_schedule = args.phase == 'conventional-fixed' or args.phase.startswith('study-')
+    schedules = ({},) if fixed_schedule else SCHEDULES
     launches, contexts, groups, failures, packing, codegen, checks = {}, {}, {}, {}, {}, {}, {}
     packed_cache = {}
     directory = args.directory / args.phase / f'process-{args.process_index}-codegen'
@@ -94,7 +97,7 @@ def worker(args):
             failures[name] = f'{type(error).__name__}: {error}'
             continue
         for index, schedule in enumerate(schedules):
-            label = f'{name}-fixed' if args.phase == 'conventional-fixed' else f'{name}-s{index}'
+            label = f'{name}-fixed' if fixed_schedule else f'{name}-s{index}'
             if frozen and frozen['selected_schedules'].get(name) != label:
                 continue
             try:
