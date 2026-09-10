@@ -63,7 +63,7 @@ def args_parser(argv=None):
     parser.add_argument('--cpu-workers', type=int, default=1,
                         help='CPU processes for tracing and graph construction; reserve this many cores')
     parser.add_argument('--rerun', action='store_true')
-    parser.add_argument('--phase', choices=['tune', 'evaluate', 'diagnose', 'profile', 'conventional-tune', 'conventional-evaluate'], default='evaluate')
+    parser.add_argument('--phase', choices=['tune', 'evaluate', 'diagnose', 'profile', 'conventional-fixed', 'conventional-tune', 'conventional-evaluate'], default='evaluate')
     parser.add_argument('--process-index', type=int, default=0)
     parser.add_argument('--worker-output', type=Path)
     parser.add_argument('--diagnostic-selection', type=Path,
@@ -453,10 +453,12 @@ def run_processes(args, phase):
         output = args.directory / phase / f'process-{index}.json'
         checkpoint = output.with_suffix('.complete.json')
         binding = None
-        if args.resume and phase in ('tune', 'evaluate'):
+        if args.resume and (phase in ('tune', 'evaluate') or phase.startswith('conventional-')):
+            manual = phase.startswith('conventional-')
             binding = digest({'selection': read(args, 'search.json')['selection_hash'],
-                'validation': read(args, 'validated.json')['validation_hash'],
-                'choice': read(args, 'choice.json')['choice_hash'] if phase == 'evaluate' else None,
+                'validation': None if manual else read(args, 'validated.json')['validation_hash'],
+                'choice': (read(args, 'conventional-choice.json')['choice_hash'] if phase == 'conventional-evaluate'
+                           else read(args, 'choice.json')['choice_hash'] if phase == 'evaluate' else None),
                 'phase': phase, 'index': index,
                 'measurement': [args.samples, args.iterations, args.warmup]})
             if checkpoint.exists() and output.exists():
@@ -477,7 +479,7 @@ def run_processes(args, phase):
         if binding is not None:
             write_json(checkpoint, {'binding': binding, 'sha256': hashlib.sha256(output.read_bytes()).hexdigest()})
         records.append(json.loads(output.read_text()))
-    return summarize(records)
+    return {} if phase.startswith('conventional-') else summarize(records)
 
 
 def tune(args):

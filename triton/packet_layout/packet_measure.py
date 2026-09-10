@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import statistics
+import math
 
 from experiment_support import process_summary
 
@@ -183,21 +184,54 @@ def summarize(records):
     return result
 
 
-def packing_cost(launch, layouts, repeats=3):
+def matched_summary(records, baseline, selected):
+    """Average log ratios within placement, then across independent processes.
+
+    Geometric means of placement medians preserve this pairing exactly. Raw
+    samples remain in the worker files; placements never become replicates.
+    """
+    paired, placement_ratios = [], []
+    for record in records:
+        placements = record['allocation']['placements']
+        timings = {}
+        for role, label in [('baseline', baseline), ('selected', selected), ('identity', 'identity')]:
+            medians = [p['timings'][label]['median_ms'] for p in placements]
+            timings[role] = {**sample_record(medians),
+                             'median_ms': math.exp(statistics.fmean(map(math.log, medians)))}
+        paired.append({'timings': timings})
+        placement_ratios.append([p['timings'][baseline]['median_ms'] /
+                                p['timings'][selected]['median_ms'] for p in placements])
+    result = process_summary(paired)
+    result.pop('processes')
+    result.pop('identity_speedups')
+    result.pop('identity_max_deviation')
+    result.pop('identity')
+    result.update(placement_speedups=placement_ratios,
+                  estimand='equal-weight placement log ratios within each process, then equal-weight processes',
+                  time_summary='per-process geometric mean of placement medians; median across processes')
+    for control in ('identity', 'same_pointer'):
+        result[control + '_max_deviation'] = max(
+            abs(p['timings']['ordinary']['median_ms'] / p['timings'][control]['median_ms'] - 1)
+            for row in records for p in row['allocation']['placements'])
+    return result
+
+
+def packing_cost(launch, layouts, repeats=3, *, pack=None):
     """Measure warm packing plus allocation, without compilation or input creation."""
     if not layouts:
         return {'median_ms': 0., 'gpu_median_ms': 0., 'samples_ms': []}
     import torch
     from time import perf_counter
     from layout_runtime import replace_inputs
-    packed = replace_inputs(launch, layouts)
+    pack = pack or replace_inputs
+    packed = pack(launch, layouts)
     torch.cuda.synchronize()
     wall, gpu = [], []
     for _ in range(repeats):
         start, end = (torch.cuda.Event(enable_timing=True) for _ in range(2))
         before = perf_counter()
         start.record()
-        packed = replace_inputs(launch, layouts)
+        packed = pack(launch, layouts)
         end.record()
         end.synchronize()
         wall.append((perf_counter() - before) * 1000)

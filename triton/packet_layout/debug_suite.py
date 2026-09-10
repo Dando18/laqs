@@ -16,14 +16,18 @@ from _bootstrap import HERE, ROOT, activate
 from experiment_support import digest
 from packet_workflow import identity, runtime_identity, write_json
 from tritonbench_cases import CASE_BY_ID
+from packet_cases import CASES
 
 STAGES = ('capture', 'search', 'validate', 'tune', 'evaluate', 'profile')
 OUTPUTS = {'capture': ('capture.json',), 'search': ('search.json', 'graph-ready.json'),
            'validate': ('validated.json',), 'tune': ('choice.json',),
-           'evaluate': ('evaluation.json', 'report.json', 'analysis.md'), 'profile': ('profile.json',)}
+           'evaluate': ('evaluation.json', 'report.json', 'analysis.md'), 'profile': ('profile.json',),
+           'conventional': ('conventional.json', 'conventional.md')}
 
 
 def stages(args):
+    if args.manual:
+        return ('capture', 'search', 'conventional')
     return STAGES if args.profile_addresses else STAGES[:-1]
 
 
@@ -39,7 +43,8 @@ def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument('--platform', choices=['tuolumne', 'matrix'], required=True)
     result.add_argument('--root', type=Path, default=ROOT / 'triton/experiments/results/packet-debug-split')
-    result.add_argument('--cases', nargs='+', choices=tuple(CASE_BY_ID), default=sorted(CASE_BY_ID, key=case_order))
+    result.add_argument('--cases', nargs='+', choices=tuple(CASES), default=sorted(CASE_BY_ID, key=case_order))
+    result.add_argument('--manual', action='store_true', help='compare exact source/pass realizations; row/column also receives equal-budget tuning')
     result.add_argument('--minutes', type=float, default=25, help='work budget; leave scheduler cleanup margin')
     result.add_argument('--cpu-workers', type=int, default=8)
     result.add_argument('--grammar', choices=['split', 'split-chunks'], default='split')
@@ -83,8 +88,9 @@ def file_hash(path):
 
 
 def stage_binding(directory, stage, config_hash):
-    index = STAGES.index(stage)
-    previous = directory / '.debug-stages' / f'{STAGES[index - 1]}.json' if index else None
+    sequence = ('capture', 'search', 'conventional') if stage == 'conventional' else STAGES
+    index = sequence.index(stage)
+    previous = directory / '.debug-stages' / f'{sequence[index - 1]}.json' if index else None
     return digest({'config': config_hash, 'stage': stage,
                    'previous': file_hash(previous) if previous else None})
 
@@ -159,13 +165,19 @@ def save_summary(args, state, directory):
     for case in args.cases:
         record = state['cases'][case]
         speedup = ''
-        if record['status'] == 'complete':
+        if record['status'] == 'complete' and args.manual:
+            report = json.loads((directory / case / args.tau_name / 'conventional.json').read_text())
+            selected = report['analytical_top1'] + '-explicit'
+            value = report['fixed_results'].get(selected, {})
+            speedup = f"{value['speedup']:.4f}× ({selected}, fixed)" if 'speedup' in value else 'no explicit result'
+        elif record['status'] == 'complete':
             report = json.loads((directory / case / args.tau_name / 'report.json').read_text())
             selected = report['choice']['selected']
             speedup = f"{report['evaluation']['candidates'][selected]['speedup']:.4f}× ({selected})"
         detail = record.get('reason', '')
         if record['status'] == 'complete':
-            detail = f'[report]({case}/{args.tau_name}/analysis.md)'
+            report_name = 'conventional.md' if args.manual else 'analysis.md'
+            detail = f'[report]({case}/{args.tau_name}/{report_name})'
         lines.append(f"| {case} | {record['status']} | {record.get('stage', '')} | {speedup} | {detail} |")
     (directory / 'debug-summary.md').write_text('\n'.join(lines) + '\n')
 
@@ -221,6 +233,9 @@ def collect(args, directory, config_hash, budget):
 def main(argv=None):
     arg_parser = parser()
     args = arg_parser.parse_args(argv)
+    if args.manual and (args.profile_addresses or args.grammar != 'split'
+                        or any(c.split('--')[0] not in ('row_column', 'sum', 'gemm') for c in args.cases)):
+        arg_parser.error('--manual requires split grammar and row_column, sum or gemm cases; counters are separate')
     if args.profile_addresses and (args.platform != 'matrix' or not args.address_reference):
         arg_parser.error('--profile-addresses requires Matrix and --address-reference')
     if args.address_reference and (args.grammar != 'split' or args.selection != 'analytical'):
@@ -233,7 +248,7 @@ def main(argv=None):
     args.cases = list(dict.fromkeys(args.cases))
     args.root, args.tau_profile = args.root.resolve(), args.tau_profile.resolve()
     if args.dry_run:
-        print(f'{len(args.cases)} cases; {len({CASE_BY_ID[c].operator for c in args.cases})} operators; '
+        print(f'{len(args.cases)} cases; {len({CASES[c].operator for c in args.cases})} operators; '
               f'{args.minutes:g} minutes; {args.cpu_workers} CPU workers')
         for case in args.cases:
             for stage in stages(args):
@@ -254,7 +269,7 @@ def main(argv=None):
         # Fail once on a missing GPU/toolchain, before marking any case failed.
         activate(args.platform)
         config = {'schema': 'laqs.packet.debug.v1', 'arguments': common_arguments(args),
-                  'cases': args.cases, 'source': identity(), 'tau_sha256': file_hash(args.tau_profile),
+                  'cases': args.cases, 'stages': list(stages(args)), 'source': identity(), 'tau_sha256': file_hash(args.tau_profile),
                   'runtime': runtime_identity()}
         if args.address_reference:
             from address_experiment import reference

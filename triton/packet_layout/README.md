@@ -475,13 +475,60 @@ speedup and the estimated number of reuses needed to amortize packing. This is
 not a producer–consumer pipeline measurement. No positive amortization estimate
 is reported when a changed kernel fails to save time.
 
-## Conventional storage comparison
+## Manual source realization and conventional storage comparison
+
+From the repository root, run either platform's single resumable script:
+
+```bash
+flux run -n1 -g1 -c8 -t 5m -q pdebug \
+  bash triton/packet_layout/run-manual-tuolumne.bash
+
+srun -n1 -G1 -c8 -p pdebug -t 00:05:00 \
+  bash triton/packet_layout/run-manual-matrix.bash
+```
+
+Each invocation stops work after 4.5 minutes. Repeat the same command to resume
+CPU graph checkpoints, completed stages, and individual timing processes.
+The scripts use three independent processes, three matched input placements,
+11 samples, 20 graph iterations, and three warmups. Tuolumne runs both row/column
+sizes and sum; Matrix runs both row/column sizes and asymmetric GEMM. Override
+`--cases` or `--root` on the first invocation to run a smaller panel. Keep the
+settings and sources unchanged when resuming; use a new root after code edits.
+`--retry-failed` retries failures after an environment issue has been corrected.
+
+The stages are automatic native capture, split-family graph search, then manual
+comparison. No objective, solver, selected map, or compiler pass is modified by
+this comparison. The first fixed-schedule comparison measures ordinary,
+explicit LAQS, and repaired automatic LAQS. Row/column also includes column-major
+and the conventional 16×16 tile. Sum/GEMM include `source-ordinary`, an identity
+map control for the manually copied kernel. The optional existing
+`--address-reference` argument retains the earlier large/smaller diagnostic panel.
+
+`manual_layout.split_tile` recovers tile dimensions by matching the saved address
+matrix rows exactly; non-split maps fail explicitly. The reshape/permute packing
+is checked against the generic bit-matrix packer and by a complete unpacking
+round trip. Explicit and automatic variants share these exact packed bytes.
+Sum and GEMM change pointer initialization and increments; their arithmetic,
+masks, grouping and output semantics follow the original kernels. Explicit
+variants execute without a rewrite hook. Separate inspect-only compilations
+collect ownership evidence without rewriting pointers.
+
+Before each measurement all variants' bytes rotate through the same three
+input allocations, and outputs share addresses (except the identity-output
+control). Full outputs are checked both before timing and at every captured
+placement. Compilation, packing, input copies, reference checks and same-variant
+warmups are outside timing. This is a warm repeated-kernel experiment.
+Speedups average log ratios within placement, then across processes; intervals
+use processes as replicates. One-use packing cost and per-placement reuse
+break-even counts are reported separately. Packing uses synchronous wall time
+including allocation, so the conversion-inclusive result includes host overhead.
 
 The row/column operator computes both `A @ x` and `A.T @ z`. Its explicit
 row-major, column-major, and 16×16 tiled implementations receive the same six
 schedule choices: `BLOCK_M` in {1, 4, 16}, `BLOCK_K` in {64, 128}, four warps.
-Every changed LAQS map receives those same six choices through the automatic
-packet pass, with correctness and primitive validation at each schedule.
+Every changed LAQS map receives those same six choices through both explicit
+source and the automatic packet pass, with correctness checks at each schedule
+and native primitive validation for the automatic path.
 Invalid schedules count against the offered budget and remain in the record.
 
 Each storage's schedule is frozen after tuning, then evaluated in fresh
@@ -489,7 +536,28 @@ processes against the tuned ordinary baseline. Results are in `conventional.md`
 and `conventional.json`. This comparison is separate from the bounded deployment
 selection. It is a declared schedule budget, not a claim to the best possible
 conventional kernel or tile. Column/tile kernels use explicit address functions;
-they are never counted as automatic compiler results.
+they are never counted as automatic compiler results. Sum and GEMM receive only
+the fixed-schedule comparison; no additional tuning budget is claimed for them.
+
+Results live under `triton/experiments/results/manual-layout-debug/<platform>/`.
+Each case's `expert/conventional.md` and `conventional.json` separate fixed
+schedule results from held-out tuned results. The `*-explicit` realization
+ratio is automatic runtime divided by explicit runtime; greater than one means
+the explicit source is faster. JSON records include the exact maps, recovered
+tile dimensions, launch parameters, controls, validation failures and placement
+timings. Actual graph-captured binaries and inspection artifacts are saved in
+`conventional-{fixed,tune,evaluate}/process-*-codegen/`.
+
+Changed per-site ownership or memory primitives are recorded. Raw IR encoding
+text changes are a separate diagnostic: repeated snippets and local alias names
+do not establish changed ownership. Optional inspection failures are recorded
+without rejecting a numerically correct manual kernel. Explicit kernels with
+changed ownership or primitives have **not** been
+rescored on a new graph: their speedup alone does not show that the original
+model predicted the new execution strategy. Equal-budget winners may select
+different schedules; use the fixed-schedule panel to diagnose realization cost.
+This panel does not port the historical FP64 HIP MVT/GESUMMV kernels or claim
+that the FP32 row/column kernel preserves their work assignment.
 
 ## Same-layout diagnosis
 

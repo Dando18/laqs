@@ -133,14 +133,16 @@ class PacketMeasuredSelectionTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             args = SimpleNamespace(directory=Path(directory), processes=1, case='row_column--small')
-            search = {'candidates': []}
+            search = {'candidates': [], 'analytical_top1': 'ordinary'}
             search['selection_hash'] = digest(search)
             write_json(args.directory / 'search.json', search)
             phases = []
 
             def measure(args, phase):
                 phases.append(phase)
-                if phase == 'conventional-tune':
+                if phase == 'conventional-fixed':
+                    values = {'ordinary-fixed': 1., 'column-fixed': .9}
+                elif phase == 'conventional-tune':
                     values = {'ordinary-s0': 1.2, 'ordinary-s1': 1., 'column-s0': .8, 'column-s1': 1.1}
                 else:
                     frozen = read(args, 'conventional-choice.json')
@@ -151,6 +153,7 @@ class PacketMeasuredSelectionTests(unittest.TestCase):
                 timings = {label: {'median_ms': value, 'mean_ms': value, 'min_ms': value, 'samples_ms': [value] * 3}
                            for label, value in values.items()}
                 record = {'timings': timings, 'groups': groups, 'failures': {},
+                          'allocation': {'placements': [{'timings': timings}]},
                           'packing': {'ordinary': {'median_ms': 0}, 'column': {'median_ms': 5}}}
                 write_json(args.directory / phase / 'process-0.json', record)
                 return summarize([record])
@@ -159,7 +162,7 @@ class PacketMeasuredSelectionTests(unittest.TestCase):
             with patch.dict(sys.modules, {'run': ModuleType('legacy_run')}), patch('packet_workflow.verify'), patch('packet_workflow.run_processes', side_effect=measure):
                 compare(args)
             result = json.loads((args.directory / 'conventional.json').read_text())
-            self.assertEqual(phases, ['conventional-tune', 'conventional-evaluate'])
+            self.assertEqual(phases, ['conventional-fixed', 'conventional-tune', 'conventional-evaluate'])
             self.assertEqual(result['choice']['budget_per_storage'], 6)
             self.assertEqual(result['results']['column']['speedup'], .5)
             self.assertFalse(result['deployment_selection'])
